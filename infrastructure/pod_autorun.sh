@@ -6,8 +6,8 @@
 #            if [ -d Rolly/.git ]; then git -C Rolly pull -q; else git clone -q -b <branch> <repo-url> Rolly; fi > /workspace/public/clone.log 2>&1;
 #            bash Rolly/infrastructure/pod_autorun.sh; sleep infinity"
 #
-# /workspace/public only receives setup/benchmark output and result files (synthetic data). The application's
-# own log is NOT published because its access lines contain the session access token.
+# /workspace/public only receives setup/benchmark output, result files (synthetic data) and the tail of the
+# application log with the session access token redacted.
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 WS="${ROLLY_WORKSPACE:-/workspace}"; PUB="$WS/public"; LOGS="$WS/logs"; mkdir -p "$PUB" "$LOGS"
@@ -16,6 +16,8 @@ status() { echo "{\"phase\": \"$1\", \"time\": \"$(date -u +%FT%TZ)\", \"commit\
     for f in setup.log bench.out; do [ -f "$LOGS/$f" ] && cp "$LOGS/$f" "$PUB/$f"; done
     [ -f "$LOGS/vllm.log" ] && tail -c 20000 "$LOGS/vllm.log" > "$PUB/vllm.tail.log"
     [ -f "$LOGS/bench.log" ] && tail -c 30000 "$LOGS/bench.log" > "$PUB/bench.tail.log"
+    # application log with access tokens removed, for remote diagnosis
+    [ -f "$LOGS/server.log" ] && tail -c 20000 "$LOGS/server.log" | sed -E 's/token=[A-Za-z0-9]+/token=REDACTED/g' | grep -v "GET /healthz" > "$PUB/server.tail.log"
     mkdir -p "$PUB/results" && cp benchmarks/results/*.json "$PUB/results/" 2>/dev/null && ls "$PUB/results" > "$PUB/results/index.txt"
     nvidia-smi --query-gpu=name,memory.used,memory.total,utilization.gpu --format=csv,noheader > "$PUB/gpu.txt" 2>&1
     sleep 15

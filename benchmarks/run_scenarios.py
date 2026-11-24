@@ -126,6 +126,7 @@ async def run_scenario(url: str, provider: str, sc: dict, tag: str, turn_timeout
                     "latency_ms": round((turn.t_first_audio - said["t_end"]) * 1000),
                     "server_latency_ms": turn.server_latency.get("response_latency_ms"),
                     "agent": turn.text, "agent_audio_s": round(turn.audio_s, 2), "underruns": turn.underruns, "gap_ms": round(turn.gap_ms),
+                    "overlong": turn.overlong,
                 })
                 res["turns"].append(rec)
                 last = turn
@@ -198,7 +199,12 @@ async def main_async(a) -> None:
     RESULTS.mkdir(parents=True, exist_ok=True)
     for rep in range(a.repeat):
         for sc in scenarios:
-            r = await run_scenario(a.url, a.provider, sc, a.tag, a.turn_timeout, a.opener_timeout, json.loads(a.options) if a.options else None)
+            try:  # a scenario may never block the whole run
+                r = await asyncio.wait_for(run_scenario(a.url, a.provider, sc, a.tag, a.turn_timeout, a.opener_timeout,
+                                                        json.loads(a.options) if a.options else None), timeout=a.scenario_timeout)
+            except asyncio.TimeoutError:
+                r = {"id": sc["id"], "title": sc["title"], "language": sc.get("language", "en"), "snr_db": sc.get("snr_db"), "turns": [],
+                     "checks": [], "interruptions": [], "error": f"scenario exceeded {a.scenario_timeout:.0f} s and was abandoned"}
             r["repeat"] = rep
             out["results"].append(r)
             lat = [t.get("latency_ms") for t in r["turns"]]
@@ -220,4 +226,5 @@ if __name__ == "__main__":
     ap.add_argument("--opener-timeout", type=float, default=120)
     ap.add_argument("--hardware", default="unspecified", help="free-text description of the server hardware, stored with the results")
     ap.add_argument("--options", default="", help='JSON session options, e.g. {"endpoint_silence_ms": 320, "eager_silence_ms": 160}')
+    ap.add_argument("--scenario-timeout", type=float, default=480)
     asyncio.run(main_async(ap.parse_args()))

@@ -1,0 +1,258 @@
+{
+ "benchmark": "scenarios",
+ "provider": "openai-realtime",
+ "url": "ws://127.0.0.1:8000/ws?token=2d8c0995455127bbe5886268",
+ "tag": "gpu-oai-smoke",
+ "hardware_note": "OpenAI Realtime API called from a RunPod pod in Sweden (server-side WebSocket bridge); client on the same host; smoke",
+ "host": "Linux-6.8.0-149-generic-x86_64-with-glibc2.35",
+ "started": "2026-11-24T20:25:20",
+ "repeat": 1,
+ "session_options": {},
+ "results": [
+  {
+   "id": "s02_en_brainstorm",
+   "title": "English entrepreneurial brainstorming",
+   "language": "en",
+   "snr_db": null,
+   "turns": [
+    {
+     "said": "Yes, let's continue with that. I think selling through home care agencies is faster.",
+     "speech_s": 4.69,
+     "heard": "Yes, let's continue with that. I think selling through home care agencies is faster.",
+     "wer": 0.0,
+     "latency_ms": 2158,
+     "server_latency_ms": 1395.8,
+     "agent": "That’s a strong instinct. Agencies can give you distribution, but the sales cycle and integrations can slow you down. If “faster” is about reaching lots of families quickly, what’s the smallest pilot an agency would say yes to?",
+     "agent_audio_s": 12.95,
+     "underruns": 0,
+     "gap_ms": 0
+    },
+    {
+     "said": "The risk is that agencies will want a revenue share, and that hurts my margins.",
+     "speech_s": 3.93,
+     "heard": "The risk is that agencies will want a revenue share, and that hurts my margins.",
+     "wer": 0.0,
+     "latency_ms": 1820,
+     "server_latency_ms": 1038.6,
+     "agent": "Right, a revenue share can quietly eat your upside. You could protect yourself with a minimum monthly fee or a capped commission, so the agency gets upside without crushing your margins. Would you test that in one pilot contract before scaling?",
+     "agent_audio_s": 14.7,
+     "underruns": 0,
+     "gap_ms": 0
+    },
+    {
+     "said": "Okay. I will email three agencies by Friday to test their interest.",
+     "speech_s": 3.94,
+     "heard": "Okay, I will email three agencies by Friday to test their interest.",
+     "wer": 0.0,
+     "latency_ms": 4445,
+     "server_latency_ms": 3683.1,
+     "agent": "Great, that’s a clean move. In those emails, keep it simple: the problem, your pilot terms, and what you need from them. Do you want to offer a capped commission as a default?",
+     "agent_audio_s": 9.8,
+     "underruns": 0,
+     "gap_ms": 0
+    }
+   ],
+   "checks": [
+    {
+     "check": "proactive_opener_spoken",
+     "pass": true
+    },
+    {
+     "check": "opener_references_memory",
+     "pass": false,
+     "text": "Good evening—I don’t have your name yet. We’ve got about twenty-five minutes together, and I don’t see an unresolved topic from earlier. Want to pick up whatever you last mentioned, or choose something new?"
+    },
+    {
+     "check": "summary_action_items",
+     "pass": true,
+     "text": "[\"Email three agencies by Friday to test their interest in a pilot.\"]",
+     "summary_method": "llm"
+    }
+   ],
+   "interruptions": [],
+   "error": null,
+   "opener": {
+    "first_audio_ms": 4177,
+    "text": "Good evening—I don’t have your name yet. We’ve got about twenty-five minutes together, and I don’t see an unresolved topic from earlier. Want to pick up whatever you last mentioned, or choose something new?",
+    "audio_s": 10.2,
+    "underruns": 0,
+    "gap_ms": 0
+   },
+   "summary": {
+    "summary": "The user and the agent discussed the go-to-market strategy for a fall-detection idea, specifically comparing direct sales to families versus selling through home-care agencies. The user decided that selling through agencies is a faster route despite concerns regarding revenue sharing and profit margins. To test this approach, the user committed to contacting three agencies to gauge interest.",
+    "topics": [
+     "Go-to-market strategy",
+     "Fall-detection business",
+     "Home-care agency partnerships",
+     "Revenue sharing and margins"
+    ],
+    "decisions": [
+     "Prioritize selling through home-care agencies as the primary go-to-market channel."
+    ],
+    "action_items": [
+     "Email three agencies by Friday to test their interest in a pilot."
+    ],
+    "unresolved_topics": [
+     "Whether to offer a capped commission as a default in pilot contracts"
+    ],
+    "resolved_topics": [
+     "Go-to-market choice for the fall-detection idea: direct to families versus through home-care agencies"
+    ],
+    "new_user_facts": [],
+    "suggested_next_opener": "How did your outreach to those three agencies go?",
+    "method": "llm",
+    "llm": "utility:local",
+    "usage": {
+     "prompt_tokens": 554,
+     "completion_tokens": 283,
+     "ms": 3612.076452933252
+    }
+   },
+   "stats": {
+    "duration_s": 78.57,
+    "turns_user": 3,
+    "turns_agent": 4,
+    "interruptions": 0,
+    "errors": 0,
+    "response_latency_ms": {
+     "n": 3,
+     "median": 1395.8,
+     "mean": 2039.1,
+     "p90": 3225.6,
+     "p95": 3454.3,
+     "min": 1038.6,
+     "max": 3683.1
+    },
+    "endpoint_delay_ms": {
+     "n": 3,
+     "median": 211.3,
+     "mean": 1097.2,
+     "p90": 2338.9,
+     "p95": 2604.9,
+     "min": 209.5,
+     "max": 2870.8
+    },
+    "interrupt_detect_ms": {
+     "n": 0
+    },
+    "client_latency_ms": {
+     "n": 0
+    },
+    "client_stop_ms": {
+     "n": 0
+    },
+    "proactive_first_audio_ms": 4167.6,
+    "stages": {
+     "provider_start_ms": {
+      "n": 1,
+      "median": 1383.7,
+      "mean": 1383.7,
+      "p90": 1383.7,
+      "p95": 1383.7,
+      "min": 1383.7,
+      "max": 1383.7
+     },
+     "summary_ms": {
+      "n": 1,
+      "median": 3612.5,
+      "mean": 3612.5,
+      "p90": 3612.5,
+      "p95": 3612.5,
+      "min": 3612.5,
+      "max": 3612.5
+     }
+    },
+    "audio_in_s": 72.82,
+    "audio_out_s": 47.65,
+    "bytes_up": 2330240,
+    "bytes_down": 2287200,
+    "kbps_up_raw": 237.3,
+    "kbps_down_raw": 232.9,
+    "usage": {
+     "realtime": {
+      "model": "gpt-realtime-2.1",
+      "input_text_tokens": 3848,
+      "input_audio_tokens": 312,
+      "cached_tokens": 2176,
+      "cached_text_tokens": 2112,
+      "cached_audio_tokens": 64,
+      "output_text_tokens": 596,
+      "output_audio_tokens": 953
+     }
+    },
+    "end_reason": "client_end"
+   },
+   "errors": [],
+   "late_mic_frames": 0,
+   "wall_s": 78.6,
+   "repeat": 0
+  }
+ ],
+ "aggregate": {
+  "scenarios": 1,
+  "scenarios_failed": 0,
+  "turns": 3,
+  "turns_without_response": 0,
+  "response_latency_ms": {
+   "n": 3,
+   "median": 2158,
+   "mean": 2807.7,
+   "p90": 3987.6,
+   "p95": 4216.3,
+   "min": 1820,
+   "max": 4445
+  },
+  "wer_synthetic_speech": {
+   "en": {
+    "n": 3,
+    "wer_all": 0.0,
+    "wer_clean": 0.0
+   }
+  },
+  "checks_passed": 2,
+  "checks_total": 3,
+  "checks_failed": [
+   "s02_en_brainstorm:opener_references_memory"
+  ],
+  "interruptions": {
+   "attempted": 0,
+   "detected": 0,
+   "onset_to_interrupt_ms": {
+    "n": 0
+   },
+   "audio_after_interrupt_ms": {
+    "n": 0
+   }
+  },
+  "playout_underruns_per_turn": 0.0,
+  "stage_medians_ms": {
+   "provider_start_ms": {
+    "n": 1,
+    "median": 1383.7,
+    "mean": 1383.7,
+    "p90": 1383.7,
+    "p95": 1383.7,
+    "min": 1383.7,
+    "max": 1383.7
+   },
+   "summary_ms": {
+    "n": 1,
+    "median": 3612.5,
+    "mean": 3612.5,
+    "p90": 3612.5,
+    "p95": 3612.5,
+    "min": 3612.5,
+    "max": 3612.5
+   }
+  },
+  "opener_first_audio_ms": {
+   "n": 1,
+   "median": 4177,
+   "mean": 4177.0,
+   "p90": 4177,
+   "p95": 4177,
+   "min": 4177,
+   "max": 4177
+  }
+ }
+}

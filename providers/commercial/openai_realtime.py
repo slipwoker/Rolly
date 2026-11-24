@@ -88,6 +88,8 @@ class OpenAIRealtimeProvider(VoiceProvider):
                        "description": "Call after your closing sentence when the user clearly wants to stop the conversation.",
                        "parameters": {"type": "object", "properties": {}}}],
             "tool_choice": "auto",
+            # cap a single reply (about 50 s of speech) so a runaway response cannot run for minutes
+            "max_output_tokens": int(self.config.get("max_output_tokens", 1200)),
         })
         self._reader = asyncio.create_task(self._read())
         if self.ctx.proactive and self.ctx.opener_instruction:

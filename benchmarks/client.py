@@ -41,6 +41,7 @@ class AgentTurn:
     server_latency: dict = field(default_factory=dict)
     # simulated playout buffer: audio is played in real time in arrival order
     playback_end: Optional[float] = None
+    overlong: bool = False  # the reply was still playing after 90 s (runaway response)
     underruns: int = 0  # times the playout buffer ran dry in the middle of a turn (audible gap)
     gap_ms: float = 0.0  # total duration of those gaps
 
@@ -254,7 +255,11 @@ class SimClient:
         """Wait until the agent finished generating the turn and (optionally) until a real client
         would have finished playing it."""
         await self.wait_for(lambda: turn.t_done is not None or turn.t_interrupted is not None, timeout)
+        t_listen = time.monotonic()
         while listen and turn.playback_end is not None and turn.t_interrupted is None:
+            if time.monotonic() - t_listen > 90 or self.closed.is_set():  # never listen to one reply for more than 90 s
+                turn.overlong = True
+                break
             delay = turn.playback_end - time.monotonic()
             if delay <= 0:
                 break
