@@ -39,7 +39,8 @@ def _has_any(text: str, keys: list[str]) -> bool:
     return any(k.lower() in low for k in keys)
 
 
-async def run_scenario(url: str, provider: str, sc: dict, tag: str, turn_timeout: float, opener_timeout: float) -> dict:
+async def run_scenario(url: str, provider: str, sc: dict, tag: str, turn_timeout: float, opener_timeout: float,
+                       options: dict | None = None) -> dict:
     lang = sc.get("language", "en")
     speech_lang = lambda text: "he" if any("֐" <= c <= "׿" for c in text) else "en"  # noqa: E731
     noise, gain = None, 0.0
@@ -48,7 +49,7 @@ async def run_scenario(url: str, provider: str, sc: dict, tag: str, turn_timeout
         ref = await user_speech(next(s["say"] for s in sc["steps"] if "say" in s), speech_lang(next(s["say"] for s in sc["steps"] if "say" in s)))
         gain = gain_for_snr(ref, float(sc["snr_db"]))
     c = SimClient(url, {"provider": provider, "user_id": sc["user"], "language": lang, "tag": tag, "ephemeral": True,
-                        "journey": {"duration_min": 25}}, noise=noise, noise_gain=gain)
+                        "journey": {"duration_min": 25}, "options": options or {}}, noise=noise, noise_gain=gain)
     res: dict = {"id": sc["id"], "title": sc["title"], "language": lang, "snr_db": sc.get("snr_db"), "turns": [], "checks": [],
                  "interruptions": [], "error": None}
     t_begin = time.monotonic()
@@ -191,12 +192,13 @@ async def main_async(a) -> None:
     spec = json.loads((ROOT / "benchmarks/scenarios/scenarios.json").read_text(encoding="utf-8"))
     scenarios = [s for s in spec["scenarios"] if a.only is None or any(s["id"].startswith(o) for o in a.only)]
     out = {"benchmark": "scenarios", "provider": a.provider, "url": a.url, "tag": a.tag, "hardware_note": a.hardware,
-           "host": platform.platform(), "started": time.strftime("%Y-%m-%dT%H:%M:%S"), "repeat": a.repeat, "results": []}
+           "host": platform.platform(), "started": time.strftime("%Y-%m-%dT%H:%M:%S"), "repeat": a.repeat,
+           "session_options": json.loads(a.options) if a.options else {}, "results": []}
     path = RESULTS / f"scenarios_{a.provider}_{out['started'].replace(':', '').replace('-', '')}.json"
     RESULTS.mkdir(parents=True, exist_ok=True)
     for rep in range(a.repeat):
         for sc in scenarios:
-            r = await run_scenario(a.url, a.provider, sc, a.tag, a.turn_timeout, a.opener_timeout)
+            r = await run_scenario(a.url, a.provider, sc, a.tag, a.turn_timeout, a.opener_timeout, json.loads(a.options) if a.options else None)
             r["repeat"] = rep
             out["results"].append(r)
             lat = [t.get("latency_ms") for t in r["turns"]]
@@ -217,4 +219,5 @@ if __name__ == "__main__":
     ap.add_argument("--turn-timeout", type=float, default=90)
     ap.add_argument("--opener-timeout", type=float, default=120)
     ap.add_argument("--hardware", default="unspecified", help="free-text description of the server hardware, stored with the results")
+    ap.add_argument("--options", default="", help='JSON session options, e.g. {"endpoint_silence_ms": 320, "eager_silence_ms": 160}')
     asyncio.run(main_async(ap.parse_args()))

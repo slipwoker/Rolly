@@ -38,11 +38,12 @@ LINES = {
 }
 
 
-async def one_user(i: int, url: str, provider: str, lang: str, turns: int, tag: str, timeout: float, stagger: float) -> dict:
+async def one_user(i: int, url: str, provider: str, lang: str, turns: int, tag: str, timeout: float, stagger: float,
+                   options: dict | None = None) -> dict:
     await asyncio.sleep(stagger)
     rnd = random.Random(i)
     c = SimClient(url, {"provider": provider, "user_id": "noa" if lang == "he" else "daniel", "language": lang, "tag": tag,
-                        "ephemeral": True, "skip_summary": True, "journey": {"duration_min": 25}})
+                        "ephemeral": True, "skip_summary": True, "journey": {"duration_min": 25}, "options": options or {}})
     out = {"user": i, "lang": lang, "latencies": [], "failed_turns": 0, "underruns": 0, "error": None, "opener_ms": None}
     t_session = time.monotonic()
     try:
@@ -91,7 +92,7 @@ async def main_async(a) -> None:
         for line in LINES[lang]:
             await user_speech(line, lang)
     out = {"benchmark": "concurrency", "provider": a.provider, "hardware_note": a.hardware, "host": platform.platform(),
-           "started": time.strftime("%Y-%m-%dT%H:%M:%S"), "turns_per_user": a.turns,
+           "started": time.strftime("%Y-%m-%dT%H:%M:%S"), "turns_per_user": a.turns, "session_options": json.loads(a.options) if a.options else {},
            "targets_ms": {"median": a.target_median, "p95": a.target_p95}, "levels": []}
     path = RESULTS / f"concurrency_{a.provider}_{out['started'].replace(':', '').replace('-', '')}.json"
     RESULTS.mkdir(parents=True, exist_ok=True)
@@ -99,7 +100,8 @@ async def main_async(a) -> None:
         t0 = time.time()
         before = (resources(http, a.admin_token) or {}).get("now") or {}
         users = await asyncio.gather(*[
-            one_user(i, a.url, a.provider, a.langs[i % len(a.langs)], a.turns, f"{a.tag}-c{n}", a.timeout, stagger=i * a.stagger)
+            one_user(i, a.url, a.provider, a.langs[i % len(a.langs)], a.turns, f"{a.tag}-c{n}", a.timeout, stagger=i * a.stagger,
+                     options=json.loads(a.options) if a.options else None)
             for i in range(n)])
         res = resources(http, a.admin_token)
         after = (res or {}).get("now") or {}
@@ -149,4 +151,5 @@ if __name__ == "__main__":
     ap.add_argument("--stop-on-fail", action="store_true")
     ap.add_argument("--admin-token", default="")
     ap.add_argument("--hardware", default="unspecified")
+    ap.add_argument("--options", default="", help="JSON session options passed to every session")
     asyncio.run(main_async(ap.parse_args()))

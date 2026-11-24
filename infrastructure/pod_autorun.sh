@@ -27,7 +27,8 @@ if [ "${ROLLY_SKIP_SETUP:-0}" != "1" ]; then
 fi
 if [ "${ROLLY_SETUP_ONLY:-0}" = "1" ]; then status setup_done; sleep 20; exit 0; fi
 status benchmarking
-bash infrastructure/pod_bench.sh > "$LOGS/bench.out" 2>&1
+# ROLLY_BENCH_SCRIPT selects a different experiment script for follow-up passes
+bash "${ROLLY_BENCH_SCRIPT:-infrastructure/pod_bench.sh}" > "$LOGS/bench.out" 2>&1
 cp "$WS/rolly-gpu-results.tar.gz" "$PUB/" 2>/dev/null
 mkdir -p "$PUB/results" && cp benchmarks/results/*.json "$PUB/results/" 2>/dev/null; cp reports/benchmark_summary.md "$PUB/" 2>/dev/null
 ls "$PUB/results" > "$PUB/results/index.txt" 2>/dev/null
