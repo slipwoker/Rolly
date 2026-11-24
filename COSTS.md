@@ -6,7 +6,7 @@ Two things are tracked here: what the experiment itself cost, and what the produ
 
 | Item | Spent | How it is known |
 |---|---:|---|
-| GPU rental: one RunPod L40S, 3 h 17 min at $1.09/h, plus volume | **$3.58** | Exact: RunPod balance went from $50.00 to $46.42; the pod is terminated |
+| GPU rental: one RunPod L40S, about 3 h 20 min at $1.09/h, plus volume | **$3.66** | Exact: RunPod balance went from $50.00 to $46.34; the pod is terminated |
 | OpenAI API | **about $3–$4** (estimate) | Realtime runs: $2.36 computed from the token usage in the saved result files, plus one interrupted realtime run of about ten minutes that left no file (about $0.70), plus language-model and transcription calls (under $0.60). List prices are unverified and the account's billing page is the authority |
 | Model downloads, datasets | $0 | Open weights and FLEURS |
 | **Total** | **about $7–$8** | of a $300–$700 budget |

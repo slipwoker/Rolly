@@ -65,7 +65,7 @@ Recommendation: **proceed, and build on the self-hosted modular pipeline from th
 several hundred daily users, the latency advantage is the product, and nothing in the stack carries a per-minute fee. Keep an API
 language model as a fallback route, and decide the Hebrew voice (open or commercial) by a blind listening test.
 
-Money spent: **$3.58** of GPU rental (exact) and an estimated **$3–$4** of OpenAI usage, out of a $300–$700 budget.
+Money spent: **$3.66** of GPU rental (exact) and an estimated **$3–$4** of OpenAI usage, out of a $300–$700 budget.
 
 ---
 

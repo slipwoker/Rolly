@@ -48,7 +48,7 @@ emulators or on CPU only.
 
 13. GPU run. The owner funded RunPod and saved an API key. The REST host failed through the session proxy; the GraphQL host worked. One L40S pod was created through the API and driven without shell access: a start command clones the repository and runs setup and benchmarks, publishing logs and results on a read-only HTTP port. Problems met and fixed: vLLM needs a C compiler that the slim CUDA image lacks; progress output was buffered, which I twice misread as a stalled run and restarted unnecessarily (about 20 minutes of pod time); the first concurrency ramp stopped after one level because of an over-strict stop rule.
 14. OpenAI Realtime from the pod. The owner set the key on the pod. The bridge worked on the first live call; the opener ignored memory (per-response instructions replace session instructions) and was fixed and re-run. Safety limits added: reply length cap, per-scenario timeout.
-15. Four benchmark passes on the pod; pod terminated at 21:55 UTC; $3.58 spent.
+15. Four benchmark passes on the pod; pod terminated at 21:55 UTC; $3.66 spent.
 
 ## What changed in the conclusions during the session
 

@@ -31,7 +31,7 @@ Two environments were used on 2026-11-24:
 ## 0. GPU and commercial-baseline results (RunPod L40S)
 
 Raw files: `benchmarks/results/*_20261124T18…` to `…T21…` with "GPU pod" or "RunPod" in their `hardware_note`.
-Scripts: `infrastructure/pod_setup.sh`, `pod_bench.sh`, `pod_bench2.sh`, `pod_bench5.sh`. Total pod time 3 h 17 min, $3.58.
+Scripts: `infrastructure/pod_setup.sh`, `pod_bench.sh`, `pod_bench2.sh`, `pod_bench5.sh`. Total pod time about 3 h 20 min, $3.66.
 
 **Setup.** Everything self-hosted ran on the one GPU: two Whisper large-v3-turbo models (Hebrew-tuned and stock, float16),
 and `RedHatAI/gemma-4-26B-A4B-it-FP8-dynamic` under vLLM with prefix caching; 36 GB of the 46 GB of GPU memory were in use.

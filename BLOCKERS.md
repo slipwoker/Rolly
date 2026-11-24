@@ -15,7 +15,7 @@ Still open: a Google Gemini API key for the Gemini Live baseline (bridge impleme
 ## B2 — GPU for latency and concurrency measurement  ·  RESOLVED
 
 2026-11-24: the owner funded a RunPod account ($50), saved an API key, and made the repository public so a pod could clone it.
-One L40S ran for 3 h 17 min ($3.58) and was terminated. Results: `BENCHMARKS.md` section 0. Scripts used:
+One L40S ran for about 3 h 20 min ($3.66) and was terminated. Results: `BENCHMARKS.md` section 0. Scripts used:
 `infrastructure/pod_setup.sh`, `pod_autorun.sh`, `pod_bench.sh`, `pod_bench2.sh`, `pod_bench5.sh`.
 
 Housekeeping for the owner:
@@ -23,7 +23,7 @@ Housekeeping for the owner:
 - RunPod API keys are saved on the session environment for `api.runpod.io` and `rest.runpod.io` (the second host never worked through
   the proxy and can be deleted). Remove both in the environment settings if no further GPU runs are planned.
 - The environment's network access was changed to unrestricted during the session.
-- RunPod balance remaining: $46.42. No pods or volumes are left.
+- RunPod balance remaining: $46.34. No pods or volumes are left.
 
 ## B3 — Human evaluators for the blind test  ·  OPEN
 
