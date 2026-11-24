@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rolly - drive mode</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Rolly · drive mode</h1>
+    <nav><a class="on" href="index.html">Drive</a><a href="eval.html">Blind evaluation</a><a href="dashboard.html">Telemetry</a></nav>
+  </header>
+
+  <section class="panel" id="setup">
+    <div class="grid">
+      <label>Traveller <select id="user"></select></label>
+      <label>Agent <select id="provider"></select></label>
+      <label>Language <select id="language"><option value="">profile default</option><option value="he">Hebrew</option><option value="en">English</option><option value="auto">Auto (mixed)</option></select></label>
+      <label>Journey minutes <input id="minutes" type="number" min="1" max="75" value="25"></label>
+    </div>
+    <p class="note">Press start once. From then on the conversation is voice only: the agent speaks first, you can interrupt it at any time,
+      and you end by saying so ("that's enough for today"). Use headphones or a device with echo cancellation.
+      Raw audio is <span id="retain">not stored</span>.</p>
+  </section>
+
+  <section class="panel stage">
+    <div class="orb" id="orb" data-state="idle" role="img" aria-label="conversation state"></div>
+    <div class="status" id="status" aria-live="polite">Ready</div>
+    <div class="row">
+      <button id="start">Start journey</button>
+      <button id="arrive" class="secondary" hidden>Simulate "arriving in a minute"</button>
+      <button id="end" class="danger" hidden>End journey</button>
+    </div>
+    <label class="note"><input type="checkbox" id="showcap"> show captions (for testing; not needed while driving)</label>
+  </section>
+
+  <section class="panel captions" id="captions" hidden></section>
+
+  <section class="panel" id="summary" hidden>
+    <h2>Journey summary</h2>
+    <dl class="kv" id="summarykv"></dl>
+    <h2>Measured in this session</h2>
+    <dl class="kv" id="statskv"></dl>
+  </section>
+</main>
+<script type="module">
+import { VoiceClient, api, qs } from './voice.js';
+const $ = (id) => document.getElementById(id);
+const labels = { idle: 'Ready', connecting: 'Connecting…', listening: 'Listening', hearing: 'Hearing you', thinking: 'Thinking',
+  speaking: 'Speaking', summarising: 'Summarising the journey…', ended: 'Journey ended' };
+let client, arrivalTimer, turnEl = {};
+
+async function init() {
+  const [u, p] = await Promise.all([api('/api/users'), api('/api/providers')]);
+  $('user').innerHTML = u.users.map((x) => `<option value="${x.user_id}">${x.name || x.user_id} (${x.preferred_language})</option>`).join('');
+  $('provider').innerHTML = p.providers.map((x) => `<option value="${x.id || x.label}" ${x.available ? '' : 'disabled'}>${x.label}${x.id ? ' · ' + x.id : ''}${x.available ? '' : ' (unavailable)'}</option>`).join('');
+  const firstOk = p.providers.find((x) => x.available); if (firstOk) $('provider').value = firstOk.id || firstOk.label;
+  if (qs.get('provider')) { const v = qs.get('provider'); if (![...$('provider').options].some((o) => o.value === v)) $('provider').add(new Option(v, v)); $('provider').value = v; }
+  if (qs.get('user')) $('user').value = qs.get('user');
+  if (qs.get('autostart')) start();
+}
+
+function caption(role, seq, text, replace) {
+  const key = role + seq;
+  let el = turnEl[key];
+  if (!el) { el = document.createElement('p'); el.className = role; el.innerHTML = `<b>${role === 'user' ? 'You' : 'Rolly'}</b><span></span>`; $('captions').appendChild(el); turnEl[key] = el; }
+  const span = el.lastChild; span.textContent = replace ? text : span.textContent + text;
+  $('captions').scrollTop = $('captions').scrollHeight;
+}
+
+function kv(el, rows) { el.innerHTML = rows.filter((r) => r[1] !== undefined && r[1] !== null && r[1] !== '').map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''); }
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const list = (a) => (a && a.length ? a.map(esc).join('<br>') : '');
+
+function onEvent(m) {
+  if (m.type === 'session.created') $('retain').textContent = m.retain_audio ? 'being stored (retention enabled by the operator)' : 'not stored';
+  if (m.type === 'user.transcript' && m.final && m.text) caption('user', performance.now(), m.text, true);
+  if (m.type === 'agent.text') caption('agent', m.seq, m.delta, false);
+  if (m.type === 'agent.turn_done') caption('agent', m.seq, m.text, true);
+  if (m.type === 'error') $('status').textContent = 'Error: ' + m.message;
+  if (m.type === 'session.summary') {
+    const s = m.summary || {}, st = m.stats || {};
+    kv($('summarykv'), [['Summary', esc(s.summary || 'No summary (the conversation had no user turns).')], ['Decisions', list(s.decisions)],
+      ['Your action items', list(s.action_items)], ['To continue next time', list(s.unresolved_topics)], ['Next opener', esc(s.suggested_next_opener || '')]]);
+    const lat = st.response_latency_ms || {};
+    kv($('statskv'), [['Duration', `${Math.round(st.duration_s || 0)} s`], ['Turns (you / agent)', `${st.turns_user} / ${st.turns_agent}`],
+      ['Response latency, median', lat.n ? `${lat.median} ms (n=${lat.n})` : ''], ['Response latency, p95', lat.n ? `${lat.p95} ms` : ''],
+      ['Interruptions', st.interruptions], ['Ended because', st.end_reason]]);
+    $('summary').hidden = false;
+  }
+}
+
+async function start() {
+  $('start').disabled = true; $('summary').hidden = true; $('captions').innerHTML = ''; turnEl = {};
+  client = new VoiceClient({
+    onState: (s) => { $('orb').dataset.state = s; $('status').textContent = labels[s] || s;
+      if (s === 'ended') { $('start').disabled = false; $('end').hidden = true; $('arrive').hidden = true; clearTimeout(arrivalTimer); } },
+    onEvent,
+  });
+  const minutes = Number($('minutes').value) || 25;
+  try {
+    await client.start({ provider: $('provider').value, user_id: $('user').value, language: $('language').value || undefined,
+      journey: { duration_min: minutes, mode: 'driving' }, proactive: true, tag: qs.get('tag') || 'manual' });
+    $('end').hidden = false; $('arrive').hidden = false;
+    arrivalTimer = setTimeout(() => client.journeyEvent('arrival_soon'), Math.max(30, minutes * 60 - 60) * 1000);
+  } catch (e) { $('status').textContent = 'Could not start: ' + e.message; $('start').disabled = false; }
+}
+$('start').onclick = start;
+$('end').onclick = () => client && client.end();
+$('arrive').onclick = () => client && client.journeyEvent('arrival_soon');
+$('showcap').onchange = (e) => { $('captions').hidden = !e.target.checked; };
+init().catch((e) => { $('status').textContent = 'Failed to load: ' + e.message; });
+</script>
+</body>
+</html>

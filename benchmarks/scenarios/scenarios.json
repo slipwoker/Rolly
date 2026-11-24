@@ -1,0 +1,110 @@
+{
+  "_doc": "Scripted benchmark scenarios. All user speech is synthesised (benchmarks/synth.py); profiles are the synthetic users in memory/seed_profiles.json. Step kinds: say (speak and wait for the reply), barge_in (speak N seconds into the agent's reply), expect (keyword check on the last agent reply, any-of), expect_opener (keyword check on the proactive opener), expect_summary (keyword check on summary fields).",
+  "scenarios": [
+    {
+      "id": "s01_he_brainstorm", "title": "Hebrew entrepreneurial brainstorming", "user": "noa", "language": "he",
+      "steps": [
+        {"expect_opener": ["תשלומים", "כיוון", "גרמניה", "דירקטוריון", "אפשרו", "סטארטאפ", "ישיבת", "לקוחות"]},
+        {"say": "כן, בואי נמשיך עם זה. אני נוטה לאפשרות של מודול התשלומים."},
+        {"say": "מה שמדאיג אותי זה שאין לנו בצוות ניסיון ברגולציה של פינטק."},
+        {"say": "אז מה לדעתך הצעד הראשון שהכי כדאי לעשות השבוע?"}
+      ]
+    },
+    {
+      "id": "s02_en_brainstorm", "title": "English entrepreneurial brainstorming", "user": "daniel", "language": "en",
+      "steps": [
+        {"expect_opener": ["famil", "agenc", "fall", "interview", "market", "Spanish", "ser"]},
+        {"say": "Yes, let's continue with that. I think selling through home care agencies is faster."},
+        {"say": "The risk is that agencies will want a revenue share, and that hurts my margins."},
+        {"say": "Okay. I will email three agencies by Friday to test their interest."},
+        {"expect_summary": {"field": "action_items", "any": ["agenc", "email"]}}
+      ]
+    },
+    {
+      "id": "s03_personal_planning", "title": "Personal planning", "user": "daniel", "language": "en",
+      "steps": [
+        {"say": "Let's do something different today. Help me plan my week. I need to fit in six interviews and three Spanish practice sessions."},
+        {"say": "Mornings are best for interviews. I am free Monday, Tuesday and Thursday mornings."},
+        {"say": "Good. So what does my Tuesday look like?"},
+        {"expect": ["Tuesday", "interview", "Spanish", "morning"]}
+      ]
+    },
+    {
+      "id": "s04_learning", "title": "Learning a new subject", "user": "daniel", "language": "en",
+      "steps": [
+        {"say": "I want to practice Spanish. Can you explain the difference between ser and estar?"},
+        {"expect": ["permanent", "temporary", "identity", "state", "location", "condition", "characteristic"]},
+        {"say": "Give me one example sentence for each, and then quiz me."}
+      ]
+    },
+    {
+      "id": "s05_continue_previous", "title": "Continuing a previous conversation", "user": "daniel", "language": "en",
+      "steps": [
+        {"expect_opener": ["famil", "agenc", "fall", "interview", "market"]},
+        {"say": "Remind me, what was the open question we had left from yesterday?"},
+        {"expect": ["famil", "agenc"]},
+        {"say": "And how many customer interviews have I completed so far?"},
+        {"expect": ["four", "4"]}
+      ]
+    },
+    {
+      "id": "s06_topic_switch", "title": "Switching topics unexpectedly", "user": "daniel", "language": "en",
+      "steps": [
+        {"say": "Yes, the go to market question is the important one."},
+        {"say": "Actually, forget that for now. I want to talk about the walnut bookshelf I am building."},
+        {"expect": ["bookshel", "walnut", "wood", "shel", "build"]}
+      ]
+    },
+    {
+      "id": "s07_interrupt", "title": "Interrupting the agent mid-sentence", "user": "daniel", "language": "en",
+      "steps": [
+        {"say": "Tell me in detail about the pros and cons of selling directly to families."},
+        {"barge_in": "Wait, stop. I have a different question.", "after_s": 1.5},
+        {"say": "How many interviews do I still have to schedule?"},
+        {"expect": ["six", "6"]}
+      ]
+    },
+    {
+      "id": "s08_correction", "title": "Correcting misunderstood information", "user": "daniel", "language": "en",
+      "steps": [
+        {"say": "Quick update on the interviews."},
+        {"say": "No, that is not right. I have actually completed seven interviews, not four."},
+        {"say": "So how many interviews are left out of the ten?"},
+        {"expect": ["three", "3"]}
+      ]
+    },
+    {
+      "id": "s09_code_switch", "title": "Hebrew-English code-switching", "user": "noa", "language": "auto",
+      "steps": [
+        {"say": "אני חושבת שצריך לעשות integration עם Stripe לפני שבונים את ה payments module."},
+        {"say": "ה roadmap שלנו כבר מלא, אז אולי נדחה את ה feature הזה ל Q2."}
+      ]
+    },
+    {
+      "id": "s10a_road_noise_en", "title": "Conversation with simulated road noise (English, 5 dB SNR)", "user": "daniel", "language": "en", "snr_db": 5,
+      "steps": [
+        {"say": "Yes, let's continue with that. I think selling through home care agencies is faster."},
+        {"say": "How many customer interviews have I completed so far?"},
+        {"expect": ["four", "4"]}
+      ]
+    },
+    {
+      "id": "s10b_road_noise_he", "title": "Conversation with simulated road noise (Hebrew, 5 dB SNR)", "user": "noa", "language": "he", "snr_db": 5,
+      "steps": [
+        {"say": "כן, בואי נמשיך עם זה. אני נוטה לאפשרות של מודול התשלומים."},
+        {"say": "תזכירי לי, מה הייתה האפשרות השלישית שדיברנו עליה?"},
+        {"expect": ["גרמני"]}
+      ]
+    },
+    {
+      "id": "s12_proactive_end", "title": "Proactive initiation and natural ending", "user": "noa", "language": "he",
+      "steps": [
+        {"expect_opener": ["נועה"]},
+        {"say": "היום אני מעדיפה לדבר על הריצה שלי ולא על העבודה."},
+        {"expect": ["ריצ", "מרתון", "אימון", "לרוץ", "רצה"]},
+        {"say": "טוב, זה מספיק להיום, תודה, להתראות."},
+        {"expect_end": true}
+      ]
+    }
+  ]
+}

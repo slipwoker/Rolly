@@ -1,0 +1,107 @@
+# Inputs of the financial model (finops/cost_model.py).
+#
+# status legend (carried into every output so nothing is mistaken for a measurement):
+#   measured    - measured in this POC (see benchmarks/results)
+#   published   - taken from a vendor page / model card that was fetched directly
+#   unverified  - from search-index excerpts or third-party trackers; the vendor page could not be fetched
+#   estimate    - derived arithmetic on published/unverified inputs (see docs/research)
+#   assumption  - a planning assumption chosen by us; change it freely
+#
+# Sources: docs/research/01..06-*.md (accessed 2026-11-24).
+
+usage:
+  minutes_per_user_per_day: 30
+  days_per_month: 30
+  daily_active_users: [200, 1000, 10000, 100000]
+  user_speech_share: 0.40        # assumption: share of connected time the user speaks
+  agent_speech_share: 0.40       # assumption
+  turns_per_minute: 4            # assumption (measured value to be filled from 30-minute sessions)
+  # Share of a day's conversation minutes that falls into each local hour (weekday commute pattern).
+  # assumption - two commute peaks; normalised in code.  Busiest hour carries ~15 % of the day.
+  hourly_profile: [0.2, 0.1, 0.1, 0.1, 0.2, 0.8, 4.0, 13.0, 15.0, 8.0, 3.0, 2.5, 2.5, 2.5, 3.0, 5.0, 9.0, 13.0, 8.0, 4.0, 2.0, 1.5, 1.0, 0.5]
+  burst_headroom: 1.25           # assumption: capacity kept above the hourly average for bursts within the hour
+
+commercial_realtime:             # USD per conversational minute, 30-minute session average
+  openai_gpt_realtime_2_1:
+    label: "OpenAI gpt-realtime-2.1 (ideal prompt caching)"
+    usd_per_min: 0.077
+    status: estimate
+    note: "token prices unverified (third-party registry); $0.22/min at 90% cache effectiveness, $1.45 with no caching"
+  openai_gpt_realtime_2_1_realistic:
+    label: "OpenAI gpt-realtime-2.1 (90% cache effectiveness)"
+    usd_per_min: 0.22
+    status: estimate
+  openai_gpt_realtime_2_1_mini:
+    label: "OpenAI gpt-realtime-2.1-mini (ideal prompt caching)"
+    usd_per_min: 0.030
+    status: estimate
+  openai_gpt_live_1_1:
+    label: "OpenAI gpt-live-1.1 (flat per-minute price)"
+    usd_per_min: 0.050
+    status: unverified
+  gemini_3_8_live:
+    label: "Google gemini-3.8-live (tight context window)"
+    usd_per_min: 0.060
+    status: estimate
+    note: "$0.019 in minute 1; $0.23/min averaged over 30 min without context compression"
+
+commercial_components:           # for the hybrid architectures
+  stt_soniox_rt:           {usd_per_audio_min: 0.0020, status: published, label: "Soniox stt-rt-v6 streaming"}
+  stt_deepgram_nova3_he:   {usd_per_audio_min: 0.0048, status: published, label: "Deepgram Nova-3 (Hebrew)"}
+  llm_gemini_3_1_flash_lite: {usd_per_conv_min_nocache: 0.00402, usd_per_conv_min_cached: 0.00098, status: estimate, label: "gemini-3.1-flash-lite"}
+  llm_gpt_6_luna:          {usd_per_conv_min_nocache: 0.00159, usd_per_conv_min_cached: 0.00041, status: estimate, label: "gpt-6-luna"}
+  tts_inworld_2_flash:     {usd_per_generated_min_he: 0.011, usd_per_generated_min_he_committed: 0.005, status: published, label: "Inworld TTS-2 Flash (Hebrew)"}
+  tts_azure_neural_he:     {usd_per_generated_min_he: 0.011, usd_per_generated_min_he_committed: 0.0045, status: published, label: "Azure Neural he-IL"}
+
+gpu:                             # USD per GPU-hour.  ALL rental prices are unverified (pricing pages blocked by the session proxy).
+  l4_runpod:        {gpu: L4,   usd_per_hour: 0.69, kind: cloud_on_demand, status: unverified, label: "L4 24GB, RunPod Secure on-demand"}
+  l40s_runpod:      {gpu: L40S, usd_per_hour: 1.09, kind: cloud_on_demand, status: unverified, label: "L40S 48GB, RunPod Secure on-demand"}
+  l40s_community:   {gpu: L40S, usd_per_hour: 0.79, kind: cloud_marketplace, status: unverified, label: "L40S 48GB, marketplace floor"}
+  h100_hyperstack:  {gpu: H100, usd_per_hour: 2.50, kind: cloud_on_demand, status: unverified, label: "H100 80GB, Hyperstack on-demand"}
+  hetzner_gex63:    {gpu: "96GB-class (GEX63)", usd_per_hour: 1.57, kind: dedicated_monthly, monthly_usd: 1149, status: unverified, label: "Hetzner GEX63 dedicated (EUR 999/mo @1.15)"}
+  owned_l40s:       {gpu: L40S, usd_per_hour: 0.69, kind: owned_36mo, status: estimate, label: "Owned 8xL40S server, 36-month amortisation, colo+power+10%/yr maintenance"}
+  owned_l4:         {gpu: L4,   usd_per_hour: 0.29, kind: owned_36mo, status: estimate, label: "Owned 8xL4 server, 36-month amortisation"}
+
+# Concurrent conversations one L40S-class GPU can serve per pipeline stage while keeping latency targets.
+# NONE of this is measured yet - it is exactly what the GPU concurrency benchmark (benchmarks/concurrency.py) must determine.
+self_hosted_capacity:
+  status: assumption
+  basis: >
+    STT: ivrit.ai publishes 231 ms p50 per 0-5 s utterance on L40S (published); 4 utterances/min plus speculative
+    re-decodes ~1.2 GPU-s per conversation-minute => ~50 conversations at 100% duty, fewer with queueing headroom.
+    LLM: 50-150 conversations per L40S for a ~4B-active MoE under vLLM is an unmeasured research estimate.
+    TTS: Kokoro/Piper-class models at GPU real-time factor ~0.02 with 40% agent speech.
+  scenarios:
+    low:  {stt: 20, llm: 50,  tts: 40}
+    base: {stt: 40, llm: 100, tts: 80}
+    high: {stt: 80, llm: 150, tts: 160}
+  l4_factor: 0.45        # assumption: an L4 serves ~45 % of an L40S for these workloads
+  h100_factor: 2.2       # assumption
+
+infrastructure:
+  vcpu_hour: {usd: 0.04, status: unverified}
+  sessions_per_vcpu: {value: 40, status: assumption, note: "replace with benchmarks/results/concurrency_mock_*.json (session layer + VAD)"}
+  egress_gb: {usd: 0.09, status: unverified, note: "AWS first 10 TB; ~0 on Hetzner"}
+  opus_mb_per_conv_min: {value: 0.8, status: estimate, note: "both directions, 24-32 kbps Opus + overhead"}
+  storage_gb_month: {usd: 0.023, status: unverified}
+  transcript_kb_per_conv_min: {value: 1.5, status: estimate}
+  fixed_monthly_by_dau:          # database, monitoring, logging, CI, misc.   status: assumption
+    200: 150
+    1000: 350
+    10000: 1500
+    100000: 8000
+  redundancy_factor: 1.2         # assumption: N+1 / second zone on the GPU fleet
+  min_gpus_always_on: 2          # assumption: self-hosting never runs on fewer than two GPUs
+
+people:                          # status: assumption
+  fte_monthly_usd: 15000         # fully-loaded senior engineer
+  ops_fte:                       # ongoing operations per architecture, by DAU tier
+    commercial:  {200: 0.2, 1000: 0.3, 10000: 0.5, 100000: 1.0}
+    hybrid:      {200: 0.4, 1000: 0.6, 10000: 1.0, 100000: 2.0}
+    self_hosted: {200: 1.0, 1000: 1.25, 10000: 1.75, 100000: 3.5}
+  one_time_dev_person_months:    # MVP voice stack only (not the whole product)
+    commercial: 4
+    hybrid: 7
+    self_hosted: 10
+
+targets_usd_per_min: [0.05, 0.01, 0.005, 0.001]

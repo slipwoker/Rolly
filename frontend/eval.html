@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rolly - blind evaluation</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Rolly · blind evaluation</h1>
+    <nav><a href="index.html">Drive</a><a class="on" href="eval.html">Blind evaluation</a><a href="dashboard.html">Telemetry</a></nav>
+  </header>
+
+  <section class="panel" id="intro">
+    <p>You will talk to several voice agents, one after another, for about three minutes each. They are labelled with letters only;
+      you are not told which technology is behind each one, and the order is different for every evaluator.</p>
+    <p class="note">Suggested script for each agent: let it open the conversation, answer it, change the subject once,
+      interrupt it once in the middle of a sentence, correct something it got wrong, and end by saying you have arrived.</p>
+    <div class="grid">
+      <label>Your evaluator name or code <input id="evaluator" type="text" maxlength="64" placeholder="e.g. eval-03"></label>
+      <label>Traveller profile <select id="user"></select></label>
+      <label>Language <select id="language"><option value="he">Hebrew</option><option value="en">English</option><option value="auto">Mixed</option></select></label>
+    </div>
+    <p><button id="begin">Begin</button></p>
+  </section>
+
+  <section class="panel stage" id="talk" hidden>
+    <div class="status"><b id="which"></b> · <span id="progress"></span></div>
+    <div class="orb" id="orb" data-state="idle"></div>
+    <div class="status" id="status" aria-live="polite">Ready</div>
+    <div class="row"><button id="start">Start conversation</button><button id="end" class="danger" hidden>End conversation</button></div>
+  </section>
+
+  <section class="panel" id="rate" hidden>
+    <h2>Rate <span id="which2"></span> (1 = poor, 5 = excellent)</h2>
+    <form id="form"></form>
+    <label>Comments <textarea id="comments" rows="3"></textarea></label>
+    <p><button id="submit">Submit and continue</button></p>
+  </section>
+
+  <section class="panel" id="done" hidden><h2>Thank you</h2><p>All agents were rated. You can close this page.</p></section>
+</main>
+<script type="module">
+import { VoiceClient, api } from './voice.js';
+const $ = (id) => document.getElementById(id);
+const NAMES = { naturalness: 'Naturalness of the voice', hebrew_quality: 'Hebrew quality', english_quality: 'English quality',
+  responsiveness: 'Responsiveness (speed)', conversational_intelligence: 'Conversational intelligence',
+  emotional_appropriateness: 'Emotional appropriateness', interruption_handling: 'Interruption handling',
+  overall_experience: 'Overall experience', willingness_daily_commute: 'I would use this on my daily commute' };
+let plan, idx = 0, client, sessionId;
+
+api('/api/users').then((u) => { $('user').innerHTML = u.users.map((x) => `<option value="${x.user_id}">${x.name || x.user_id}</option>`).join(''); });
+
+function show() {
+  const remaining = plan.order.filter((l) => !plan.completed.includes(l));
+  if (!remaining.length) { $('talk').hidden = true; $('rate').hidden = true; $('done').hidden = false; return; }
+  const label = remaining[0];
+  $('which').textContent = label; $('which2').textContent = label;
+  $('progress').textContent = `${plan.order.length - remaining.length + 1} of ${plan.order.length}`;
+  $('talk').hidden = false; $('rate').hidden = true; $('start').disabled = false; $('end').hidden = true;
+  $('form').innerHTML = plan.criteria.map((c) => `<div class="crit"><label>${NAMES[c] || c}</label><div class="scale">` +
+    [1, 2, 3, 4, 5].map((n) => `<label><input type="radio" name="${c}" value="${n}"><span>${n}</span></label>`).join('') +
+    `<label><input type="radio" name="${c}" value=""><span>n/a</span></label></div></div>`).join('');
+  $('comments').value = '';
+}
+
+$('begin').onclick = async () => {
+  const ev = $('evaluator').value.trim(); if (!ev) { $('evaluator').focus(); return; }
+  plan = await api('/api/eval/plan?evaluator=' + encodeURIComponent(ev));
+  $('intro').hidden = true; show();
+};
+$('start').onclick = async () => {
+  $('start').disabled = true;
+  const label = $('which').textContent;
+  client = new VoiceClient({
+    onState: (s) => { $('orb').dataset.state = s; $('status').textContent = s; if (s === 'ended') { $('talk').hidden = true; $('rate').hidden = false; } },
+    onEvent: (m) => { if (m.type === 'session.created') sessionId = m.session_id; if (m.type === 'error') $('status').textContent = m.message; },
+  });
+  try {
+    await client.start({ provider: label, user_id: $('user').value, language: $('language').value, journey: { duration_min: 5 },
+      proactive: true, tag: 'human-eval', ephemeral: true });
+    $('end').hidden = false;
+  } catch (e) { $('status').textContent = 'Could not start: ' + e.message; $('start').disabled = false; }
+};
+$('end').onclick = () => client && client.end();
+$('submit').onclick = async () => {
+  const scores = {};
+  for (const c of plan.criteria) { const v = new FormData($('form')).get(c); if (v) scores[c] = Number(v); }
+  if (!Object.keys(scores).length) { alert('Please give at least one score.'); return; }
+  const label = $('which').textContent;
+  await api('/api/ratings', { method: 'POST', body: JSON.stringify({ evaluator: plan.evaluator, label, session_id: sessionId, scores, comments: $('comments').value }) });
+  plan.completed.push(label); show();
+};
+</script>
+</body>
+</html>

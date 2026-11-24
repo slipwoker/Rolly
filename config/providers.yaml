@@ -94,17 +94,30 @@ providers:
     architecture: commercial
     description: OpenAI Realtime API (speech-to-speech), server-side WebSocket bridge
     requires_env: [OPENAI_API_KEY]
-    model: "${ROLLY_OPENAI_REALTIME_MODEL:-gpt-realtime}"
+    model: "${ROLLY_OPENAI_REALTIME_MODEL:-gpt-realtime-2.1}"
     voice: "${ROLLY_OPENAI_REALTIME_VOICE:-marin}"
     api_key_env: OPENAI_API_KEY
     turn_detection: "${ROLLY_OPENAI_TURN_DETECTION:-semantic_vad}"
-    transcription_model: "${ROLLY_OPENAI_TRANSCRIBE_MODEL:-gpt-4o-mini-transcribe}"
+    transcription_model: "${ROLLY_OPENAI_TRANSCRIBE_MODEL:-gpt-transcribe}"
+    url: "${ROLLY_OPENAI_REALTIME_URL:-}"
+
+  openai-realtime-mini:
+    type: openai_realtime
+    architecture: commercial
+    description: OpenAI Realtime API, mini model (cost variant of the baseline)
+    requires_env: [OPENAI_API_KEY]
+    model: "${ROLLY_OPENAI_REALTIME_MINI_MODEL:-gpt-realtime-2.1-mini}"
+    voice: "${ROLLY_OPENAI_REALTIME_VOICE:-marin}"
+    api_key_env: OPENAI_API_KEY
+    turn_detection: "${ROLLY_OPENAI_TURN_DETECTION:-semantic_vad}"
+    transcription_model: "${ROLLY_OPENAI_TRANSCRIBE_MODEL:-gpt-transcribe}"
 
   gemini-live:
     type: gemini_live
     architecture: commercial
     description: Google Gemini Live API (native audio), server-side WebSocket bridge
     requires_env: [GEMINI_API_KEY]
-    model: "${ROLLY_GEMINI_LIVE_MODEL:-gemini-2.5-flash-native-audio-preview-09-2025}"
-    voice: "${ROLLY_GEMINI_LIVE_VOICE:-Aoede}"
+    model: "${ROLLY_GEMINI_LIVE_MODEL:-gemini-3.8-live}"
+    voice: "${ROLLY_GEMINI_LIVE_VOICE:-Zephyr}"
+    url: "${ROLLY_GEMINI_LIVE_URL:-}"
     api_key_env: GEMINI_API_KEY

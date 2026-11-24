@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rolly - telemetry</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Rolly · telemetry</h1>
+    <nav><a href="index.html">Drive</a><a href="eval.html">Blind evaluation</a><a class="on" href="dashboard.html">Telemetry</a></nav>
+  </header>
+  <section class="panel">
+    <p class="note">Aggregated over stored sessions. Providers are shown by anonymous label unless the page is opened with the admin token
+      (<code>?token=…</code>). Response latency = true end of user speech to first agent audio leaving the server.</p>
+    <label>Filter by tag <input id="tag" type="text" placeholder="e.g. bench-latency"></label>
+    <div style="overflow-x:auto"><table id="t"><thead><tr><th>Provider</th><th>Sessions</th><th>Failed</th><th>Minutes</th>
+      <th>Latency median</th><th>p95</th><th>n</th><th>Interrupt detect median</th></tr></thead><tbody></tbody></table></div>
+  </section>
+  <section class="panel">
+    <h2>Recent sessions</h2>
+    <div style="overflow-x:auto"><table id="s"><thead><tr><th>Started</th><th>Agent</th><th>User</th><th>Lang</th><th>Turns</th><th>Latency median</th><th>End</th></tr></thead><tbody></tbody></table></div>
+  </section>
+</main>
+<script type="module">
+import { api } from './voice.js';
+const $ = (id) => document.getElementById(id);
+async function load() {
+  const tag = $('tag').value.trim(); const q = tag ? '?tag=' + encodeURIComponent(tag) : '';
+  const d = await api('/api/telemetry/summary' + q);
+  $('t').tBodies[0].innerHTML = Object.entries(d.providers).map(([k, v]) => `<tr><td>${k}</td><td>${v.sessions}</td><td>${v.failed}</td><td>${v.connected_minutes}</td>
+    <td>${v.response_latency_ms.median ?? '–'}</td><td>${v.response_latency_ms.p95 ?? '–'}</td><td>${v.response_latency_ms.n}</td><td>${v.interrupt_detect_ms.median ?? '–'}</td></tr>`).join('');
+  const s = await api('/api/sessions' + (q ? q + '&limit=30' : '?limit=30'));
+  $('s').tBodies[0].innerHTML = s.sessions.map((x) => `<tr><td>${new Date(x.started_at * 1000).toLocaleString()}</td><td>${x.provider_id || x.blind_label}</td><td>${x.user_id}</td>
+    <td>${x.language}</td><td>${x.stats ? x.stats.turns_user + ' / ' + x.stats.turns_agent : '–'}</td><td>${x.stats?.response_latency_ms?.median ?? '–'}</td><td>${x.stats?.end_reason ?? 'open'}</td></tr>`).join('');
+}
+$('tag').onchange = load; load();
+</script>
+</body>
+</html>

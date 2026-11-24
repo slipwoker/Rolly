@@ -1,0 +1,12 @@
+# GPU image: same application on a CUDA runtime so faster-whisper (CTranslate2) and ONNX Runtime use the GPU.
+# NOT built or run in this POC session (no GPU was available) - see BLOCKERS.md.
+FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+ENV DEBIAN_FRONTEND=noninteractive PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 HF_HOME=/app/models/hf
+RUN apt-get update && apt-get install -y --no-install-recommends python3.11 python3.11-venv python3-pip libsndfile1 curl bzip2 \
+    && rm -rf /var/lib/apt/lists/* && ln -sf /usr/bin/python3.11 /usr/bin/python
+WORKDIR /app
+COPY requirements.txt .
+RUN python -m pip install -r requirements.txt && python -m pip uninstall -y onnxruntime && python -m pip install onnxruntime-gpu
+COPY . .
+EXPOSE 8000
+CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
