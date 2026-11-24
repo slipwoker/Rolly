@@ -15,6 +15,8 @@ status() { echo "{\"phase\": \"$1\", \"time\": \"$(date -u +%FT%TZ)\", \"commit\
 ( while true; do
     for f in setup.log bench.out; do [ -f "$LOGS/$f" ] && cp "$LOGS/$f" "$PUB/$f"; done
     [ -f "$LOGS/vllm.log" ] && tail -c 20000 "$LOGS/vllm.log" > "$PUB/vllm.tail.log"
+    [ -f "$LOGS/bench.log" ] && tail -c 30000 "$LOGS/bench.log" > "$PUB/bench.tail.log"
+    mkdir -p "$PUB/results" && cp benchmarks/results/*.json "$PUB/results/" 2>/dev/null && ls "$PUB/results" > "$PUB/results/index.txt"
     nvidia-smi --query-gpu=name,memory.used,memory.total,utilization.gpu --format=csv,noheader > "$PUB/gpu.txt" 2>&1
     sleep 15
   done ) &

@@ -17,7 +17,7 @@ GPU="$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader | head -1)
 LLM="$(curl -fs http://127.0.0.1:8081/v1/models | "$PY" -c 'import json,sys; print(json.load(sys.stdin)["data"][0].get("root","?"))' 2>/dev/null || echo unknown)"
 HW="${HW:-GPU pod: $GPU; STT Whisper large-v3-turbo float16 on GPU (routed by language); LLM $LLM on vLLM (same GPU); TTS Piper/ReNikud on CPU; client on the same host (no network latency)}"
 LEVELS="${LEVELS:-1 5 10 20 50}"; REPEAT="${REPEAT:-2}"
-run() { echo; echo "=== $1 ==="; shift; "$@" 2>&1 | grep -v Warning | tee -a "$LOGS/bench.log" | grep -E "^s[0-9]|^N=|max sustainable|saved|actual_minutes|turns_completed|memory probe|Error|Traceback" ; }
+run() { echo; echo "=== $1 ==="; shift; "$@" 2>&1 | grep -v Warning | tee -a "$LOGS/bench.log" | grep --line-buffered -E "^s[0-9]|^N=|max sustainable|saved|actual_minutes|turns_completed|memory probe|Error|Traceback" ; }
 
 until curl -fs http://127.0.0.1:8000/healthz | grep -q '"ready":true'; do echo "waiting for server..."; sleep 3; done
 
