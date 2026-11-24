@@ -93,16 +93,31 @@ def run(lang: str, n: int, models: list[str], snrs: list[str], device: str, comp
     }
     for mid in models:
         t0 = time.time()
-        model = WhisperModel(mid, device=device, compute_type=compute, cpu_threads=threads)
+        api = None
+        if mid.startswith("api:"):
+            # commercial transcription over HTTPS, e.g. "api:gpt-transcribe" (base URL / key from the environment)
+            import asyncio
+            import os
+
+            from providers.modular.stt import OpenAICompatSTT
+            api = OpenAICompatSTT({"base_url": os.environ.get("ROLLY_STT_API_BASE", "https://api.openai.com/v1"),
+                                   "model": mid[4:], "api_key_env": "ROLLY_STT_API_KEY"})
+            loop = asyncio.new_event_loop()
+            model = None
+        else:
+            model = WhisperModel(mid, device=device, compute_type=compute, cpu_threads=threads)
         load_s = time.time() - t0
         for snr in snrs:
             refs, hyps, per, proc_s = [], [], [], 0.0
             for it in items:
                 audio = it["audio"] if snr == "clean" else mix_at_snr(it["audio"], noise, float(snr))
                 t1 = time.time()
-                segs, _ = model.transcribe(audio, language=lang, beam_size=1, without_timestamps=True,
-                                           condition_on_previous_text=False, temperature=0.0)
-                hyp = " ".join(s.text.strip() for s in segs)
+                if api is not None:
+                    hyp = loop.run_until_complete(api.transcribe(audio, lang)).text
+                else:
+                    segs, _ = model.transcribe(audio, language=lang, beam_size=1, without_timestamps=True,
+                                               condition_on_previous_text=False, temperature=0.0)
+                    hyp = " ".join(s.text.strip() for s in segs)
                 dt = time.time() - t1
                 proc_s += dt
                 r, h = normalize(it["ref"], lang), normalize(hyp, lang)

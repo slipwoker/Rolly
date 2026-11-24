@@ -6,12 +6,12 @@ Two different things are tracked here: what the experiment itself has cost so fa
 
 | Item | Authorised | Spent | Notes |
 |---|---:|---:|---|
-| Commercial API usage | $0 (no key provided) | **$0** | Bridges implemented, not run live |
+| Commercial API usage (OpenAI) | Owner saved a key for a run estimated at $3–$10 | **about $0.50 or less (estimate)** | The realtime run was impossible from this environment (WebSocket blocked). The key was used instead for cheaper HTTPS measurements: about 62,000 prompt and 2,500 completion tokens on `gpt-6-luna` plus filler turns of one probe run (cents), and 16.2 minutes of audio through `gpt-transcribe` (price per minute not confirmed; assumed at most $0.02). The account's billing page is the authority |
 | GPU rental | $0 (not yet approved) | **$0** | All runs on the 4-vCPU session container |
 | Model downloads, datasets | — | $0 | Open weights and FLEURS |
-| **Total external spend** | | **$0** | Budget of $300–$700 untouched |
+| **Total external spend** | | **about $0.50 or less** | Budget of $300–$700 essentially untouched |
 
-Proposed next spend (needs approval, see `BLOCKERS.md`): about $50–$200 GPU rental and up to about $60 of API usage.
+Proposed next spend (needs approval, see `BLOCKERS.md`): about $50–$200 GPU rental and up to about $60 of API usage for the realtime baselines.
 
 ## 2. Projected operating cost
 
@@ -24,6 +24,7 @@ Inputs: `config/pricing.yaml`, where every figure carries a status.
 |---|---|---|
 | Session-layer CPU: 40 sessions per vCPU | **measured** here (transport 0.006 + VAD 0.0065 CPU-seconds per session-second, 50 % headroom) | CPU cost is negligible: about $0.00002 per minute |
 | Commercial STT / TTS list prices | published | Hybrid-API numbers are fairly solid |
+| Commercial LLM usage per turn | **measured** with `gpt-6-luna`: 948 prompt + 44 completion tokens per turn on average in short sessions, 8 % cache hits | About $0.0004 per conversational minute at the unverified list price ($0.10 / $0.50 per million tokens), in line with the model's `gpt-6-luna` estimate; long sessions have larger prompts but cross the provider's caching threshold |
 | Commercial realtime $/minute | **estimate** from token prices that are themselves unverified for OpenAI | Could be off by tens of percent; cache effectiveness alone moves `gpt-realtime-2.1` from $0.077 to $0.22 per minute |
 | GPU rental prices | **unverified** (vendor pages unreachable) | Re-check before committing |
 | Conversations per GPU (STT 40, LLM 100, TTS 80 on an L40S in the base case) | **assumption** | The largest uncertainty in the model. It is exactly what the GPU concurrency benchmark measures |

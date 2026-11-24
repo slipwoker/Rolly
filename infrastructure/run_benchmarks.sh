@@ -6,6 +6,9 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 PROVIDER="${1:?provider id, e.g. modular-selfhosted}"; HW="${2:?hardware description, e.g. 'RunPod L40S 48GB'}"
 URL="${3:-ws://127.0.0.1:8000/ws}"; ADMIN="${4:-${ROLLY_ADMIN_TOKEN:-}}"
 PY="${PYTHON:-$ROOT/.venv/bin/python}"; export PYTHONPATH="$ROOT" HF_HOME="${HF_HOME:-$ROOT/models/hf}"
+HTTP="$(echo "$URL" | sed -e 's#^ws#http#' -e 's#/ws.*$##')"
+echo "waiting for the server to finish loading models..."
+until curl -fs "$HTTP/healthz" | grep -q '"ready":true'; do sleep 3; done
 "$PY" -m benchmarks.run_scenarios --provider "$PROVIDER" --url "$URL" --hardware "$HW" --repeat "${REPEAT:-3}" --tag "bench-$PROVIDER"
 "$PY" -m benchmarks.concurrency --provider "$PROVIDER" --url "$URL" --hardware "$HW" --levels ${LEVELS:-1 5 10 20 50} --admin-token "$ADMIN" --stop-on-fail
 "$PY" -m benchmarks.long_session --provider "$PROVIDER" --url "$URL" --hardware "$HW" --minutes "${MINUTES:-30}"

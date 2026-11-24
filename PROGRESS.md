@@ -1,6 +1,6 @@
 # Progress log
 
-All work so far was done in one session on 2026-11-24, on a 4-vCPU / 15 GB container with no GPU and no commercial API keys.
+All work so far was done in one session on 2026-11-24, on a 4-vCPU / 15 GB container with no GPU. An OpenAI key was provided at the end of the session.
 "Done" means executed here with output in the repository. "Built, not run" means the code exists and is tested against
 emulators or on CPU only.
 
@@ -20,10 +20,10 @@ emulators or on CPU only.
 
 | Architecture | State |
 |---|---|
-| A Commercial realtime (OpenAI Realtime, Gemini Live) | Built from SDK-documented protocols; tested against local protocol emulators; **never run against the live services** |
+| A Commercial realtime (OpenAI Realtime, Gemini Live) | Built from SDK-documented protocols; tested against local protocol emulators; **never run against the live services** — with a key available, the attempt failed because this environment's proxy does not carry WebSocket upgrades |
 | B Self-hosted modular | Built and run end to end in Hebrew and English on CPU |
 | C Self-hosted speech-to-speech | Evaluated, **no-go** (no Hebrew, short context); documented, not built |
-| D Hybrid | Same code as B with stages swappable to APIs by configuration; API stages **not run** (no keys) |
+| D Hybrid | Same code as B with stages swappable to APIs by configuration. **Run** with a commercial language model (OpenAI `gpt-6-luna`): 12 of 12 scenarios, 28 of 28 checks. Commercial transcription measured separately. Commercial speech synthesis not run |
 
 ## Timeline of the session
 
@@ -44,11 +44,12 @@ emulators or on CPU only.
 9. Benchmarks: WER (FLEURS, three models, four noise levels), VAD/endpointing, LLM probes, session-layer capacity, scenarios, concurrency, long session.
 10. Finding from the WER run: the Hebrew-tuned Whisper translates English speech into Hebrew → per-language STT routing added (D2) and the pipeline benchmarks re-run.
 11. Cost model, licence report, comparison matrix, privacy document, runbooks, final report.
+12. After the owner saved an OpenAI key: the realtime WebSocket turned out to be unreachable from this environment (HTTP 405 at the proxy). The key was used over HTTPS instead for LLM probes, a full hybrid scenario run with `gpt-6-luna`, and transcription accuracy with `gpt-transcribe`. A readiness flag was added to the health endpoint after a start-up race spoiled the first two scenario sessions.
 
 ## Next actions (in order of value)
 
 1. Approve and rent a GPU; run `infrastructure/run_benchmarks.sh` (`BLOCKERS.md` B2). This turns the latency and capacity assumptions into measurements.
-2. Provide API keys and run the same scenario suite against the commercial baselines (B1).
+2. Run the scenario suite against the commercial realtime baselines from a machine with normal internet access; a Google key is still needed for Gemini Live (B1).
 3. Recruit evaluators for the blind test, with native Hebrew speakers (B3).
 4. Decide on the Hebrew TTS bake-off (B4).
 5. Re-verify unverified prices and re-run the cost model (B5).

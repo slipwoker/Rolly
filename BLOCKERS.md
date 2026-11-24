@@ -3,7 +3,31 @@
 Status on 2026-11-24. Nothing below blocks the code or the CPU-side measurements already in the repository; each item
 blocks the specific measurement named in "What it unblocks".
 
-## B1 — API keys for the commercial realtime baselines  ·  OPEN
+## B1 — Commercial realtime baselines  ·  PARTLY RESOLVED, now blocked by the session network, not by keys
+
+Update 2026-11-24: the owner saved an OpenAI API key through the secure form. The key works for HTTPS requests and was used for
+three small measurements (LLM probes with `gpt-6-luna`, the hybrid pipeline with `gpt-6-luna`, transcription with `gpt-transcribe`;
+see `BENCHMARKS.md`). **The realtime speech-to-speech baseline still could not be run**: the Realtime API needs a WebSocket connection,
+and this cloud session's outbound proxy does not carry WebSocket upgrades (the upgrade request comes back as HTTP 405; the proxy's own
+documentation lists WebSocket upgrades as unsupported and says not to work around it). The same applies to Gemini Live.
+
+What is needed now: run the baseline from a machine with normal internet access — your laptop, or the GPU host from B2:
+
+```bash
+OPENAI_API_KEY=sk-... infrastructure/run_dev.sh
+```
+
+```bash
+PYTHONPATH=. .venv/bin/python -m benchmarks.run_scenarios --provider openai-realtime --hardware "OpenAI Realtime API from <where>"
+```
+
+Expect first-run fixes: the bridge has only ever talked to a local emulator. Model IDs are confirmed to exist on the account
+(`gpt-realtime-2.1`, `gpt-realtime-2.1-mini`, `gpt-transcribe`). Estimated cost for one pass of the scenario suite: $3–$10.
+A Google key is still needed for the Gemini Live baseline.
+
+The original request, for reference:
+
+## B1 (original) — API keys for the commercial realtime baselines
 
 | | |
 |---|---|

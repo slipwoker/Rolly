@@ -17,7 +17,8 @@ voice, so:
 | Session-layer CPU cost per user | **Yes** | CPU work, measured as CPU time |
 | Response latency of a real-time deployment | **No** | CPU latencies (about 10 s) say nothing about a GPU deployment |
 | Concurrency per GPU, GPU memory and utilisation | **No** | No GPU |
-| Commercial realtime APIs (latency, Hebrew quality, cost) | **No** | No API keys |
+| Commercial components over HTTPS: a low-cost LLM (`gpt-6-luna`) and transcription (`gpt-transcribe`) | **Yes** | Run with the owner's OpenAI key; latency includes this session's network proxy |
+| Commercial realtime speech-to-speech APIs (latency, Hebrew quality, cost) | **No** | They need a WebSocket; this session's outbound proxy does not carry WebSocket upgrades (HTTP 405). No Google key |
 | Human ratings | **No** | No evaluators |
 | Bandwidth with a production codec | **No** | POC streams raw PCM; Opus figures are estimates |
 
@@ -33,6 +34,8 @@ FLEURS test split (real human read speech, CC BY), faster-whisper, greedy decodi
 | Hebrew | `Systran/faster-whisper-small` | 46.5 % | – | – | – |
 | English (30 utterances) | stock turbo | **5.6 %** | – | 7.2 % | – |
 | English | Hebrew-tuned | 29.0 % | – | 49.4 % | – |
+| Hebrew | OpenAI `gpt-transcribe` (commercial API) | 19.5 % | – | 23.1 % | – |
+| English | OpenAI `gpt-transcribe` (commercial API) | 3.5 % | – | – | – |
 
 Character error rates and the per-utterance transcripts are in the result files.
 
@@ -48,6 +51,9 @@ Findings:
    Hebrew-tuned model scores 13.9 % WER / 3.9 % CER clean. The published ivrit.ai leaderboard figure for the same model on
    conversational Hebrew is 5.3–7.1 %. Our test is small (40 utterances, about 5.7 minutes); treat differences of a few points as noise.
 4. `small` is unusable for Hebrew (46.5 %).
+5. **The open Hebrew-tuned model matches the commercial API on Hebrew**: 18.9 % vs 19.5 % clean, 23.1 % vs 23.1 % at 5 dB
+   (same 40 utterances). On English the API is somewhat better than stock Whisper turbo (3.5 % vs 5.6 %, 30 utterances).
+   On this evidence there is no accuracy reason to buy Hebrew transcription.
 
 Not measured: Hebrew-English code-switching on real speech (no licensed test set was available; see section 4, scenario s09).
 
@@ -80,19 +86,22 @@ Findings:
 Against the criterion "agent playback stops within 300 ms of a detected interruption": detection → silence is about 45 ms plus
 network on the measured path, so the criterion is met with a wide margin. From *speech onset* to silence the typical total is about 300–350 ms.
 
-## 3. LLM probes (small CPU model: Qwen3-4B-Instruct, Q4)
+## 3. LLM probes
 
 The exact agent context (profile, memory, journey) with one question per probe; keyword scoring; answers stored for review.
 
-| Probe | English | Hebrew |
+| Probe (English · Hebrew) | Qwen3-4B-Instruct Q4, local CPU | OpenAI `gpt-6-luna`, API, reasoning off |
 |---|---:|---:|
-| Recall of facts present in memory | 6 / 6 | 5 / 6 |
-| No invented answer when the fact is not in memory | 3 / 4 | 3 / 4 |
-| General closed questions | 3 / 3 | 2 / 3 |
-| Fact stated at the start recalled after 10 and after 20 filler turns | pass, pass | not tested |
+| Recall of facts present in memory | 6/6 · 5/6 | 6/6 · 6/6 |
+| No invented answer when the fact is not in memory | 3/4 · 3/4 | 4/4 · 4/4 |
+| General closed questions | 3/3 · 2/3 | 3/3 · 3/3 |
+| Fact stated at the start recalled after 10 and after 20 filler turns (English) | pass, pass | pass, pass |
+| Time to first token, median | 1.2 s (CPU, cached prefix) | 0.67 s (through this session's proxy) |
 
-Hallucination rate on the controlled unknown-fact probes: 2 of 8 (25 %), e.g. it invented a 58-minute time for a run that was never
-mentioned. With 8 probes this is an indication, not a rate to quote.
+Hallucination on the controlled unknown-fact probes: 2 of 8 for the small local model (it invented a 58-minute time for a run that was
+never mentioned), 0 of 8 for the commercial model. With 8 probes these are indications, not rates to quote. Scoring is by keyword; the
+abstention keyword list was extended twice after reading answers that were correct refusals in wording the first list missed, and all
+stored answers were re-scored with the final list.
 
 Prompt caching, measured on the CPU server: the first turn of a session evaluates about 830 prompt tokens before the first token
 (12–14 s on this CPU); later turns reuse the cached prefix (about 880–1,100 cached tokens) and reach the first token in about 1.0–1.2 s.
@@ -131,6 +140,22 @@ Synthetic user speech, real-time microphone simulation, real WebSocket.
 The central qualitative finding: **with a 4B model the English conversation is usable and the Hebrew conversation is not.** Speech
 recognition and speech synthesis worked in Hebrew; the language model is the weak link, which is consistent with the research
 finding that no model of 12B or below has a published Hebrew score.
+
+### Hybrid run: same pipeline, language model replaced by a commercial API
+
+`hybrid-apillm`: identical speech recognition and synthesis on the same CPU; LLM = OpenAI `gpt-6-luna` over HTTPS with reasoning off.
+
+- 12 of 12 scenarios completed, 28 of 28 turns answered, **28 of 28 scripted checks passed** (26 of 28 with the local 4B model).
+  The first attempt at s01 and s02 failed with no opener because the benchmark connected while the server was still loading models after
+  a container restart; both were re-run once the server was ready and those re-runs are what the result file holds (marked in the file).
+- **Hebrew**: replies were fluent and grammatical in the transcripts, addressed the user in the correct gender, used the stored memory
+  precisely (the CTO's name, the skipped long run, the third option "Germany"), and recovered from a garbled transcription by asking
+  "did you mean Stripe?". This is the author's reading of the transcripts in the result file, **not** a rated human evaluation.
+- LLM stage: first speakable chunk after a median of 1.24 s (through the session proxy), against 4.3 s for the local model on CPU.
+  Playout underruns dropped from 0.89 to 0 per turn. End-to-end latency is still 6.9 s median because CPU speech recognition takes 5.1 s.
+- Token usage, measured: 40 LLM calls, on average 948 prompt tokens and 44 completion tokens per call; only 8 % of prompt tokens were
+  served from the provider's cache, because most prompts in these short sessions are below the provider's minimum cacheable size.
+  At the unverified list price that is about $0.0001 per turn, or $0.0004 per conversational minute at four turns per minute.
 
 ## 5. Concurrency
 
@@ -197,7 +222,7 @@ replaced by the GPU measurement.
 |---|---|---|
 | Median / P95 response latency in real time | Not measured | `benchmarks/run_scenarios.py` on a GPU host |
 | Maximum sustainable concurrency, GPU utilisation and memory | Not measured | `benchmarks/concurrency.py`, `/api/resources` |
-| Commercial baseline quality, latency, token usage | Not measured | same scripts with `--provider openai-realtime` / `gemini-live` |
+| Commercial realtime baseline: quality, latency, token usage | Not measured (WebSocket blocked in this session; no Google key) | same scripts with `--provider openai-realtime` / `gemini-live` from a machine with normal internet access |
 | Cost per connected / active minute from real usage | Not measured (modelled in `COSTS.md`) | `usage` telemetry events are recorded per session |
 | Session failure rate | 0 failed sessions in 12 scenario sessions, 7 full-pipeline concurrency sessions, 3 long sessions and 85 mock sessions. In one earlier development run the session was closed early by the model itself (fixed, decision D9) | — |
 | Human evaluation | Not performed | `frontend/eval.html`, `docs/HUMAN_EVALUATION.md` |

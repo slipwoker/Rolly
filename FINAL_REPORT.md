@@ -1,7 +1,8 @@
 # Final report — voice technology and economic feasibility of a proactive on-the-go AI agent
 
-Status date: 2026-11-24. Scope executed: one working session on a 4-vCPU machine without a GPU, without commercial API keys and
-without human evaluators. Throughout this report each statement is one of:
+Status date: 2026-11-24. Scope executed: one working session on a 4-vCPU machine without a GPU and without human evaluators.
+An OpenAI key became available at the end and was used for the measurements that work over plain HTTPS (a commercial language model
+and transcription); the realtime speech-to-speech APIs could not be reached from this environment. Throughout this report each statement is one of:
 
 - **Measured** — executed in this POC; raw output in `benchmarks/results/`.
 - **Published** — read from a vendor page, SDK or model card.
@@ -13,8 +14,9 @@ without human evaluators. Throughout this report each statement is one of:
 ## 1. Executive summary
 
 **The product's voice core is technically buildable today from open components, and its running cost can be 10–50 times lower than
-commercial speech-to-speech APIs. Two things are not yet proven: real-time latency on a GPU, and the quality of the Hebrew
-conversation. Both can be settled with about $100–$250 and one to two weeks.**
+commercial speech-to-speech APIs. Hebrew conversation quality, the main doubt, looks solvable with a low-cost commercial language
+model. Two things are not yet proven: real-time latency on a GPU, and how the result sounds to people. Both can be settled with about
+$100–$250 and one to two weeks.**
 
 What we built and ran:
 
@@ -34,7 +36,7 @@ What the evidence says:
 | Does speech recognition work in Hebrew, in a car? | Yes: 18.9 % word error rate on a hard read-speech test (13.9 % excluding digits and foreign terms), degrading only to 23.1 % in heavy road noise. English 5.6 %. It needs a different model per language | Measured |
 | Do interruptions work? | Yes: interruption signalled about 160–300 ms after the user starts speaking; playback stops about 45 ms after that; the agent remembers only what was actually heard | Measured |
 | Does proactive, memory-driven conversation work? | Yes, mechanically: the agent opened all 12 test sessions by itself, recalled stored facts, followed topic switches and corrections, and wrote usable summaries | Measured, small model |
-| Is the Hebrew conversation good enough? | **Not with a small model.** The 4-billion-parameter model we could run on a CPU produced grammatically wrong and sometimes incoherent Hebrew. The fix is a larger model (on a GPU or through an API), which is planned but unmeasured | Measured negative result |
+| Is the Hebrew conversation good enough? | **Not with a small open model; yes, on paper, with a cheap commercial one.** The 4-billion-parameter model that fits on a CPU produced grammatically wrong, sometimes incoherent Hebrew. The same pipeline with OpenAI `gpt-6-luna` as the language model produced fluent, correct Hebrew that used the stored memory well and passed 28 of 28 scripted checks, for about $0.0004 per minute | Measured; the Hebrew judgement is from reading transcripts, not from listeners |
 | Is it fast enough? | **Unknown.** Latency could not be measured without a GPU. Our projection is about 0.85–1.2 s from end of speech to audible reply, against a target median of 0.8 s | Estimate |
 | Can open speech-to-speech models (Moshi-style) do this? | No. None supports Hebrew, and they hold 2–4 minutes of context against a 30-minute need | Published |
 
@@ -42,8 +44,9 @@ Recommendation: proceed, with a **modular pipeline that we orchestrate ourselves
 cheaper than staff (below a few thousand daily users), and move speech recognition, speech synthesis and then the language model onto
 rented, autoscaled GPUs as volume grows. Do not build on commercial speech-to-speech APIs as the default path, and do not buy hardware.
 
-Money spent so far: **$0**. Decisions needed now: approve about $50–$200 of GPU rental and up to about $60 of API usage; provide API
-keys; recruit 5–10 evaluators including native Hebrew speakers (`BLOCKERS.md`).
+Money spent so far: an estimated **$0.50 or less** of OpenAI usage (the account's billing is not visible from here); no GPU spend.
+Decisions needed now: approve about $50–$200 of GPU rental; run the realtime baselines from a machine with normal internet access
+(about $5–$20); recruit 5–10 evaluators including native Hebrew speakers (`BLOCKERS.md`).
 
 ---
 
@@ -51,8 +54,8 @@ keys; recruit 5–10 evaluators including native Hebrew speakers (`BLOCKERS.md`)
 
 ### Q1 — Natural conversation comparable to ChatGPT Voice?
 
-**Not determined.** This needs (a) the commercial baseline running, (b) the self-hosted pipeline on a GPU, and (c) human listeners.
-None of the three was available. What we can say: the conversational mechanics that make a voice agent feel natural — speaking first,
+**Not determined.** This needs (a) the commercial realtime baseline running, (b) the pipeline on a GPU, and (c) human listeners.
+None of the three was available: the realtime APIs need a WebSocket, which this environment's network does not carry. What we can say: the conversational mechanics that make a voice agent feel natural — speaking first,
 short turns, barge-in, following topic changes, remembering — are implemented and work (measured, section 4 of `BENCHMARKS.md`).
 The voices used (Kokoro and Piper for English, a Piper-class Hebrew voice) are expected to sound less expressive than commercial
 speech-to-speech; that is a research expectation, not something anyone listened to in this POC.
@@ -68,8 +71,12 @@ speech-to-speech; that is a research expectation, not something anyone listened 
 - **Hebrew speech synthesis — functional, quality unknown.** A commercially licensed Hebrew voice runs 12 times faster than real
   time on a CPU and is intelligible to a recogniser (4.3 % WER round trip). Whether it sounds good needs listeners. English terms inside
   Hebrew sentences are only approximated. Stronger candidates exist (BlueV3, ZONOS3-Mini) and are untested.
-- **Hebrew language model — not with a small model (measured).** The 4B model recalled the right facts in Hebrew but wrapped them in poor
-  Hebrew, used the wrong grammatical gender, and once mixed Latin and Arabic script into a Hebrew sentence. English from the same model was acceptable.
+- **Hebrew language model — not with a small open model; good with a cheap commercial one (measured).** The 4B model recalled the
+  right facts in Hebrew but wrapped them in poor Hebrew, used the wrong grammatical gender, and once mixed Latin and Arabic script into a
+  Hebrew sentence. With `gpt-6-luna` in the same pipeline the Hebrew was fluent and correct, recall was 12 of 12, and no unknown fact was
+  invented in 8 probes. Whether a self-hostable open model can match it (the research pick is Gemma-4 26B) needs a GPU.
+- **Commercial transcription is not better for Hebrew (measured).** OpenAI `gpt-transcribe`: 19.5 % against 18.9 % for the open
+  Hebrew-tuned model on the same recordings (23.1 % each in road noise). For English it is somewhat better (3.5 % vs 5.6 %).
 
 ### Q3 — Interruptions and fluid real-time dialogue?
 
@@ -109,8 +116,8 @@ hardware loses to hourly cloud rental in the model.
 | Component | Below about 2,000–4,000 daily users | Above | Reason |
 |---|---|---|---|
 | Orchestration (turn-taking, memory, proactive logic) | Own | Own | This is the product; it is cheap to run |
-| Speech recognition | API (Soniox streaming, $0.002 per audio minute, best published Hebrew accuracy) or self-hosted Whisper if a GPU is running anyway | Self-host | Open Hebrew models are good and permissively licensed |
-| Language model | API with prompt caching (about $0.0004–$0.004 per minute) **after** a Hebrew quality test; reasoning must be switched off for latency | Self-host a strong open model when volume justifies an always-on GPU fleet | Hebrew quality is the open question for every candidate |
+| Speech recognition | API (Soniox streaming, $0.002 per audio minute, best published Hebrew accuracy) or self-hosted Whisper if a GPU is running anyway | Self-host | Open Hebrew models are permissively licensed and matched OpenAI's transcription API on our Hebrew test |
+| Language model | API with reasoning switched off: `gpt-6-luna` gave good Hebrew at a measured 948 prompt and 44 output tokens per turn, about $0.0004 per minute at the unverified list price | Self-host a strong open model if it passes the same Hebrew test and volume justifies an always-on GPU fleet | At this price the language model is under a tenth of the $0.005 budget; self-hosting it saves little |
 | Speech synthesis, English | Self-host (small, fast, permissive) | Self-host | |
 | Speech synthesis, Hebrew | Commercial (Inworld or Azure, about $0.002–$0.004 per conversational minute) until an open voice passes a listening test | Self-host if one passes | No open Hebrew voice is proven for conversational quality |
 | Commercial speech-to-speech | Benchmark and possibly a premium tier | Same | 10–50 times the cost; Hebrew support uncertain |
@@ -127,7 +134,7 @@ Break-even against self-hosting everything (all-in, with staff): about 250–600
 | Median response latency below 800 ms | **Not measured.** Projection 0.85–1.2 s: at risk without incremental speech recognition | Estimate |
 | P95 below 1.5 s | **Not measured.** Looks reachable | Estimate |
 | Playback stops within 300 ms of a detected interruption | **Met** on the measured path: about 45 ms plus network | Measured (one browser run, localhost) |
-| Hebrew conversational quality at least 4/5 | **Not evaluated.** Would not be met with the 4B model | No human evaluation performed |
+| Hebrew conversational quality at least 4/5 | **Not evaluated by people.** Would not be met with the 4B model; transcripts with `gpt-6-luna` read as fluent, correct Hebrew. The voice itself has not been heard by anyone | No human evaluation performed |
 | Stable 30-minute sessions | **Met for stability** (31.6 minutes, 50 turns, no failed turn or error). The run exposed a latency cliff after turn 40 and loss of an early fact, both caused by history trimming that defeated the LLM prefix cache; fixed with block compaction and re-verified in 13-minute runs, not yet in a full 30-minute run | Measured on CPU |
 | Meaningful proactive initiation | **Met mechanically**: 12 of 12 sessions opened by the agent; 3 of 4 openers named the stored topic | Measured, keyword check |
 | Reliable cross-session memory | **Met**: a summary written by one session is in the next session's context; recall probes 11 of 12 | Measured |
@@ -167,7 +174,7 @@ Break-even against self-hosting everything (all-in, with staff): about 250–600
 
 | Risk | Severity | Evidence | Mitigation |
 |---|---|---|---|
-| Hebrew language-model quality in real time and at low cost | High | Measured failure of a 4B model; no published Hebrew scores for small models; small commercial tiers reason by default with 4–6 s to first token (unverified) | Hebrew evaluation of 3–4 candidates on a GPU and through APIs before anything else |
+| Hebrew language-model quality in real time and at low cost | Medium (was high) | Measured failure of a 4B open model; measured success of `gpt-6-luna` through the API (fluent Hebrew, 0.67 s to first token with reasoning off). Open question: an open model of equal quality for self-hosting | Keep the language model on an API at first; test Gemma-4 26B and DictaLM on the GPU against the same probes |
 | Latency target (median 800 ms) | High | Projection only | GPU benchmark; streaming speech recognition; shorter speculative window |
 | Natural Hebrew voice | High | No open voice proven; POC voice is read-speech quality by expectation | Blind listening test of BlueV3, ZONOS3-Mini, commercial voices |
 | Hebrew-English code-switching | High | No model documented for it; POC test invalid | Record a small consented test set of real mixed speech; test streaming and commercial recognisers |
@@ -183,7 +190,8 @@ Break-even against self-hosting everything (all-in, with staff): about 250–600
 | Driver distraction and safety | Product risk | Out of scope here | Conversation design rules are in the system prompt; needs dedicated study |
 | This POC's own limits | — | One machine, no GPU, synthetic users, small test sets (30–40 utterances), single runs | Stated next to every number |
 
-Things that did not work or were not done: commercial APIs never called; GPU stack and Docker images never built; no human listened to
+Things that did not work or were not done: the commercial realtime speech-to-speech APIs were never reached (WebSocket connections
+are not carried by this environment's network proxy; no Google key); GPU stack and Docker images never built; no human listened to
 any output; mixed-language test invalid; the Hebrew TTS candidate BlueV3 was not installed (declined by a safety check, awaiting approval).
 
 ---
@@ -207,7 +215,7 @@ Explicitly later: CarPlay / Android Auto, music and video integrations, multi-pa
 
 | # | Deliverable | Where | State |
 |---|---|---|---|
-| 1 | Working conversational voice prototype | `frontend/`, `backend/`, `providers/`; run instructions in `README.md` | Works self-hosted on CPU in Hebrew and English (slow); verified in Chromium |
+| 1 | Working conversational voice prototype | `frontend/`, `backend/`, `providers/`; run instructions in `README.md` | Works self-hosted on CPU in Hebrew and English (slow), and as a hybrid with a commercial language model; verified in Chromium |
 | 2 | Reproducible source code | this repository; `requirements.txt`; 17 automated tests | Done |
 | 3 | Deployment scripts and documentation | `infrastructure/`, `Dockerfile`, `docker-compose.yml`, `infrastructure/GPU_RUNBOOK.md` | Dev scripts used; Docker and GPU files written but not executed |
 | 4 | Model and provider comparison matrix | `docs/COMPARISON_MATRIX.md` | Done from research |

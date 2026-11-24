@@ -94,5 +94,6 @@ Credentials are referenced by environment-variable name only.
 
 The platform, the self-hosted Hebrew/English pipeline, proactive memory, the benchmark suite and the cost model are built
 and were run on a 4-vCPU machine without a GPU. Speech-recognition accuracy, endpointing, interruption handling, context
-retention and memory were measured there. Real-time latency, concurrency per GPU, the commercial baselines and human
-ratings were **not** measured (no GPU, no API keys, no evaluators) — the tooling for each is ready.
+retention and memory were measured there, and a hybrid configuration with a commercial language model was run through the
+same scenarios. Real-time latency, concurrency per GPU, the commercial realtime speech-to-speech baselines and human
+ratings were **not** measured (no GPU, no WebSocket egress in the build environment, no evaluators) — the tooling for each is ready.

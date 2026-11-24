@@ -277,4 +277,7 @@ The tables above are research. These rows were then measured in the POC (details
 | LLM | `Qwen3-4B-Instruct-2507` Q4 on llama.cpp, CPU | English usable; Hebrew grammatically poor; recall 11 of 12; 2 of 8 unknown-fact probes answered with invented content | CPU stand-in only; not a production candidate |
 | Transport | Custom WebSocket session layer | About 0.006 CPU-seconds per session-second (plus 0.0065 for VAD) | About 40 sessions per vCPU with headroom |
 
-Nothing was measured for the commercial realtime APIs, for any GPU configuration, or for any commercial component.
+| STT | OpenAI `gpt-transcribe` (API) | Hebrew 19.5 % WER clean, 23.1 % at 5 dB; English 3.5 % | No accuracy advantage for Hebrew over the open Hebrew-tuned model |
+| LLM | OpenAI `gpt-6-luna` (API, reasoning off) | Recall 12 of 12; 0 of 8 unknown-fact probes invented; fluent Hebrew in transcripts; 0.67 s median to first token through the session proxy; about 950 prompt + 44 output tokens per turn | **Hybrid with this model is the recommended starting point** |
+
+Nothing was measured for the commercial realtime speech-to-speech APIs, for any GPU configuration, or for commercial speech synthesis.

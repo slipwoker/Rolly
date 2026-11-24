@@ -37,6 +37,11 @@ class OpenAICompatLLM:
         self.temperature = float(cfg.get("temperature", 0.6))
         self.max_tokens = int(cfg.get("max_tokens", 160))
         self.extra_body = dict(cfg.get("extra_body") or {})
+        # Newer hosted models reject `max_tokens` (they want `max_completion_tokens`) and some reject `temperature`.
+        self.token_param = cfg.get("token_param") or "max_tokens"
+        self.omit_temperature = str(cfg.get("omit_temperature", "")).lower() in ("1", "true", "yes")
+        if cfg.get("reasoning_effort"):
+            self.extra_body["reasoning_effort"] = cfg["reasoning_effort"]
         self.include_usage = bool(cfg.get("include_usage", True))
         self.name = cfg.get("name") or f"{self.model}@{self.base_url}"
         timeout = httpx.Timeout(connect=10, read=float(cfg.get("read_timeout_s", 120)), write=10, pool=10)
@@ -47,13 +52,9 @@ class OpenAICompatLLM:
         return {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
 
     def _body(self, messages: list[dict], stream: bool, max_tokens: int | None, temperature: float | None, **kw) -> dict:
-        body = {
-            "model": self.model,
-            "messages": messages,
-            "stream": stream,
-            "temperature": self.temperature if temperature is None else temperature,
-            "max_tokens": max_tokens or self.max_tokens,
-        }
+        body = {"model": self.model, "messages": messages, "stream": stream, self.token_param: max_tokens or self.max_tokens}
+        if not self.omit_temperature:
+            body["temperature"] = self.temperature if temperature is None else temperature
         if stream and self.include_usage:
             body["stream_options"] = {"include_usage": True}
         body.update(self.extra_body)

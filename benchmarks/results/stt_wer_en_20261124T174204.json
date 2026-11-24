@@ -1,0 +1,273 @@
+{
+ "benchmark": "stt_wer",
+ "language": "en",
+ "dataset": "google/fleurs en_us test (CC BY 4.0)",
+ "n_utterances": 30,
+ "audio_seconds": 289.3,
+ "noise": "synthetic road noise (benchmarks.synth.road_noise), SNR measured over active speech",
+ "host": {
+  "platform": "Linux-6.18.44-fc-v819-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "device": "auto",
+  "compute_type": "default",
+  "cpu_threads": 0
+ },
+ "decoding": {
+  "beam_size": 1,
+  "language_forced": "en",
+  "condition_on_previous_text": false
+ },
+ "started": "2026-11-24T17:42:04",
+ "results": [
+  {
+   "model": "api:gpt-transcribe",
+   "snr_db": "clean",
+   "wer": 0.0345,
+   "cer": 0.0166,
+   "rtf": 0.074,
+   "model_load_s": 0.1,
+   "utterances": [
+    {
+     "id": "1003119935936341070.wav",
+     "ref": "however due to the slow communication channels styles in the west could lag behind by 25 to 30 year",
+     "hyp": "however due to the slow communication channels styles in the west could lag behind by 25 to 30 years",
+     "wer": 0.0526,
+     "audio_s": 10.56,
+     "proc_s": 0.76
+    },
+    {
+     "id": "10052240106321793346.wav",
+     "ref": "all nouns alongside the word sie for you always begin with a capital letter even in the middle of a sentence",
+     "hyp": "all nouns alongside the word say for you always begin with a capital letter even in the middle of a sentence",
+     "wer": 0.0476,
+     "audio_s": 8.76,
+     "proc_s": 0.66
+    },
+    {
+     "id": "10167324587744183095.wav",
+     "ref": "to the north and within easy reach is the romantic and fascinating town of sintra and which was made famous to foreigners after a glowing account of its splendours recorded by lord byron",
+     "hyp": "to the north and within easy reach is the romantic and fascinating town of sintra which was made famous to foreigners after a glowing account of its splendors recorded by lord byron",
+     "wer": 0.0606,
+     "audio_s": 11.46,
+     "proc_s": 0.69
+    },
+    {
+     "id": "10197164397713068203.wav",
+     "ref": "the cabbage juice changes color depending on how acidic or basic alkaline the chemical is",
+     "hyp": "the cabbage juice changes color depending on how acidic basic alkaline the chemical is",
+     "wer": 0.0667,
+     "audio_s": 5.76,
+     "proc_s": 0.68
+    },
+    {
+     "id": "10233995782544396174.wav",
+     "ref": "many people dont think about them as dinosaurs because they have feathers and can fly",
+     "hyp": "many people dont think about them as dinosaurs because they have feathers and can fly",
+     "wer": 0.0,
+     "audio_s": 4.32,
+     "proc_s": 0.69
+    },
+    {
+     "id": "10235738076911595987.wav",
+     "ref": "the hospital has followed protocol for infection control including separating the patient from others to prevent possible infection of others",
+     "hyp": "the hospital has followed protocol for infection control including separating the patient from others to prevent possible infection of others",
+     "wer": 0.0,
+     "audio_s": 11.42,
+     "proc_s": 0.77
+    },
+    {
+     "id": "10323357556845456822.wav",
+     "ref": "the northern marianas emergency management office said that there were no damages reported in the nation",
+     "hyp": "the northern marianas emergency management office said that there were no damages reported in the nation",
+     "wer": 0.0,
+     "audio_s": 10.8,
+     "proc_s": 0.76
+    },
+    {
+     "id": "10335587906469246566.wav",
+     "ref": "twentieth century research has shown that there are two pools of genetic variation hidden and expressed",
+     "hyp": "twentieth century research has shown that there are two pools of genetic variation hidden and expressed",
+     "wer": 0.0,
+     "audio_s": 6.96,
+     "proc_s": 0.6
+    },
+    {
+     "id": "10344335557154974057.wav",
+     "ref": "the aspect ratio of this format dividing by twelve to obtain the simplest whole number ratio is therefore said to be 32",
+     "hyp": "the aspect ratio of this format dividing by 12 to obtain the simplest whole number ratio is therefore said to be 3 to 2",
+     "wer": 0.1818,
+     "audio_s": 11.04,
+     "proc_s": 1.0
+    },
+    {
+     "id": "1036771894648013441.wav",
+     "ref": "as light pollution in their heyday was not the kind of problem it is today they are usually located in cities or at campuses easier to reach than those built in modern times",
+     "hyp": "as light pollution in their heyday was not the kind of problem it is today they are usually located in cities or at campuses easier to reach than those built in modern times",
+     "wer": 0.0,
+     "audio_s": 9.9,
+     "proc_s": 0.84
+    },
+    {
+     "id": "1038214857203833067.wav",
+     "ref": "through the night between 150 and 200 copies were made now known as dunlap broadsides",
+     "hyp": "the night between 150 and 200 copies were made now known as dunlap broadsides",
+     "wer": 0.0667,
+     "audio_s": 4.8,
+     "proc_s": 0.74
+    },
+    {
+     "id": "10383288285905292158.wav",
+     "ref": "for example each year students from bennet school in north carolina design a website about their trip to the state capital each year the website gets remodeled but old versions are kept online to serve as a scrapbook",
+     "hyp": "for example each year students from bennett school in north carolina design a website about their trip to the state capital each year the website gets remodeled but old versions are kept online to serve as a scrapbook",
+     "wer": 0.0263,
+     "audio_s": 11.28,
+     "proc_s": 0.66
+    },
+    {
+     "id": "10405958125670257178.wav",
+     "ref": "lion prides act much like packs of wolves or dogs animals surprisingly similar to lions but not other big cats in behavior and also very deadly to their prey",
+     "hyp": "lion prides act much like packs of wolves or dogs animals surprisingly similar to lions but not other big cats in behavior and also very deadly to their prey",
+     "wer": 0.0,
+     "audio_s": 10.92,
+     "proc_s": 0.6
+    },
+    {
+     "id": "10411016628242228511.wav",
+     "ref": "the city is also the base to climb the nyiragongo volcano along with some of the cheapest mountain gorilla tracking in africa",
+     "hyp": "the city is also the base to climb the nyiragongo volcano along with some of the cheapest mountain gorilla trekking in africa",
+     "wer": 0.0455,
+     "audio_s": 11.28,
+     "proc_s": 0.76
+    },
+    {
+     "id": "1042003289011443756.wav",
+     "ref": "the internet combines elements of both mass and interpersonal communication",
+     "hyp": "the internet combines elements of both mass and interpersonal communication",
+     "wer": 0.0,
+     "audio_s": 5.72,
+     "proc_s": 0.54
+    },
+    {
+     "id": "1043394666292127188.wav",
+     "ref": "these theories look at what it is about certain people that make them want the things that they do and what things in their environment will make them do or not do certain things",
+     "hyp": "these theories look at what it is about certain people that make them want the things that they do and what things in their environment will make them do or not do certain things",
+     "wer": 0.0,
+     "audio_s": 15.56,
+     "proc_s": 0.66
+    },
+    {
+     "id": "1045619486290403122.wav",
+     "ref": "for example the most common still image photography format in the world is 35mm which was the dominant film size at the close of the analog film era",
+     "hyp": "for example the most common still image photography format in the world is 35 millimeter which was the dominant film size at the close of the analog film era",
+     "wer": 0.0714,
+     "audio_s": 13.92,
+     "proc_s": 0.75
+    },
+    {
+     "id": "1046653381869710616.wav",
+     "ref": "the term safari in popular use refers to overland travel to view the stunning african wildlife particularly on savanna",
+     "hyp": "the term safari in popular use refers to overland travel to view the stunning african wildlife particularly on savanna",
+     "wer": 0.0,
+     "audio_s": 8.64,
+     "proc_s": 0.57
+    },
+    {
+     "id": "10471564175308895403.wav",
+     "ref": "but there are a lot of things about birds that still look like a dinosaur",
+     "hyp": "but there are a lot of things about birds that still look like a dinosaur",
+     "wer": 0.0,
+     "audio_s": 5.36,
+     "proc_s": 0.73
+    },
+    {
+     "id": "10481451226514948764.wav",
+     "ref": "women it is recommended that any women travellers say that they are married regardless of actual marital status",
+     "hyp": "women it is recommended that any women travelers say that they are married regardless of actual marital status",
+     "wer": 0.0556,
+     "audio_s": 10.14,
+     "proc_s": 0.63
+    },
+    {
+     "id": "10492135991603561867.wav",
+     "ref": "in some areas boiling water for a minute is enough in others several minutes are needed",
+     "hyp": "in some areas boiling water for a minute is enough and others several minutes are needed",
+     "wer": 0.0625,
+     "audio_s": 5.64,
+     "proc_s": 0.63
+    },
+    {
+     "id": "10492761258488775721.wav",
+     "ref": "anyone whos going to drive at high latitudes or over mountain passes should consider the possibility of snow ice or freezing temperatures",
+     "hyp": "anyone whos going to drive at high latitudes or over mountain passes should consider the possibility of snow ice or freezing temperatures",
+     "wer": 0.0,
+     "audio_s": 8.58,
+     "proc_s": 0.74
+    },
+    {
+     "id": "10536763405165824117.wav",
+     "ref": "as a result two fish species have become extinct and two others have become endangered including the humpback chub",
+     "hyp": "as a result two fish species have become extinct and two others have become endangered including the humpback chub",
+     "wer": 0.0,
+     "audio_s": 11.44,
+     "proc_s": 0.75
+    },
+    {
+     "id": "1054805305879816018.wav",
+     "ref": "it was ruled by the vichy french these were french people who had made peace with the germans in 1940 and worked with the invaders instead of fighting them",
+     "hyp": "it was ruled by the vichy french these were french people who had made peace with the germans in 1940 and worked with the invaders instead of fighting them",
+     "wer": 0.0,
+     "audio_s": 9.6,
+     "proc_s": 0.74
+    },
+    {
+     "id": "10550734868852131138.wav",
+     "ref": "on 15 august 1940 the allies invaded southern france the invasion was called operation dragoon",
+     "hyp": "on august 15 1940 the allies invaded southern france and the invasion was called operation dragoon",
+     "wer": 0.2,
+     "audio_s": 10.12,
+     "proc_s": 0.77
+    },
+    {
+     "id": "10614481583312370701.wav",
+     "ref": "alloys are basically a mixture of two or more metals dont forget that there are many elements on the periodic table",
+     "hyp": "alloys are basically a mixture of two or more metals dont forget there are many elements on the periodic table",
+     "wer": 0.0476,
+     "audio_s": 8.38,
+     "proc_s": 0.68
+    },
+    {
+     "id": "10622204403793540766.wav",
+     "ref": "for example each year students from bennet school in north carolina design a website about their trip to the state capital each year the website gets remodeled but old versions are kept online to serve as a scrapbook",
+     "hyp": "for example each year students from bennett school in north carolina design a website about their trip to the state capital each year the website gets remodeled but older versions are kept online to serve as a scrapbook",
+     "wer": 0.0526,
+     "audio_s": 11.4,
+     "proc_s": 0.89
+    },
+    {
+     "id": "10731896540541531669.wav",
+     "ref": "his work is of such recognized quality and detail that he is one of the very few household names among philatelists some specialize in collecting his work alone",
+     "hyp": "his work is of such recognized quality and detail that he is one of the very few household names among philatelists some specialize in collecting his work alone",
+     "wer": 0.0,
+     "audio_s": 14.66,
+     "proc_s": 0.73
+    },
+    {
+     "id": "10751756685109361684.wav",
+     "ref": "danielle lantagne a un expert on the disease stated the outbreak was likely caused by the peacekeepers",
+     "hyp": "daniel lantagne a un expert on the disease stated the outbreak was likely caused by the peacekeepers",
+     "wer": 0.0588,
+     "audio_s": 6.3,
+     "proc_s": 0.61
+    },
+    {
+     "id": "10768814098664478369.wav",
+     "ref": "the other nominations include best picture director cinematography costume design film editing original score production design sound editing sound mixing and original screenplay",
+     "hyp": "the other nominations include best picture director cinematography costume design film editing original score production design sound editing sound mixing and original screenplay",
+     "wer": 0.0,
+     "audio_s": 14.6,
+     "proc_s": 0.8
+    }
+   ]
+  }
+ ]
+}

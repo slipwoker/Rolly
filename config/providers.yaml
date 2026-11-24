@@ -99,6 +99,9 @@ providers:
       model: "${ROLLY_HYBRID_LLM_MODEL:-}"
       api_key_env: ROLLY_HYBRID_LLM_API_KEY
       max_tokens: 120
+      token_param: "${ROLLY_HYBRID_LLM_TOKEN_PARAM:-max_tokens}"      # OpenAI's current models need max_completion_tokens
+      reasoning_effort: "${ROLLY_HYBRID_LLM_REASONING:-}"            # e.g. "none": reasoning adds seconds to the first token
+      omit_temperature: "${ROLLY_HYBRID_LLM_OMIT_TEMPERATURE:-}"
     tts:
       default: en
       en:

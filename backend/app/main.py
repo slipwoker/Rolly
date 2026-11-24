@@ -54,9 +54,18 @@ async def lifespan(app: FastAPI):
     state.sampler.start()
     purge_task = asyncio.create_task(_purge_loop(state))
     # optional warm-up so the first journey does not pay the model-loading time
+    state.warming = 0
+
+    def _warm(pid: str) -> None:
+        try:
+            state.registry.create(pid)
+        finally:
+            state.warming -= 1
+
     for pid in [p.strip() for p in os.environ.get("ROLLY_WARM_PROVIDERS", "").split(",") if p.strip()]:
         if state.registry.available(pid):
-            asyncio.get_running_loop().run_in_executor(None, state.registry.create, pid)
+            state.warming += 1
+            asyncio.get_running_loop().run_in_executor(None, _warm, pid)
     yield
     purge_task.cancel()
     state.sampler.stop()
@@ -94,7 +103,9 @@ def _is_admin(state, token: str | None) -> bool:
 @app.get("/healthz")
 async def healthz(request: Request):
     st = S(request)
-    return {"ok": True, "active_sessions": len(st.active_sessions), "uptime_s": round(time.time() - st.started, 1)}
+    # `ready` turns true once the warm-up model loading has finished; load tests should wait for it
+    return {"ok": True, "ready": getattr(st, "warming", 0) == 0, "active_sessions": len(st.active_sessions),
+            "uptime_s": round(time.time() - st.started, 1)}
 
 
 @app.get("/api/providers")

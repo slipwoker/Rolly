@@ -56,7 +56,7 @@ UNKNOWN = [
 ABSTAIN = ["don't know", "do not know", "not sure", "no record", "didn't discuss", "did not discuss", "haven't discussed", "have not discussed",
            "don't have", "do not have", "didn't mention", "did not mention", "haven't mentioned", "not something we", "no memory", "don't recall", "didn't record", "did not record", "not recorded", "don't see", "no information", "can't find", "cannot find",
            "do not recall", "didn't tell", "did not tell", "haven't told", "not aware", "wasn't", "we never", "you haven't", "you didn't",
-           "לא יודע", "לא דיברנו", "לא זוכר", "לא סיפרת", "לא אמרת", "אין לי", "לא הזכרת", "לא עלה", "לא ידוע", "לא מצא", "לא החלטנו", "לא נאמר", "לא דנו"]
+           "לא יודע", "לא דיברנו", "לא רואה", "אין בזיכרון", "לא מופיע", "לא שמור", "לא זוכר", "לא סיפרת", "לא אמרת", "אין לי", "לא הזכרת", "לא עלה", "לא ידוע", "לא מצא", "לא החלטנו", "לא נאמר", "לא דנו"]
 FACTS = [
     ("daniel", "Quick one: what is the capital of Australia?", ["canberra"]),
     ("daniel", "How many minutes are there in two and a half hours?", ["150", "one hundred and fifty", "one hundred fifty"]),
@@ -107,7 +107,8 @@ async def ask(llm: OpenAICompatLLM, system: str, history: list[dict], q: str) ->
 
 
 async def main_async(a) -> None:
-    llm = OpenAICompatLLM({"base_url": a.base_url, "model": a.model, "api_key_env": a.key_env, "max_tokens": 120})
+    llm = OpenAICompatLLM({"base_url": a.base_url, "model": a.model, "api_key_env": a.key_env, "max_tokens": 120,
+                           "token_param": a.token_param, "reasoning_effort": a.reasoning_effort, "omit_temperature": a.omit_temperature})
     store = MemoryStore(Path(tempfile.mkdtemp()) / "m.sqlite3")
     seed_store(store)
     ctx = {u: build_context(store, u, None, {"duration_min": 25, "proactive": False}) for u in ("daniel", "noa")}
@@ -171,6 +172,9 @@ if __name__ == "__main__":
     ap.add_argument("--model", default="local")
     ap.add_argument("--key-env", default="ROLLY_LLM_API_KEY")
     ap.add_argument("--label", default="llm")
+    ap.add_argument("--token-param", default="max_tokens")
+    ap.add_argument("--reasoning-effort", default="")
+    ap.add_argument("--omit-temperature", default="")
     ap.add_argument("--depths", type=int, nargs="+", default=[10, 20])
     ap.add_argument("--hardware", default="unspecified")
     asyncio.run(main_async(ap.parse_args()))

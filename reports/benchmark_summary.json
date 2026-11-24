@@ -77,6 +77,25 @@
    }
   },
   {
+   "lang": "en",
+   "model": "api:gpt-transcribe",
+   "snr_db": "clean",
+   "n": 30,
+   "wer": 0.0345,
+   "cer": 0.0166,
+   "wer_no_digits_latin": 0.0345,
+   "n_no_digits_latin": 30,
+   "rtf_cpu": 0.074,
+   "file": "stt_wer_en_20261124T174204.json",
+   "host": {
+    "platform": "Linux-6.18.44-fc-v819-x86_64-with-glibc2.39",
+    "processor": "x86_64",
+    "device": "auto",
+    "compute_type": "default",
+    "cpu_threads": 0
+   }
+  },
+  {
    "lang": "he",
    "model": "ivrit-ai/whisper-large-v3-turbo-ct2",
    "snr_db": "clean",
@@ -207,6 +226,44 @@
     "device": "cpu",
     "compute_type": "int8",
     "cpu_threads": 4
+   }
+  },
+  {
+   "lang": "he",
+   "model": "api:gpt-transcribe",
+   "snr_db": "clean",
+   "n": 40,
+   "wer": 0.195,
+   "cer": 0.091,
+   "wer_no_digits_latin": 0.1526,
+   "n_no_digits_latin": 27,
+   "rtf_cpu": 0.103,
+   "file": "stt_wer_he_20261124T174047.json",
+   "host": {
+    "platform": "Linux-6.18.44-fc-v819-x86_64-with-glibc2.39",
+    "processor": "x86_64",
+    "device": "auto",
+    "compute_type": "default",
+    "cpu_threads": 0
+   }
+  },
+  {
+   "lang": "he",
+   "model": "api:gpt-transcribe",
+   "snr_db": "5",
+   "n": 40,
+   "wer": 0.2311,
+   "cer": 0.11,
+   "wer_no_digits_latin": 0.2027,
+   "n_no_digits_latin": 27,
+   "rtf_cpu": 0.095,
+   "file": "stt_wer_he_20261124T174047.json",
+   "host": {
+    "platform": "Linux-6.18.44-fc-v819-x86_64-with-glibc2.39",
+    "processor": "x86_64",
+    "device": "auto",
+    "compute_type": "default",
+    "cpu_threads": 0
    }
   }
  ],
@@ -381,6 +438,85 @@
  },
  "llm_quality": [
   {
+   "label": "gpt-6-luna-api",
+   "model": "gpt-6-luna",
+   "hardware": "OpenAI API over HTTPS from the session container (reasoning_effort=none); latency includes the session proxy",
+   "context_retention": {
+    "all": {
+     "n": 12,
+     "passed": 12,
+     "rate": 1.0
+    },
+    "en": {
+     "n": 6,
+     "passed": 6,
+     "rate": 1.0
+    },
+    "he": {
+     "n": 6,
+     "passed": 6,
+     "rate": 1.0
+    }
+   },
+   "no_hallucination_on_unknowns": {
+    "all": {
+     "n": 8,
+     "passed": 8,
+     "rate": 1.0
+    },
+    "en": {
+     "n": 4,
+     "passed": 4,
+     "rate": 1.0
+    },
+    "he": {
+     "n": 4,
+     "passed": 4,
+     "rate": 1.0
+    }
+   },
+   "general_facts": {
+    "all": {
+     "n": 6,
+     "passed": 6,
+     "rate": 1.0
+    },
+    "en": {
+     "n": 3,
+     "passed": 3,
+     "rate": 1.0
+    },
+    "he": {
+     "n": 3,
+     "passed": 3,
+     "rate": 1.0
+    }
+   },
+   "long_context": {
+    "n": 2,
+    "passed": 2,
+    "rate": 1.0
+   },
+   "ttft_ms": {
+    "n": 26,
+    "median": 668.1,
+    "mean": 729.3,
+    "p90": 924.4,
+    "p95": 1249.5,
+    "min": 502.9,
+    "max": 1349.8
+   },
+   "output_tokens_per_s": {
+    "n": 26,
+    "median": 122.5,
+    "mean": 132.7,
+    "p90": 170.8,
+    "p95": 195.5,
+    "min": 90.6,
+    "max": 266.1
+   }
+  },
+  {
    "label": "qwen3-4b-q4km-cpu",
    "model": "local",
    "hardware": "4 vCPU container, no GPU, llama.cpp b12676, 2 threads (shared with another benchmark)",
@@ -461,6 +597,168 @@
   }
  ],
  "scenarios": [
+  {
+   "provider": "hybrid-apillm",
+   "hardware": "HYBRID: STT (Whisper large-v3-turbo int8, routed by language) and TTS (Piper / ReNikud) on a 4 vCPU container without GPU; LLM = OpenAI gpt-6-luna over HTTPS, reasoning off. Latency is dominated by CPU speech recognition and is not a real-time benchmark",
+   "file": "scenarios_hybrid-apillm_20261124T173920.json",
+   "scenarios": 12,
+   "scenarios_failed": 0,
+   "turns": 28,
+   "turns_without_response": 0,
+   "response_latency_ms": {
+    "n": 28,
+    "median": 6948.0,
+    "mean": 7588.3,
+    "p90": 9561.8,
+    "p95": 11226.4,
+    "min": 6025,
+    "max": 13113
+   },
+   "wer_synthetic_speech": {
+    "he": {
+     "n": 7,
+     "wer_all": 0.0606,
+     "wer_clean": 0.0426
+    },
+    "en": {
+     "n": 19,
+     "wer_all": 0.0087,
+     "wer_clean": 0.0096
+    },
+    "auto": {
+     "n": 2,
+     "wer_all": 0.4444,
+     "wer_clean": 0.4444
+    }
+   },
+   "checks_passed": 28,
+   "checks_total": 28,
+   "checks_failed": [],
+   "interruptions": {
+    "attempted": 1,
+    "detected": 1,
+    "onset_to_interrupt_ms": {
+     "n": 1,
+     "median": 163,
+     "mean": 163.0,
+     "p90": 163,
+     "p95": 163,
+     "min": 163,
+     "max": 163
+    },
+    "audio_after_interrupt_ms": {
+     "n": 1,
+     "median": 0,
+     "mean": 0.0,
+     "p90": 0,
+     "p95": 0,
+     "min": 0,
+     "max": 0
+    }
+   },
+   "playout_underruns_per_turn": 0.0,
+   "stage_medians_ms": {
+    "provider_start_ms": {
+     "n": 12,
+     "median": 0.1,
+     "mean": 0.1,
+     "p90": 0.1,
+     "p95": 0.1,
+     "min": 0.1,
+     "max": 0.1
+    },
+    "llm_first_chunk_ms": {
+     "n": 12,
+     "median": 1242.2,
+     "mean": 1284.1,
+     "p90": 1556.9,
+     "p95": 1773.0,
+     "min": 927.8,
+     "max": 2017.8
+    },
+    "tts_ttfa_ms": {
+     "n": 12,
+     "median": 174.4,
+     "mean": 172.2,
+     "p90": 229.4,
+     "p95": 239.1,
+     "min": 100.8,
+     "max": 247.6
+    },
+    "pipeline_ms": {
+     "n": 12,
+     "median": 6547.4,
+     "mean": 6895.5,
+     "p90": 7013.3,
+     "p95": 9073.0,
+     "min": 5741.2,
+     "max": 11579.9
+    },
+    "llm_ttft_ms": {
+     "n": 12,
+     "median": 1102.4,
+     "mean": 1149.2,
+     "p90": 1353.2,
+     "p95": 1566.9,
+     "min": 857.4,
+     "max": 1819.1
+    },
+    "llm_total_ms": {
+     "n": 12,
+     "median": 1480.2,
+     "mean": 1494.6,
+     "p90": 1708.5,
+     "p95": 1894.9,
+     "min": 1088.4,
+     "max": 2119.0
+    },
+    "stt_ms": {
+     "n": 12,
+     "median": 5142.1,
+     "mean": 5222.3,
+     "p90": 5516.8,
+     "p95": 5577.3,
+     "min": 4970.8,
+     "max": 5645.6
+    },
+    "stt_queue_ms": {
+     "n": 12,
+     "median": 0.3,
+     "mean": 178.7,
+     "p90": 860.0,
+     "p95": 1059.4,
+     "min": 0.2,
+     "max": 1186.3
+    },
+    "summary_ms": {
+     "n": 12,
+     "median": 36955.6,
+     "mean": 39876.8,
+     "p90": 50369.7,
+     "p95": 50966.2,
+     "min": 27572.2,
+     "max": 51668.5
+    },
+    "stt_language_detect_ms": {
+     "n": 1,
+     "median": 4966.8,
+     "mean": 4966.8,
+     "p90": 4966.8,
+     "p95": 4966.8,
+     "min": 4966.8,
+     "max": 4966.8
+    }
+   },
+   "opener_first_audio_ms": {
+    "n": 12,
+    "median": 1405.5,
+    "mean": 1885.4,
+    "p90": 2210.2,
+    "p95": 4439.3,
+    "min": 980,
+    "max": 7092
+   }
+  },
   {
    "provider": "modular-selfhosted",
    "hardware": "4 vCPU container, NO GPU: Whisper large-v3-turbo int8 routed by language (ivrit-ai model for Hebrew, stock model for English), Qwen3-4B-Instruct Q4_K_M on llama.cpp, Piper/ReNikud TTS (functional run, not a latency benchmark)",
