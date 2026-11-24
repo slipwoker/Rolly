@@ -11,7 +11,7 @@ export PYTHONPATH="$ROOT" HF_HOME="${HF_HOME:-$WS/hf}"
 PY="$ROOT/.venv/bin/python"
 URL="ws://127.0.0.1:8000/ws?token=$ROLLY_ACCESS_TOKEN"
 GPU="$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader | head -1)"
-run() { echo; echo "=== $1 ==="; shift; "$@" 2>&1 | grep -v Warning | tee -a "$LOGS/bench.log" | grep --line-buffered -E "^s[0-9]|^N=|max sustainable|saved|Error|Traceback"; }
+run() { echo; echo "=== $1 ==="; shift; "$@" 2>&1 | grep --line-buffered -v Warning | tee -a "$LOGS/bench.log" | grep --line-buffered -E "^s[0-9]|^N=|max sustainable|saved|Error|Traceback"; }
 [ -n "${OPENAI_API_KEY:-}" ] || { echo "OPENAI_API_KEY is not set in the pod environment"; exit 1; }
 case "$OPENAI_API_KEY" in *RUNPOD_SECRET*) echo "the RunPod secret was not substituted (does a secret named OPENAI_API_KEY exist?)"; exit 1;; esac
 until curl -fs http://127.0.0.1:8000/healthz | grep -q '"ready":true'; do sleep 3; done

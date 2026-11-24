@@ -8,7 +8,7 @@ WS="${ROLLY_WORKSPACE:-/workspace}"; LOGS="$WS/logs"; mkdir -p "$LOGS"
 export PYTHONPATH="$ROOT" HF_HOME="${HF_HOME:-$WS/hf}"
 PY="$ROOT/.venv/bin/python"
 URL="ws://127.0.0.1:8000/ws?token=$ROLLY_ACCESS_TOKEN"
-run() { echo; echo "=== $1 ==="; shift; "$@" 2>&1 | grep -v Warning | tee -a "$LOGS/bench.log" | grep --line-buffered -E "^s[0-9]|^N=|max sustainable|saved|Error|Traceback"; }
+run() { echo; echo "=== $1 ==="; shift; "$@" 2>&1 | grep --line-buffered -v Warning | tee -a "$LOGS/bench.log" | grep --line-buffered -E "^s[0-9]|^N=|max sustainable|saved|Error|Traceback"; }
 until curl -fs http://127.0.0.1:8000/healthz | grep -q '"ready":true'; do sleep 3; done
 RT="OpenAI Realtime API gpt-realtime-2.1 called from a RunPod pod in Sweden (server-side WebSocket bridge); client on the same host; opener fix applied"
 SUB="s01 s02 s05 s07 s08 s12"

@@ -12,7 +12,7 @@ URL="ws://127.0.0.1:8000/ws?token=$ROLLY_ACCESS_TOKEN"
 GPU="$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader | head -1)"
 LLM="$(curl -fs http://127.0.0.1:8081/v1/models | "$PY" -c 'import json,sys; print(json.load(sys.stdin)["data"][0].get("root","?"))' 2>/dev/null || echo unknown)"
 HW="GPU pod: $GPU; STT Whisper large-v3-turbo float16 on GPU (routed by language); LLM $LLM on vLLM (same GPU); TTS Piper/ReNikud on CPU; client on the same host (no network latency)"
-run() { echo; echo "=== $1 ==="; shift; "$@" 2>&1 | grep -v Warning | tee -a "$LOGS/bench.log" | grep --line-buffered -E "^s[0-9]|^N=|max sustainable|saved|Error|Traceback"; }
+run() { echo; echo "=== $1 ==="; shift; "$@" 2>&1 | grep --line-buffered -v Warning | tee -a "$LOGS/bench.log" | grep --line-buffered -E "^s[0-9]|^N=|max sustainable|saved|Error|Traceback"; }
 until curl -fs http://127.0.0.1:8000/healthz | grep -q '"ready":true'; do sleep 3; done
 
 # 1) concurrency ramp, Hebrew and English users mixed, 5 turns each, every level is run even if a target is missed
