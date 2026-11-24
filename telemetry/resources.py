@@ -20,8 +20,14 @@ def gpu_snapshot() -> Optional[list[dict]]:
         gpus = []
         for line in out.strip().splitlines():
             idx, name, util, mem_used, mem_total, power = [x.strip() for x in line.split(",")]
-            gpus.append({"index": int(idx), "name": name, "util_pct": float(util), "mem_used_mb": float(mem_used),
-                         "mem_total_mb": float(mem_total), "power_w": float(power) if power not in ("[N/A]", "") else None})
+
+            def num(v: str):  # MIG slices and some drivers report "[N/A]" for utilisation or power
+                try:
+                    return float(v)
+                except ValueError:
+                    return None
+            gpus.append({"index": int(idx), "name": name, "util_pct": num(util), "mem_used_mb": num(mem_used),
+                         "mem_total_mb": num(mem_total), "power_w": num(power)})
         return gpus
     except Exception:
         return None
@@ -90,9 +96,10 @@ class ResourceSampler:
         if g:
             out.update({
                 "gpu_name": g[-1]["name"],
-                "gpu_util_pct_mean": round(sum(x["util_pct"] for x in g) / len(g), 1),
-                "gpu_util_pct_max": max(x["util_pct"] for x in g),
-                "gpu_mem_used_mb_max": max(x["mem_used_mb"] for x in g),
+                "gpu_util_pct_mean": round(sum(x["util_pct"] for x in g if x["util_pct"] is not None) / max(1, sum(1 for x in g if x["util_pct"] is not None)), 1)
+                if any(x["util_pct"] is not None for x in g) else None,
+                "gpu_util_pct_max": max((x["util_pct"] for x in g if x["util_pct"] is not None), default=None),
+                "gpu_mem_used_mb_max": max((x["mem_used_mb"] for x in g if x["mem_used_mb"] is not None), default=None),
                 "gpu_mem_total_mb": g[-1]["mem_total_mb"],
             })
         return out
