@@ -20,13 +20,16 @@ step() { echo; echo "=== $* ==="; }
 step "GPU"; nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || { echo "no GPU visible"; exit 1; }
 
 step "system packages"
-command -v bzip2 >/dev/null && command -v curl >/dev/null && command -v openssl >/dev/null || (apt-get update -qq && apt-get install -y -qq bzip2 curl openssl ca-certificates >/dev/null)
+# gcc is required by vLLM (Triton compiles small kernels at start-up); slim CUDA runtime images do not ship one
+command -v bzip2 >/dev/null && command -v curl >/dev/null && command -v openssl >/dev/null && command -v gcc >/dev/null || \
+  (apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq bzip2 curl openssl ca-certificates build-essential >/dev/null)
 
 step "application environment"
 # uv provides Python 3.12 on any base image and installs wheels much faster than pip
-export PATH="$HOME/.local/bin:$PATH"
+# keep uv's Python on the persistent volume so the environments survive a container restart
+export PATH="$HOME/.local/bin:$PATH" UV_PYTHON_INSTALL_DIR="$WS/uv-python"
 command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh >/dev/null 2>&1
-[ -x .venv/bin/python ] || uv venv -q --python 3.12 .venv
+.venv/bin/python -c "import sys" 2>/dev/null || { rm -rf .venv; uv venv -q --python 3.12 .venv; }
 uv pip install -q --python .venv/bin/python -r requirements.txt || { echo "pinned requirements failed; installing unpinned"; \
   uv pip install -q --python .venv/bin/python fastapi "uvicorn[standard]" websockets httpx numpy onnxruntime faster-whisper "sherpa-onnx<2" soundfile jiwer psutil pyyaml huggingface_hub scipy soxr; }
 uv pip install -q --python .venv/bin/python nvidia-cublas-cu12 "nvidia-cudnn-cu12>=9,<10"
@@ -38,7 +41,7 @@ step "speech models (about 4 GB)"
 PYTHON="$ROOT/.venv/bin/python" bash infrastructure/download_models.sh --no-llm
 
 step "vLLM (separate environment; first install takes several minutes)"
-[ -x "$WS/vllm-venv/bin/vllm" ] || { uv venv -q --python 3.12 "$WS/vllm-venv" && uv pip install -q --python "$WS/vllm-venv/bin/python" vllm; }
+"$WS/vllm-venv/bin/python" -c "import vllm" 2>/dev/null || { rm -rf "$WS/vllm-venv"; uv venv -q --python 3.12 "$WS/vllm-venv" && uv pip install -q --python "$WS/vllm-venv/bin/python" vllm; }
 if ! curl -fs http://127.0.0.1:8081/v1/models >/dev/null 2>&1; then
   echo "starting vLLM with $LLM_MODEL (downloads ~27 GB on first start) - log: $LOGS/vllm.log"
   nohup "$WS/vllm-venv/bin/vllm" serve "$LLM_MODEL" --served-model-name local --port 8081 --max-model-len 16384 \
