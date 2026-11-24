@@ -259,3 +259,22 @@ All cost figures are ESTIMATE built on the reports' assumptions and on unverifie
 | `piper-he-noa` front-end | Model card says phonemes follow ReNikud; Piper's upstream Hebrew phonemiser source describes Nakdimon plus rules | POC uses ReNikud, as the card states | VERIFIED-official (both statements); local file (card) |
 | POC framework | Report 05 recommends Pipecat with SmallWebRTC for the POC; the POC uses a custom FastAPI + WebSocket server | Recorded as a decision; WebSocket caveat noted in table F | local file (POC design); ESTIMATE (caveat) |
 | ElevenLabs v3 Conversational latency | Docs say about 165 ms; pricing page says about 280 ms | Not used in a decision | VERIFIED-official (both pages) |
+
+## Addendum: what the POC measured afterwards
+
+The tables above are research. These rows were then measured in the POC (details and caveats in `BENCHMARKS.md`; CPU only, small test sets):
+
+| Layer | Item | Measured result | Effect on the POC decision |
+|---|---|---|---|
+| STT | `ivrit-ai/whisper-large-v3-turbo-ct2`, Hebrew (FLEURS, 40 utterances) | 18.9 % WER clean, 23.1 % at 5 dB road noise, 27.5 % at 0 dB | Hebrew sessions use this model |
+| STT | `deepdml/faster-whisper-large-v3-turbo-ct2` (stock turbo), Hebrew | 28.6 % WER clean, 34.1 % at 5 dB | Not used for Hebrew |
+| STT | Stock turbo, English (FLEURS, 30 utterances) | 5.6 % WER clean, 7.2 % at 5 dB | **English sessions use this model** (changed after measurement) |
+| STT | Hebrew-tuned model, English | 29.0 % WER; translated 6 of 30 utterances into Hebrew | Must not be used for English; language routing added |
+| STT | `Systran/faster-whisper-small`, Hebrew | 46.5 % WER | Rejected |
+| VAD | Silero VAD, 544 ms endpoint, 256 ms speculative point | No missed utterances or false triggers down to 0 dB; 10–13 % of long sentences split by a pause | Kept; learned turn detection needed later |
+| TTS | `thewh1teagle/piper-he-noa` + `renikud/renikud` on ONNX Runtime | About 12x real time on CPU; 4.3 % WER when its speech is transcribed back | Used for Hebrew in the POC; naturalness not assessed |
+| TTS | Kokoro-82M v1.0 / Piper lessac via sherpa-onnx 1.13.8, CPU | Real-time factor about 0.5 / 0.07 | Piper used for CPU runs, Kokoro planned for GPU |
+| LLM | `Qwen3-4B-Instruct-2507` Q4 on llama.cpp, CPU | English usable; Hebrew grammatically poor; recall 11 of 12; 2 of 8 unknown-fact probes answered with invented content | CPU stand-in only; not a production candidate |
+| Transport | Custom WebSocket session layer | About 0.006 CPU-seconds per session-second (plus 0.0065 for VAD) | About 40 sessions per vCPU with headroom |
+
+Nothing was measured for the commercial realtime APIs, for any GPU configuration, or for any commercial component.

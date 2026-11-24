@@ -24,7 +24,7 @@ done
 "$PY" - "$@" <<'PY'
 import sys
 from huggingface_hub import hf_hub_download, snapshot_download
-for rid in ("ivrit-ai/whisper-large-v3-turbo-ct2", "Systran/faster-whisper-small"):
+for rid in ("ivrit-ai/whisper-large-v3-turbo-ct2", "deepdml/faster-whisper-large-v3-turbo-ct2", "Systran/faster-whisper-small"):
     print("fetching", rid); snapshot_download(rid)
 if "--no-llm" not in sys.argv:
     print("fetching CPU development LLM"); hf_hub_download("unsloth/Qwen3-4B-Instruct-2507-GGUF", "Qwen3-4B-Instruct-2507-Q4_K_M.gguf")

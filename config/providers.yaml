@@ -22,13 +22,24 @@ providers:
     vad:
       endpoint_silence_ms: ${ROLLY_ENDPOINT_SILENCE_MS:-544}
       eager_silence_ms: ${ROLLY_EAGER_SILENCE_MS:-256}
+    # One Whisper per language (measured: the Hebrew-tuned model is poor on English and vice versa).
     stt:
-      engine: faster_whisper
-      model: "${ROLLY_STT_MODEL:-small}"
-      device: "${ROLLY_STT_DEVICE:-auto}"
-      compute_type: "${ROLLY_STT_COMPUTE:-default}"
-      num_workers: ${ROLLY_STT_WORKERS:-1}
-      cpu_threads: ${ROLLY_STT_CPU_THREADS:-0}
+      default: he            # mixed / unknown language: detect Hebrew vs English, then route
+      detect_with: en
+      he:
+        engine: faster_whisper
+        model: "${ROLLY_STT_MODEL_HE:-ivrit-ai/whisper-large-v3-turbo-ct2}"
+        device: "${ROLLY_STT_DEVICE:-auto}"
+        compute_type: "${ROLLY_STT_COMPUTE:-default}"
+        num_workers: ${ROLLY_STT_WORKERS:-1}
+        cpu_threads: ${ROLLY_STT_CPU_THREADS:-0}
+      en:
+        engine: faster_whisper
+        model: "${ROLLY_STT_MODEL_EN:-deepdml/faster-whisper-large-v3-turbo-ct2}"
+        device: "${ROLLY_STT_DEVICE:-auto}"
+        compute_type: "${ROLLY_STT_COMPUTE:-default}"
+        num_workers: ${ROLLY_STT_WORKERS:-1}
+        cpu_threads: ${ROLLY_STT_CPU_THREADS:-0}
     llm:
       base_url: "${ROLLY_LLM_BASE_URL:-http://127.0.0.1:8081/v1}"
       model: "${ROLLY_LLM_MODEL:-local}"
@@ -63,12 +74,24 @@ providers:
     vad:
       endpoint_silence_ms: ${ROLLY_ENDPOINT_SILENCE_MS:-544}
       eager_silence_ms: ${ROLLY_EAGER_SILENCE_MS:-256}
+    # One Whisper per language (measured: the Hebrew-tuned model is poor on English and vice versa).
     stt:
-      engine: faster_whisper
-      model: "${ROLLY_STT_MODEL:-small}"
-      device: "${ROLLY_STT_DEVICE:-auto}"
-      compute_type: "${ROLLY_STT_COMPUTE:-default}"
-      num_workers: ${ROLLY_STT_WORKERS:-1}
+      default: he            # mixed / unknown language: detect Hebrew vs English, then route
+      detect_with: en
+      he:
+        engine: faster_whisper
+        model: "${ROLLY_STT_MODEL_HE:-ivrit-ai/whisper-large-v3-turbo-ct2}"
+        device: "${ROLLY_STT_DEVICE:-auto}"
+        compute_type: "${ROLLY_STT_COMPUTE:-default}"
+        num_workers: ${ROLLY_STT_WORKERS:-1}
+        cpu_threads: ${ROLLY_STT_CPU_THREADS:-0}
+      en:
+        engine: faster_whisper
+        model: "${ROLLY_STT_MODEL_EN:-deepdml/faster-whisper-large-v3-turbo-ct2}"
+        device: "${ROLLY_STT_DEVICE:-auto}"
+        compute_type: "${ROLLY_STT_COMPUTE:-default}"
+        num_workers: ${ROLLY_STT_WORKERS:-1}
+        cpu_threads: ${ROLLY_STT_CPU_THREADS:-0}
     llm:
       base_url: "${ROLLY_HYBRID_LLM_BASE_URL:-}"
       model: "${ROLLY_HYBRID_LLM_MODEL:-}"

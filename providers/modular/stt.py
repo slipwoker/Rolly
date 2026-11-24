@@ -30,6 +30,7 @@ class STTResult:
     queue_ms: float = 0.0
     avg_logprob: Optional[float] = None
     no_speech_prob: Optional[float] = None
+    detect_ms: float = 0.0
 
 
 # Whisper is known to emit these on silence / noise; treat them as "nothing was said".
@@ -137,11 +138,46 @@ class OpenAICompatSTT:
         return STTResult(text=text, language=language, ms=(time.monotonic() - t0) * 1000, audio_s=len(audio) / 16000)
 
 
+class STTRouter:
+    """Per-language STT.  Measured in this POC (FLEURS): the Hebrew-tuned Whisper is much better on
+    Hebrew (18.9 % vs 28.6 % WER) but much worse on English (29.0 % vs 5.6 %) than stock
+    large-v3-turbo, so each language gets its own model.  For mixed/unknown language the
+    detector engine decides Hebrew vs English first and the audio is then routed."""
+
+    def __init__(self, cfg: dict):
+        self.default = cfg.get("default", "he")
+        self.engines = {k: get_stt(v) for k, v in cfg.items() if isinstance(v, dict)}
+        self.detector = self.engines.get(cfg.get("detect_with", "en")) or next(iter(self.engines.values()))
+        self.name = "routed[" + ", ".join(f"{k}={e.name}" for k, e in self.engines.items()) + f"; mixed->{self.default}]"
+
+    async def transcribe(self, audio: np.ndarray, language: Optional[str]) -> STTResult:
+        if language in self.engines:
+            return await self.engines[language].transcribe(audio, language)
+        # unknown / code-switching session: detect he vs en, then route
+        t0 = time.monotonic()
+        lang = None
+        if isinstance(self.detector, FasterWhisperSTT) and len(audio):
+            loop = asyncio.get_running_loop()
+            try:
+                _, _, probs = await loop.run_in_executor(self.detector._pool, self.detector.model.detect_language, audio)
+                allowed = [(l, p) for l, p in probs if l in self.engines]
+                lang = max(allowed, key=lambda lp: lp[1])[0] if allowed else None
+            except Exception:
+                lang = None
+        detect_ms = (time.monotonic() - t0) * 1000
+        lang = lang or self.default
+        res = await self.engines[lang].transcribe(audio, lang)
+        res.detect_ms = detect_ms
+        return res
+
+
 _engines: dict[str, object] = {}
-_lock = threading.Lock()
+_lock = threading.RLock()
 
 
 def get_stt(cfg: dict):
+    if "engine" not in cfg and any(isinstance(v, dict) for v in cfg.values()):
+        return STTRouter(cfg)
     key = repr(sorted(cfg.items()))
     with _lock:
         if key not in _engines:

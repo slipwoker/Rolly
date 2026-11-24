@@ -45,7 +45,7 @@ cp .env.example .env && infrastructure/run_dev.sh
 
 Open http://localhost:8000 in Chrome, pick a traveller and an agent, press **Start journey**. The agent speaks first.
 On a laptop CPU a reply takes several seconds; that is expected (see `BENCHMARKS.md`). For CPU-only use set
-`ROLLY_STT_MODEL=small` and the Piper English voice (`ROLLY_TTS_EN_KIND=vits`, see `.env.example`).
+`ROLLY_STT_MODEL_HE=small ROLLY_STT_MODEL_EN=small` and the Piper English voice (`ROLLY_TTS_EN_KIND=vits`, see `.env.example`).
 
 Docker alternative: `docker compose up --build` (not built in the POC session — treat as a starting point).
 

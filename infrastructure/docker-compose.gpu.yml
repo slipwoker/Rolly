@@ -17,7 +17,6 @@ services:
     environment:
       ROLLY_LLM_BASE_URL: http://llm:8000/v1
       ROLLY_LLM_MODEL: local
-      ROLLY_STT_MODEL: ivrit-ai/whisper-large-v3-turbo-ct2
       ROLLY_STT_DEVICE: cuda
       ROLLY_STT_COMPUTE: float16
       ROLLY_STT_WORKERS: "4"

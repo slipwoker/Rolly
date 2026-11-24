@@ -1,0 +1,168 @@
+{
+ "benchmark": "vad_endpointing",
+ "vad": "silero-vad v5 onnx",
+ "config": {
+  "start_threshold": 0.5,
+  "end_threshold": 0.35,
+  "min_speech_ms": 96,
+  "bargein_min_speech_ms": 160,
+  "eager_silence_ms": 256,
+  "endpoint_silence_ms": 544,
+  "pre_roll_ms": 320,
+  "max_utterance_s": 30.0
+ },
+ "n_utterances": 30,
+ "started": "2026-11-24T15:47:32",
+ "conditions": [
+  {
+   "snr_db": "clean",
+   "barge_in_onset_detect_ms": {
+    "n": 30,
+    "median": 284.0,
+    "mean": 529.4,
+    "p90": 1127.4,
+    "p95": 1363.7,
+    "min": 84.0,
+    "max": 1526.0
+   },
+   "eager_point_after_speech_end_ms": {
+    "n": 30,
+    "median": 228.0,
+    "mean": -133.0,
+    "p90": 411.6,
+    "p95": 473.0,
+    "min": -2666.0,
+    "max": 676.0
+   },
+   "endpoint_after_speech_end_ms": {
+    "n": 30,
+    "median": 516.0,
+    "mean": 155.0,
+    "p90": 699.6,
+    "p95": 761.0,
+    "min": -2378.0,
+    "max": 964.0
+   },
+   "missed_utterances": 0,
+   "utterances_split_by_pause": 3,
+   "n_per_mode": 30
+  },
+  {
+   "snr_db": "10",
+   "barge_in_onset_detect_ms": {
+    "n": 30,
+    "median": 253.0,
+    "mean": 526.2,
+    "p90": 1128.8,
+    "p95": 1397.5,
+    "min": 148.0,
+    "max": 1526.0
+   },
+   "eager_point_after_speech_end_ms": {
+    "n": 30,
+    "median": 196.0,
+    "mean": -150.1,
+    "p90": 359.6,
+    "p95": 387.2,
+    "min": -2666.0,
+    "max": 548.0
+   },
+   "endpoint_after_speech_end_ms": {
+    "n": 30,
+    "median": 484.0,
+    "mean": 137.9,
+    "p90": 647.6,
+    "p95": 675.2,
+    "min": -2378.0,
+    "max": 836.0
+   },
+   "missed_utterances": 0,
+   "utterances_split_by_pause": 3,
+   "n_per_mode": 30
+  },
+  {
+   "snr_db": "5",
+   "barge_in_onset_detect_ms": {
+    "n": 30,
+    "median": 269.0,
+    "mean": 539.0,
+    "p90": 1139.6,
+    "p95": 1450.3,
+    "min": 148.0,
+    "max": 1590.0
+   },
+   "eager_point_after_speech_end_ms": {
+    "n": 30,
+    "median": 196.0,
+    "mean": -150.1,
+    "p90": 356.0,
+    "p95": 387.2,
+    "min": -2730.0,
+    "max": 548.0
+   },
+   "endpoint_after_speech_end_ms": {
+    "n": 30,
+    "median": 484.0,
+    "mean": 137.9,
+    "p90": 644.0,
+    "p95": 675.2,
+    "min": -2442.0,
+    "max": 836.0
+   },
+   "missed_utterances": 0,
+   "utterances_split_by_pause": 4,
+   "n_per_mode": 30
+  },
+  {
+   "snr_db": "0",
+   "barge_in_onset_detect_ms": {
+    "n": 30,
+    "median": 312.0,
+    "mean": 567.8,
+    "p90": 1254.8,
+    "p95": 1467.9,
+    "min": 164.0,
+    "max": 1622.0
+   },
+   "eager_point_after_speech_end_ms": {
+    "n": 30,
+    "median": 188.0,
+    "mean": -147.9,
+    "p90": 408.4,
+    "p95": 445.4,
+    "min": -2730.0,
+    "max": 484.0
+   },
+   "endpoint_after_speech_end_ms": {
+    "n": 30,
+    "median": 476.0,
+    "mean": 140.1,
+    "p90": 696.4,
+    "p95": 733.4,
+    "min": -2442.0,
+    "max": 772.0
+   },
+   "missed_utterances": 0,
+   "utterances_split_by_pause": 4,
+   "n_per_mode": 30
+  }
+ ],
+ "noise_only": [
+  {
+   "noise_rms_dbfs": -40,
+   "false_starts_per_min": 0.0
+  },
+  {
+   "noise_rms_dbfs": -30,
+   "false_starts_per_min": 0.0
+  },
+  {
+   "noise_rms_dbfs": -20,
+   "false_starts_per_min": 0.0
+  },
+  {
+   "noise_rms_dbfs": -12,
+   "false_starts_per_min": 0.0
+  }
+ ]
+}

@@ -244,6 +244,8 @@ class ModularProvider(VoiceProvider):
                 text = res.text
                 await gate.emit(base.METRIC, name="stt_ms", value_ms=res.ms, response_id=rid)
                 await gate.emit(base.METRIC, name="stt_queue_ms", value_ms=res.queue_ms, response_id=rid)
+                if res.detect_ms:
+                    await gate.emit(base.METRIC, name="stt_language_detect_ms", value_ms=res.detect_ms, response_id=rid)
                 await gate.emit(base.USAGE, kind="stt", audio_s=res.audio_s, engine=self.stt.name)
                 await gate.emit(base.USER_TRANSCRIPT, text=text, final=True, language=res.language,
                                 avg_logprob=res.avg_logprob, no_speech_prob=res.no_speech_prob)

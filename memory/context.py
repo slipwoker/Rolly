@@ -151,6 +151,9 @@ def build_context(store: MemoryStore, user_id: str, language: str | None, journe
             "and propose continuing the single most relevant unresolved topic from your memory "
             "(refer to what was actually discussed), ending with one simple question that lets them accept or choose something else."
         )
+        if language == "auto":
+            pref = {"he": "Hebrew", "en": "English"}.get(profile.get("preferred_language"), "English")
+            opener += f" Speak this opening in {pref}, the user's preferred language."
         if not summaries and not open_topics:
             opener = (
                 "[journey_start event - this is not something the user said] "

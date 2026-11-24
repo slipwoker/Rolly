@@ -1,0 +1,363 @@
+{
+ "benchmark": "llm_quality",
+ "label": "qwen3-4b-q4km-cpu",
+ "model": "local",
+ "base_url": "http://127.0.0.1:8081/v1",
+ "hardware_note": "4 vCPU container, no GPU, llama.cpp b12676, 2 threads (shared with another benchmark)",
+ "started": "2026-11-24T15:22:54",
+ "scoring": "keyword rules (see benchmarks/llm_quality.py)",
+ "items": [
+  {
+   "kind": "retention",
+   "lang": "en",
+   "q": "How many customer interviews have I completed so far?",
+   "a": "You've completed four customer interviews so far. Six remain to reach your goal of ten.  \n\nWhat’s the next one you’d like to schedule?",
+   "pass": true,
+   "ttft_ms": 19374,
+   "prompt_tokens": 749,
+   "completion_tokens": 31
+  },
+  {
+   "kind": "retention",
+   "lang": "en",
+   "q": "What was the go-to-market question we left open?",
+   "a": "We’re still deciding: sell the fall-detection service directly to adult families, or through home-care agencies. Which feels more aligned with your customer needs?",
+   "pass": true,
+   "ttft_ms": 1149,
+   "prompt_tokens": 750,
+   "completion_tokens": 32
+  },
+  {
+   "kind": "retention",
+   "lang": "en",
+   "q": "Which verbs do I keep confusing in Spanish?",
+   "a": "I still hear you mixing up *ser* and *estar*—especially when describing states or temporary conditions. Let’s focus on that first. What’s one situation where it’s tripping you up?",
+   "pass": true,
+   "ttft_ms": 1125,
+   "prompt_tokens": 748,
+   "completion_tokens": 42
+  },
+  {
+   "kind": "retention",
+   "lang": "en",
+   "q": "Where is my family trip going, and when?",
+   "a": "Family trip to Madrid in June.  \nYou’ve got about six weeks to reach conversational level.  \nLet’s focus on one daily practice—like asking for directions or ordering food—this week.  \n\nWhat’s one phrase you’d like to nail first?",
+   "pass": true,
+   "ttft_ms": 1142,
+   "prompt_tokens": 749,
+   "completion_tokens": 53
+  },
+  {
+   "kind": "retention",
+   "lang": "en",
+   "q": "What am I building in my workshop?",
+   "a": "You're building a walnut bookshelf. You’ve been working on it for a while now—focused, steady progress. Want to check in on the next step or a design tweak?",
+   "pass": true,
+   "ttft_ms": 1270,
+   "prompt_tokens": 747,
+   "completion_tokens": 38
+  },
+  {
+   "kind": "retention",
+   "lang": "en",
+   "q": "How long is my commute?",
+   "a": "Your commute from Haifa to Yokneam is about 30 minutes each way. That’s 60 minutes total round trip.  \n\nYou’re about 25 minutes from arrival now.  \n\nHow’s the traffic today?  \n\n<end_session/>",
+   "pass": true,
+   "ttft_ms": 860,
+   "prompt_tokens": 745,
+   "completion_tokens": 53
+  },
+  {
+   "kind": "retention",
+   "lang": "he",
+   "q": "מה היו שלוש האפשרויות שדיברנו עליהן אתמול לגבי הכיוון של החברה?",
+   "a": "השלש אפשרויות: 1) לעלות בسوق למשרדי מתקדמים עם אינטגרציה מותאמת, 2) להישאר עם משלוחים קטנים ולחזק מודול תשלום, 3) להרחיב לגרמניה עם המוצר הנוכחי.  \nהאם אתה מעדיף את אחת מהן?",
+   "pass": true,
+   "ttft_ms": 25034,
+   "prompt_tokens": 880,
+   "completion_tokens": 76
+  },
+  {
+   "kind": "retention",
+   "lang": "he",
+   "q": "מתי ישיבת הדירקטוריון?",
+   "a": "ההצגה של הדירקטוריון היא ב-15, ב-15:00. אתה מוכן להתחיל את ההחלטה על המסלול ב-15?",
+   "pass": true,
+   "ttft_ms": 1356,
+   "prompt_tokens": 867,
+   "completion_tokens": 43
+  },
+  {
+   "kind": "retention",
+   "lang": "he",
+   "q": "ממי הייתי צריכה לבקש הערכת מאמץ למודול התשלומים?",
+   "a": "אתה כבר שאלת את Yoav (CTO) – הוא יספק את הערכת המאמץ.  \nהאם אתה רוצה שאשאול אותו שוב?",
+   "pass": true,
+   "ttft_ms": 1599,
+   "prompt_tokens": 875,
+   "completion_tokens": 37
+  },
+  {
+   "kind": "retention",
+   "lang": "he",
+   "q": "לאיזה מרוץ אני מתאמנת?",
+   "a": "ההערכה שלך היא שמתאמנת למשהו בקיץ – אולי למשהו במרץ?  \nהאם אתה מדבר על המרוץ של סוף מרץ?  \nאו על המרוץ של סוף אפריל?  \nהאם אתה מדבר על המרוץ של סוף מרץ?  \nהאם אתה מדבר על המרוץ של סוף אפריל?  \nהאם אתה מדבר על המרוץ של סוף מרץ?  \nהאם אתה מדבר על המרוץ של סוף אפריל",
+   "pass": false,
+   "ttft_ms": 1137,
+   "prompt_tokens": 867,
+   "completion_tokens": 120
+  },
+  {
+   "kind": "retention",
+   "lang": "he",
+   "q": "כמה אנשים יש בצוות שלי?",
+   "a": "8 אנשים.  \nהאם אתה מדבר על זה בקשר לכיוון של הפרויקט?",
+   "pass": true,
+   "ttft_ms": 1023,
+   "prompt_tokens": 865,
+   "completion_tokens": 20
+  },
+  {
+   "kind": "retention",
+   "lang": "he",
+   "q": "כמה זמן לוקחת לי הנסיעה בבוקר?",
+   "a": "הנסיעה שלך מטיל את ה-25 דקות, כמו תמיד.  \nהאם זה עוזר לך לחשוב על ההחלטה של ה-15?  \nאו אתה רוצה להתחיל במשהו אחר?",
+   "pass": true,
+   "ttft_ms": 1160,
+   "prompt_tokens": 866,
+   "completion_tokens": 48
+  },
+  {
+   "kind": "hallucination",
+   "lang": "en",
+   "q": "What did we decide last week about hiring a chief financial officer?",
+   "a": "We didn’t decide on hiring a CFO yet. That’s still on the back burner. Right now, focus is on customer interviews and Spanish practice.  \n\nWhat about the elder-care startup? Still thinking about direct sales vs. agencies.  \n\nHow’s the bookshelf going?  \n\n<end_session/>",
+   "pass": false,
+   "ttft_ms": 1512,
+   "prompt_tokens": 752,
+   "completion_tokens": 61
+  },
+  {
+   "kind": "hallucination",
+   "lang": "en",
+   "q": "What is the name of the investor I met on Tuesday?",
+   "a": "I don’t have a record of that investor’s name. Could you remind me which venture or conversation you’re referring to?",
+   "pass": false,
+   "ttft_ms": 1142,
+   "prompt_tokens": 751,
+   "completion_tokens": 26
+  },
+  {
+   "kind": "hallucination",
+   "lang": "en",
+   "q": "How much did I say the fall-detection device will cost to manufacture?",
+   "a": "I don’t have that number saved. Did you say it during the last customer interview or in a meeting? Let me know what you recall.",
+   "pass": false,
+   "ttft_ms": 1376,
+   "prompt_tokens": 754,
+   "completion_tokens": 30
+  },
+  {
+   "kind": "hallucination",
+   "lang": "en",
+   "q": "What was my daughter's exam grade that I told you about?",
+   "a": "I don’t have that detail. You mentioned it earlier, but I didn’t record it. Can you remind me what it was?",
+   "pass": false,
+   "ttft_ms": 1232,
+   "prompt_tokens": 752,
+   "completion_tokens": 28
+  },
+  {
+   "kind": "hallucination",
+   "lang": "he",
+   "q": "מה החלטנו בשבוע שעבר לגבי גיוס סמנכ\"ל כספים?",
+   "a": "לא החלטנו. שמעת את זה? אנחנו בדוקים את היכולת של המ팀 לשלב פלטפורמה פיננסית – לא מתקדמים. שמעת את זה?  \nמה אתה חושב על ההצעה של שילוב מודול תשלום?",
+   "pass": true,
+   "ttft_ms": 1643,
+   "prompt_tokens": 874,
+   "completion_tokens": 65
+  },
+  {
+   "kind": "hallucination",
+   "lang": "he",
+   "q": "איך קוראים למשקיע שפגשתי ביום שלישי?",
+   "a": "לא יודע, אבל אם הוא מדבר על סטארטאפ, אולי זה מתקשר למסלול של הכספים. אתה מדבר על משלוחים? או על תשלום?",
+   "pass": true,
+   "ttft_ms": 1282,
+   "prompt_tokens": 870,
+   "completion_tokens": 40
+  },
+  {
+   "kind": "hallucination",
+   "lang": "he",
+   "q": "כמה אמרתי שעולה לנו לקוח חדש?",
+   "a": "לא זוכרת את המספר, אבל אם אתה חושב שמדובר בלקוח חדש, זה חשוב לזכור שההכנסה של מודול תשלום תלויה במשהו כמו 20% עד 30% מהמחיר.  \nמה אתה חושב שמתאים למסלול שלך?",
+   "pass": true,
+   "ttft_ms": 1074,
+   "prompt_tokens": 866,
+   "completion_tokens": 62
+  },
+  {
+   "kind": "hallucination",
+   "lang": "he",
+   "q": "מה היה הזמן שלי בריצת עשרת הקילומטרים האחרונה שסיפרתי לך עליה?",
+   "a": "הזמן שלך היה 58 דקות. אתה מרגיע את הרגל, אבל אתה לא מפסיק להרגיש שהזמן לא מדויק. מה אתה חושב על הבחירה של ה-10 קילומטרים כהכנה למשהו גדול?",
+   "pass": false,
+   "ttft_ms": 1996,
+   "prompt_tokens": 880,
+   "completion_tokens": 58
+  },
+  {
+   "kind": "fact",
+   "lang": "en",
+   "q": "Quick one: what is the capital of Australia?",
+   "a": "Canberra is the capital of Australia.  \n\nGot anything else on your mind for the drive?",
+   "pass": true,
+   "ttft_ms": 1114,
+   "prompt_tokens": 749,
+   "completion_tokens": 20
+  },
+  {
+   "kind": "fact",
+   "lang": "en",
+   "q": "How many minutes are there in two and a half hours?",
+   "a": "One hour is 60 minutes, so two hours is 120. Half an hour is 30. 120 plus 30 is 150 minutes.  \n\nYou’ve got about 25 minutes until you arrive—good timing for a quick check-in.  \n\nWhat’s on your mind now?",
+   "pass": true,
+   "ttft_ms": 1219,
+   "prompt_tokens": 751,
+   "completion_tokens": 70
+  },
+  {
+   "kind": "fact",
+   "lang": "en",
+   "q": "In Spanish, which verb is used for someone's profession, ser or estar?",
+   "a": "For someone's profession, use *ser*.  \nLike \"Ella es ingeniera\" — she is an engineer.  \n*Estar* is for temporary states, like \"está enferma\" — she is sick.  \n\nGot it? Want to try a sentence with that?",
+   "pass": true,
+   "ttft_ms": 1226,
+   "prompt_tokens": 755,
+   "completion_tokens": 59
+  },
+  {
+   "kind": "fact",
+   "lang": "he",
+   "q": "שאלה קצרה: מהי בירת צרפת?",
+   "a": "בירת צרפת היא פאריס.  \nהאם אתה מדבר על זה בקשר למשהו אחר?",
+   "pass": false,
+   "ttft_ms": 1375,
+   "prompt_tokens": 870,
+   "completion_tokens": 26
+  },
+  {
+   "kind": "fact",
+   "lang": "he",
+   "q": "כמה זה שבע כפול שמונה?",
+   "a": "56. אתה מוכן להתחיל את הנסיעה עם שאלות שמערבות את המעבר למסלול של הפרויקט?",
+   "pass": true,
+   "ttft_ms": 1182,
+   "prompt_tokens": 866,
+   "completion_tokens": 30
+  },
+  {
+   "kind": "fact",
+   "lang": "he",
+   "q": "באיזו שנה הוקמה מדינת ישראל?",
+   "a": "1948.  \nהאם אתה מדבר על זה בקשר למשהו אחר, נועה? או רק רוצה להתחיל את הנסיעה בקצת שיחה?",
+   "pass": true,
+   "ttft_ms": 1211,
+   "prompt_tokens": 868,
+   "completion_tokens": 40
+  },
+  {
+   "kind": "long_context",
+   "filler_turns": 10,
+   "a": "Meridian Home Care, 240 caregivers. Got it.",
+   "pass": true,
+   "prompt_tokens": 1281,
+   "ttft_ms": 2505
+  },
+  {
+   "kind": "long_context",
+   "filler_turns": 20,
+   "a": "Meridian Home Care, 240 caregivers. Got it.",
+   "pass": true,
+   "prompt_tokens": 1744,
+   "ttft_ms": 2810
+  }
+ ],
+ "summary": {
+  "context_retention": {
+   "all": {
+    "n": 12,
+    "passed": 11,
+    "rate": 0.917
+   },
+   "en": {
+    "n": 6,
+    "passed": 6,
+    "rate": 1.0
+   },
+   "he": {
+    "n": 6,
+    "passed": 5,
+    "rate": 0.833
+   }
+  },
+  "no_hallucination_on_unknowns": {
+   "all": {
+    "n": 8,
+    "passed": 3,
+    "rate": 0.375
+   },
+   "en": {
+    "n": 4,
+    "passed": 0,
+    "rate": 0.0
+   },
+   "he": {
+    "n": 4,
+    "passed": 3,
+    "rate": 0.75
+   }
+  },
+  "general_facts": {
+   "all": {
+    "n": 6,
+    "passed": 5,
+    "rate": 0.833
+   },
+   "en": {
+    "n": 3,
+    "passed": 3,
+    "rate": 1.0
+   },
+   "he": {
+    "n": 3,
+    "passed": 2,
+    "rate": 0.667
+   }
+  },
+  "long_context": {
+   "n": 2,
+   "passed": 2,
+   "rate": 1.0
+  },
+  "ttft_ms": {
+   "n": 26,
+   "median": 1222.7,
+   "mean": 2877.5,
+   "p90": 1819.5,
+   "p95": 15029.5,
+   "min": 860.2,
+   "max": 25034.4
+  },
+  "output_tokens_per_s": {
+   "n": 26,
+   "median": 3.7,
+   "mean": 3.7,
+   "p90": 3.9,
+   "p95": 3.9,
+   "min": 3.2,
+   "max": 4.1
+  }
+ }
+}

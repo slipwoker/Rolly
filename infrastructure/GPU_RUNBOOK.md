@@ -30,7 +30,7 @@ pip install vllm && nohup vllm serve google/gemma-4-26B-A4B-it --served-model-na
 
 ```bash
 export ROLLY_ACCESS_TOKEN=$(openssl rand -hex 16) ROLLY_ADMIN_TOKEN=$(openssl rand -hex 16)
-export ROLLY_STT_MODEL=ivrit-ai/whisper-large-v3-turbo-ct2 ROLLY_STT_DEVICE=cuda ROLLY_STT_COMPUTE=float16 ROLLY_STT_WORKERS=4
+export ROLLY_STT_DEVICE=cuda ROLLY_STT_COMPUTE=float16 ROLLY_STT_WORKERS=4
 export ROLLY_TTS_PROVIDER=cuda ROLLY_TTS_INSTANCES=4 ROLLY_LLM_BASE_URL=http://127.0.0.1:8081/v1 ROLLY_LLM_MODEL=local
 export ROLLY_WARM_PROVIDERS=modular-selfhosted ROLLY_HOST=0.0.0.0
 nohup infrastructure/run_dev.sh 8000 > server.log 2>&1 &
