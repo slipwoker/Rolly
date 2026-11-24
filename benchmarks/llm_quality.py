@@ -54,7 +54,7 @@ UNKNOWN = [
     ("noa", "מה היה הזמן שלי בריצת עשרת הקילומטרים האחרונה שסיפרתי לך עליה?"),
 ]
 ABSTAIN = ["don't know", "do not know", "not sure", "no record", "didn't discuss", "did not discuss", "haven't discussed", "have not discussed",
-           "don't have", "do not have", "didn't mention", "did not mention", "haven't mentioned", "not something we", "no memory", "don't recall",
+           "don't have", "do not have", "didn't mention", "did not mention", "haven't mentioned", "not something we", "no memory", "don't recall", "didn't record", "did not record", "not recorded", "don't see", "no information", "can't find", "cannot find",
            "do not recall", "didn't tell", "did not tell", "haven't told", "not aware", "wasn't", "we never", "you haven't", "you didn't",
            "לא יודע", "לא דיברנו", "לא זוכר", "לא סיפרת", "לא אמרת", "אין לי", "לא הזכרת", "לא עלה", "לא ידוע", "לא מצא", "לא החלטנו", "לא נאמר", "לא דנו"]
 FACTS = [
@@ -73,8 +73,29 @@ FILLER = ["Let's talk about how I should structure the customer interviews.", "W
 
 
 def has_any(text: str, keys: list[str]) -> bool:
-    low = text.lower()
+    low = text.lower().replace("\u2019", "'").replace("\u2018", "'")  # models emit typographic apostrophes
     return any(k.lower() in low for k in keys)
+
+
+def rescore(items: list[dict]) -> dict:
+    """Re-apply the scoring rules to stored answers (so a rule fix never needs a re-run) and return the summary."""
+    expected = {q: exp for _, q, exp in RETENTION + FACTS}
+    for it in items:
+        if it["kind"] in ("retention", "fact"):
+            it["pass"] = has_any(it["a"], expected[it["q"]])
+        elif it["kind"] == "hallucination":
+            it["pass"] = has_any(it["a"], ABSTAIN)
+
+    def rate(kind: str, lang: str | None = None) -> dict:
+        xs = [i for i in items if i["kind"] == kind and (lang is None or i.get("lang") == lang)]
+        return {"n": len(xs), "passed": sum(bool(i["pass"]) for i in xs), "rate": round(sum(bool(i["pass"]) for i in xs) / len(xs), 3) if xs else None}
+
+    return {
+        "context_retention": {"all": rate("retention"), "en": rate("retention", "en"), "he": rate("retention", "he")},
+        "no_hallucination_on_unknowns": {"all": rate("hallucination"), "en": rate("hallucination", "en"), "he": rate("hallucination", "he")},
+        "general_facts": {"all": rate("fact"), "en": rate("fact", "en"), "he": rate("fact", "he")},
+        "long_context": rate("long_context"),
+    }
 
 
 async def ask(llm: OpenAICompatLLM, system: str, history: list[dict], q: str) -> tuple[str, LLMResult]:

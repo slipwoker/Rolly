@@ -44,6 +44,7 @@ async def one_user(i: int, url: str, provider: str, lang: str, turns: int, tag: 
     c = SimClient(url, {"provider": provider, "user_id": "noa" if lang == "he" else "daniel", "language": lang, "tag": tag,
                         "ephemeral": True, "skip_summary": True, "journey": {"duration_min": 25}})
     out = {"user": i, "lang": lang, "latencies": [], "failed_turns": 0, "underruns": 0, "error": None, "opener_ms": None}
+    t_session = time.monotonic()
     try:
         await c.connect()
         opener = await c.wait_turn(c.t_connected - 1, timeout, proactive=True)
@@ -68,6 +69,7 @@ async def one_user(i: int, url: str, provider: str, lang: str, turns: int, tag: 
             out["underruns"] += turn.underruns
         out["errors"] = c.errors
         out["late_mic_frames"] = c.late_frames
+        out["session_s"] = time.monotonic() - t_session
         await c.close(end=not c.closed.is_set(), wait_summary_s=30)
     except Exception as e:
         out["error"] = repr(e)[:200]
@@ -95,10 +97,14 @@ async def main_async(a) -> None:
     RESULTS.mkdir(parents=True, exist_ok=True)
     for n in a.levels:
         t0 = time.time()
+        before = (resources(http, a.admin_token) or {}).get("now") or {}
         users = await asyncio.gather(*[
             one_user(i, a.url, a.provider, a.langs[i % len(a.langs)], a.turns, f"{a.tag}-c{n}", a.timeout, stagger=i * a.stagger)
             for i in range(n)])
         res = resources(http, a.admin_token)
+        after = (res or {}).get("now") or {}
+        session_s = sum(u.get("session_s", 0.0) for u in users)
+        proc_cpu = (after.get("process_cpu_s", 0) - before.get("process_cpu_s", 0)) if before and after else None
         lat = [x for u in users for x in u["latencies"]]
         s = summarize(lat)
         attempted = n * a.turns
@@ -110,6 +116,9 @@ async def main_async(a) -> None:
             "underruns": sum(u["underruns"] for u in users), "opener_first_audio_ms": summarize([u["opener_ms"] for u in users if u["opener_ms"]]),
             "client_late_mic_frames": sum(u.get("late_mic_frames", 0) for u in users),
             "server_resources_last_60s": (res or {}).get("last_60s"),
+            "session_seconds_total": round(session_s, 1), "server_process_cpu_s": round(proc_cpu, 2) if proc_cpu is not None else None,
+            "server_cpu_s_per_session_s": round(proc_cpu / session_s, 5) if proc_cpu and session_s else None,
+            "server_process_rss_mb": after.get("process_rss_mb"),
             "sustainable": bool(s.get("n")) and s["median"] <= a.target_median and s["p95"] <= a.target_p95 and failed_turns == 0,
         }
         out["levels"].append(level)

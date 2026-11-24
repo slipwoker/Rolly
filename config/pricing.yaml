@@ -80,7 +80,7 @@ self_hosted_capacity:
 
 infrastructure:
   vcpu_hour: {usd: 0.04, status: unverified}
-  sessions_per_vcpu: {value: 40, status: assumption, note: "replace with benchmarks/results/concurrency_mock_*.json (session layer + VAD)"}
+  sessions_per_vcpu: {value: 40, status: measured, note: "0.0061 CPU-s per session-second for transport/telemetry (concurrency_mock_*.json, 25 sessions) + 0.0065 for Silero VAD (vad_cost_*.json) = 80 sessions per core at 100 %; 50 % headroom applied"}
   egress_gb: {usd: 0.09, status: unverified, note: "AWS first 10 TB; ~0 on Hetzner"}
   opus_mb_per_conv_min: {value: 0.8, status: estimate, note: "both directions, 24-32 kbps Opus + overhead"}
   storage_gb_month: {usd: 0.023, status: unverified}

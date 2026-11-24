@@ -85,3 +85,20 @@ def test_retention_purge_removes_old_transcripts(tmp_path):
 def test_summariser_helpers():
     assert _extract_json('<think>x</think> here {"summary": "ok", "topics": []} tail')["summary"] == "ok"
     assert fallback_summary([])["method"] == "fallback_no_llm"
+
+
+def test_cost_model_arithmetic_matches_the_brief():
+    from finops.cost_model import build, demand, load
+
+    p = load()
+    d = demand(p, 10000)
+    assert d["minutes_per_day"] == 300_000 and d["minutes_per_month"] == 9_000_000 and d["hours_per_day"] == 5000
+    o = build(p)
+    targets = {t["usd_per_min"]: t["monthly_usd"] for t in o["target_table_10k_dau"]}
+    assert targets == {0.05: 450_000, 0.01: 90_000, 0.005: 45_000, 0.001: 9_000}
+    # a fleet sized for the commute peak is badly utilised; autoscaling must be cheaper per minute
+    m = {x["arch"]: x for x in o["monthly"] if x["dau"] == 10000}
+    assert m["B:owned_l40s:base"]["fleet"]["realised_utilisation"] < 0.3
+    assert m["B:l40s_runpod:base"]["fleet"]["realised_utilisation"] > 0.5
+    # commercial realtime is at least an order of magnitude above self-hosted variable cost
+    assert m["A:openai_gpt_realtime_2_1_mini"]["usd_per_min_variable"] > 10 * m["B:l40s_runpod:base"]["usd_per_min_variable"]

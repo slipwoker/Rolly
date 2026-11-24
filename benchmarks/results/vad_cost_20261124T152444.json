@@ -1,0 +1,9 @@
+{
+ "benchmark": "vad_cost",
+ "audio_s": 60.0,
+ "cpu_s": 0.39,
+ "wall_s": 0.393,
+ "cpu_s_per_audio_s": 0.0065,
+ "sessions_per_core_at_100pct": 154.0,
+ "note": "single thread; measured while other benchmarks may be running - CPU time, not wall time, is the reliable figure"
+}

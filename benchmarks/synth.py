@@ -59,13 +59,27 @@ async def _synth(text: str, lang: str) -> np.ndarray:
     x = np.frombuffer(buf, dtype="<i2").astype(np.float32) / 32768.0
     x = soxr.resample(x, eng.sample_rate, SR)
     peak = float(np.max(np.abs(x))) or 1.0
-    return (x / peak * 0.6).astype(np.float32)
+    return trim_silence((x / peak * 0.6).astype(np.float32))
+
+
+def trim_silence(x: np.ndarray, margin_ms: float = 20.0) -> np.ndarray:
+    """Remove leading/trailing silence so that the end of the clip IS the end of speech.
+    Client-side latency is measured from the last sample sent, so trailing TTS silence would
+    otherwise make every latency look shorter than it is."""
+    frame = SR // 100
+    n = len(x) // frame
+    if n < 3:
+        return x
+    e = np.sqrt(np.mean(x[: n * frame].reshape(n, frame) ** 2, axis=1))
+    idx = np.where(e > max(e.max() * 0.03, 1e-4))[0]
+    m = int(margin_ms / 10)
+    return x[max(0, idx[0] - m) * frame: min(n, idx[-1] + 1 + m) * frame]
 
 
 async def user_speech(text: str, lang: str) -> np.ndarray:
     """Return 16 kHz float32 audio of `text` spoken by the synthetic user voice."""
     key = hashlib.sha1(f"{lang}:{text}".encode()).hexdigest()[:16]
-    path = CACHE / f"{lang}_{key}.wav"
+    path = CACHE / f"{lang}_{key}_t.wav"
     if path.exists():
         return read_wav(path)
     audio = await _synth(text, lang)

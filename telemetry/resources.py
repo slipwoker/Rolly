@@ -27,9 +27,20 @@ def gpu_snapshot() -> Optional[list[dict]]:
         return None
 
 
+_proc = psutil.Process()
+
+
+def process_usage() -> dict:
+    """CPU time and memory of this server process (used to derive CPU cost per session)."""
+    t = _proc.cpu_times()
+    return {"process_cpu_s": round(t.user + t.system, 3), "process_rss_mb": round(_proc.memory_info().rss / 1e6, 1),
+            "process_threads": _proc.num_threads()}
+
+
 def snapshot() -> dict:
     vm = psutil.virtual_memory()
     return {
+        **process_usage(),
         "t": time.time(),
         "cpu_pct": psutil.cpu_percent(interval=None),
         "cpu_count": psutil.cpu_count(),
