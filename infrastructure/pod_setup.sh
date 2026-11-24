@@ -20,16 +20,16 @@ step() { echo; echo "=== $* ==="; }
 step "GPU"; nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || { echo "no GPU visible"; exit 1; }
 
 step "system packages"
-command -v bzip2 >/dev/null && command -v curl >/dev/null || (apt-get update -qq && apt-get install -y -qq bzip2 curl >/dev/null)
+command -v bzip2 >/dev/null && command -v curl >/dev/null && command -v openssl >/dev/null || (apt-get update -qq && apt-get install -y -qq bzip2 curl openssl ca-certificates >/dev/null)
 
 step "application environment"
-PYBIN="$(command -v python3.12 || command -v python3.11 || command -v python3)"
-[ -x .venv/bin/python ] || "$PYBIN" -m venv .venv
-.venv/bin/pip install -q -U pip
-.venv/bin/pip install -q -r requirements.txt || { echo "pinned requirements failed for $($PYBIN -V); installing unpinned"; \
-  .venv/bin/pip install -q fastapi "uvicorn[standard]" websockets httpx numpy onnxruntime-gpu faster-whisper "sherpa-onnx<2" soundfile jiwer psutil pyyaml huggingface_hub scipy soxr; }
-.venv/bin/pip uninstall -y -q onnxruntime >/dev/null 2>&1 || true
-.venv/bin/pip install -q onnxruntime-gpu nvidia-cublas-cu12 "nvidia-cudnn-cu12>=9,<10"
+# uv provides Python 3.12 on any base image and installs wheels much faster than pip
+export PATH="$HOME/.local/bin:$PATH"
+command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh >/dev/null 2>&1
+[ -x .venv/bin/python ] || uv venv -q --python 3.12 .venv
+uv pip install -q --python .venv/bin/python -r requirements.txt || { echo "pinned requirements failed; installing unpinned"; \
+  uv pip install -q --python .venv/bin/python fastapi "uvicorn[standard]" websockets httpx numpy onnxruntime faster-whisper "sherpa-onnx<2" soundfile jiwer psutil pyyaml huggingface_hub scipy soxr; }
+uv pip install -q --python .venv/bin/python nvidia-cublas-cu12 "nvidia-cudnn-cu12>=9,<10"
 # CTranslate2 (faster-whisper) loads cuBLAS/cuDNN from these wheels
 NV_LIBS="$(.venv/bin/python -c 'import nvidia.cublas.lib, nvidia.cudnn.lib, os; print(os.path.dirname(nvidia.cublas.lib.__file__) + ":" + os.path.dirname(nvidia.cudnn.lib.__file__))' 2>/dev/null || true)"
 export LD_LIBRARY_PATH="${NV_LIBS}:${LD_LIBRARY_PATH:-}"
@@ -38,7 +38,7 @@ step "speech models (about 4 GB)"
 PYTHON="$ROOT/.venv/bin/python" bash infrastructure/download_models.sh --no-llm
 
 step "vLLM (separate environment; first install takes several minutes)"
-[ -x "$WS/vllm-venv/bin/vllm" ] || { "$PYBIN" -m venv "$WS/vllm-venv" && "$WS/vllm-venv/bin/pip" install -q -U pip && "$WS/vllm-venv/bin/pip" install -q vllm; }
+[ -x "$WS/vllm-venv/bin/vllm" ] || { uv venv -q --python 3.12 "$WS/vllm-venv" && uv pip install -q --python "$WS/vllm-venv/bin/python" vllm; }
 if ! curl -fs http://127.0.0.1:8081/v1/models >/dev/null 2>&1; then
   echo "starting vLLM with $LLM_MODEL (downloads ~27 GB on first start) - log: $LOGS/vllm.log"
   nohup "$WS/vllm-venv/bin/vllm" serve "$LLM_MODEL" --served-model-name local --port 8081 --max-model-len 16384 \
