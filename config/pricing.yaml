@@ -55,7 +55,7 @@ commercial_components:           # for the hybrid architectures
 
 gpu:                             # USD per GPU-hour.  ALL rental prices are unverified (pricing pages blocked by the session proxy).
   l4_runpod:        {gpu: L4,   usd_per_hour: 0.69, kind: cloud_on_demand, status: unverified, label: "L4 24GB, RunPod Secure on-demand"}
-  l40s_runpod:      {gpu: L40S, usd_per_hour: 1.09, kind: cloud_on_demand, status: unverified, label: "L40S 48GB, RunPod Secure on-demand"}
+  l40s_runpod:      {gpu: L40S, usd_per_hour: 1.09, kind: cloud_on_demand, status: measured, label: "L40S 48GB, RunPod Secure on-demand"}   # price read from the RunPod API and billed to the POC pod on 2026-11-24
   l40s_community:   {gpu: L40S, usd_per_hour: 0.79, kind: cloud_marketplace, status: unverified, label: "L40S 48GB, marketplace floor"}
   h100_hyperstack:  {gpu: H100, usd_per_hour: 2.50, kind: cloud_on_demand, status: unverified, label: "H100 80GB, Hyperstack on-demand"}
   hetzner_gex63:    {gpu: "96GB-class (GEX63)", usd_per_hour: 1.57, kind: dedicated_monthly, monthly_usd: 1149, status: unverified, label: "Hetzner GEX63 dedicated (EUR 999/mo @1.15)"}
@@ -75,12 +75,21 @@ self_hosted_capacity:
     low:  {stt: 20, llm: 50,  tts: 40}
     base: {stt: 40, llm: 100, tts: 80}
     high: {stt: 80, llm: 150, tts: 160}
+  # MEASURED on one RunPod L40S (2026-11-24, benchmarks/results/concurrency_modular-selfhosted_*): the whole pipeline on ONE GPU
+  # (two Whisper large-v3-turbo models + Gemma-4 26B FP8 under vLLM; TTS on CPU), Hebrew and English users mixed, 5 turns each.
+  # Used instead of the per-stage assumptions whenever all three stages are self-hosted on L40S-class GPUs.
+  measured_combined_per_gpu:
+    status: measured
+    low: 20     # median 845 ms, p95 1.30 s, 0 failed turns
+    base: 35    # median 945 ms, p95 1.48 s, 0 failed turns  (meets the 1.5 s p95 target, misses the 800 ms median)
+    high: 50    # median 1.07 s, p95 1.70 s, 0 failed turns   (outside the latency target; shown as an upper bound only)
   l4_factor: 0.45        # assumption: an L4 serves ~45 % of an L40S for these workloads
   h100_factor: 2.2       # assumption
 
 infrastructure:
   vcpu_hour: {usd: 0.04, status: unverified}
-  sessions_per_vcpu: {value: 40, status: measured, note: "0.0061 CPU-s per session-second for transport/telemetry (concurrency_mock_*.json, 25 sessions) + 0.0065 for Silero VAD (vad_cost_*.json) = 80 sessions per core at 100 %; 50 % headroom applied"}
+  sessions_per_vcpu: {value: 40, status: measured, note: "session layer + VAD only (commercial realtime bridge): 0.0061 + 0.0065 CPU-s per session-second, 50 % headroom"}
+  sessions_per_vcpu_selfhosted: {value: 3, status: measured, note: "pipeline with TTS and VAD on CPU and STT/LLM on GPU: 0.15-0.18 CPU-s per session-second measured on the GPU pod at 1-50 sessions, 50 % headroom"}
   egress_gb: {usd: 0.09, status: unverified, note: "AWS first 10 TB; ~0 on Hetzner"}
   opus_mb_per_conv_min: {value: 0.8, status: estimate, note: "both directions, 24-32 kbps Opus + overhead"}
   storage_gb_month: {usd: 0.023, status: unverified}

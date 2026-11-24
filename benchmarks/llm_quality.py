@@ -54,9 +54,9 @@ UNKNOWN = [
     ("noa", "מה היה הזמן שלי בריצת עשרת הקילומטרים האחרונה שסיפרתי לך עליה?"),
 ]
 ABSTAIN = ["don't know", "do not know", "not sure", "no record", "didn't discuss", "did not discuss", "haven't discussed", "have not discussed",
-           "don't have", "do not have", "didn't mention", "did not mention", "haven't mentioned", "not something we", "no memory", "don't recall", "didn't record", "did not record", "not recorded", "don't see", "no information", "can't find", "cannot find",
+           "don't have", "do not have", "didn't mention", "did not mention", "haven't mentioned", "not something we", "no memory", "don't recall", "haven't talked", "have not talked", "didn't talk", "in my notes", "not in my notes", "didn't record", "did not record", "not recorded", "don't see", "no information", "can't find", "cannot find",
            "do not recall", "didn't tell", "did not tell", "haven't told", "not aware", "wasn't", "we never", "you haven't", "you didn't",
-           "לא יודע", "לא דיברנו", "לא רואה", "אין בזיכרון", "לא מופיע", "לא שמור", "לא זוכר", "לא סיפרת", "לא אמרת", "אין לי", "לא הזכרת", "לא עלה", "לא ידוע", "לא מצא", "לא החלטנו", "לא נאמר", "לא דנו"]
+           "לא יודע", "לא דיברנו", "לא רואה", "לא בטוח", "לא שמרתי", "אין בזיכרון", "לא מופיע", "לא שמור", "לא זוכר", "לא סיפרת", "לא אמרת", "אין לי", "לא הזכרת", "לא עלה", "לא ידוע", "לא מצא", "לא החלטנו", "לא נאמר", "לא דנו"]
 FACTS = [
     ("daniel", "Quick one: what is the capital of Australia?", ["canberra"]),
     ("daniel", "How many minutes are there in two and a half hours?", ["150", "one hundred and fifty", "one hundred fifty"]),

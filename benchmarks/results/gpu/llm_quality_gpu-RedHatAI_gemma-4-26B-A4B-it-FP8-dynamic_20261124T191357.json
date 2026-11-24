@@ -1,0 +1,363 @@
+{
+ "benchmark": "llm_quality",
+ "label": "gpu-RedHatAI_gemma-4-26B-A4B-it-FP8-dynamic",
+ "model": "local",
+ "base_url": "http://127.0.0.1:8081/v1",
+ "hardware_note": "NVIDIA L40S, 46068 MiB, vLLM",
+ "started": "2026-11-24T19:13:57",
+ "scoring": "keyword rules (see benchmarks/llm_quality.py)",
+ "items": [
+  {
+   "kind": "retention",
+   "lang": "en",
+   "q": "How many customer interviews have I completed so far?",
+   "a": "You have finished four of your ten interviews so far. Are you planning to schedule those last six this evening?",
+   "pass": true,
+   "ttft_ms": 68,
+   "prompt_tokens": 788,
+   "completion_tokens": 23
+  },
+  {
+   "kind": "retention",
+   "lang": "en",
+   "q": "What was the go-to-market question we left open?",
+   "a": "We were weighing whether to sell your fall detection service directly to families or to partner with home care agencies instead. Which side are you leaning towards tonight?",
+   "pass": true,
+   "ttft_ms": 37,
+   "prompt_tokens": 791,
+   "completion_tokens": 31
+  },
+  {
+   "kind": "retention",
+   "lang": "en",
+   "q": "Which verbs do I keep confusing in Spanish?",
+   "a": "It is the difference between ser and estar. Do you want to do a quick drill on those, or should we focus on something else tonight?",
+   "pass": true,
+   "ttft_ms": 35,
+   "prompt_tokens": 787,
+   "completion_tokens": 30
+  },
+  {
+   "kind": "retention",
+   "lang": "en",
+   "q": "Where is my family trip going, and when?",
+   "a": "You are heading to Madrid in June. Are you feeling ready for the trip, or do we need to squeeze in more Spanish practice?",
+   "pass": true,
+   "ttft_ms": 38,
+   "prompt_tokens": 788,
+   "completion_tokens": 28
+  },
+  {
+   "kind": "retention",
+   "lang": "en",
+   "q": "What am I building in my workshop?",
+   "a": "You're working on that walnut bookshelf, right? How is the progress coming along with the joinery?",
+   "pass": true,
+   "ttft_ms": 38,
+   "prompt_tokens": 786,
+   "completion_tokens": 23
+  },
+  {
+   "kind": "retention",
+   "lang": "en",
+   "q": "How long is my commute?",
+   "a": "It usually takes you about thirty minutes to get from Haifa to Yokneam. Are you feeling pretty tired after your day, or are you still in the zone?",
+   "pass": true,
+   "ttft_ms": 39,
+   "prompt_tokens": 784,
+   "completion_tokens": 34
+  },
+  {
+   "kind": "retention",
+   "lang": "he",
+   "q": "מה היו שלוש האפשרויות שדיברנו עליהן אתמול לגבי הכיוון של החברה?",
+   "a": "דיברנו על לעלות למעלה לשוק הבינוני עם אינטגרציות מותאמות, להוסיף מודול תשלומים ללקוחות הקטנים, או פשוט לפרוץ לשוק הגרמני. מה דעתך, יואב נתן לך הערכה על המאמץ של המודול החדש?",
+   "pass": true,
+   "ttft_ms": 58,
+   "prompt_tokens": 920,
+   "completion_tokens": 81
+  },
+  {
+   "kind": "retention",
+   "lang": "he",
+   "q": "מתי ישיבת הדירקטוריון?",
+   "a": "הדירקטוריון בדרך כלל מתכנס בדרך כלל ב-15 לחודש, אז נשארו לך עוד כמה ימים להחליט. דיברת עם יואב על המאמץ של הפיתוח למודול התשלומים?",
+   "pass": true,
+   "ttft_ms": 53,
+   "prompt_tokens": 904,
+   "completion_tokens": 61
+  },
+  {
+   "kind": "retention",
+   "lang": "he",
+   "q": "ממי הייתי צריכה לבקש הערכת מאמץ למודול התשלומים?",
+   "a": "מלאכת המחשבת היא לשאול את יואב, כטכנולוגי, כמה זמן זה ייקח לצוות לבנות את זה בפועל. דיברת איתו על זה כבר?",
+   "pass": true,
+   "ttft_ms": 55,
+   "prompt_tokens": 914,
+   "completion_tokens": 49
+  },
+  {
+   "kind": "retention",
+   "lang": "he",
+   "q": "לאיזה מרוץ אני מתאמנת?",
+   "a": "את מתאמנת לחצי מרתון באביב, לא? איך היה האימון של היום, הצלחת להוציא אותו?",
+   "pass": true,
+   "ttft_ms": 54,
+   "prompt_tokens": 904,
+   "completion_tokens": 34
+  },
+  {
+   "kind": "retention",
+   "lang": "he",
+   "q": "כמה אנשים יש בצוות שלי?",
+   "a": "יש לך שמונה אנשים בצוות, נכון? איך הולך עם יואב, הצלחת לדבר איתו על המאמץ של המודול החדש?",
+   "pass": true,
+   "ttft_ms": 53,
+   "prompt_tokens": 902,
+   "completion_tokens": 43
+  },
+  {
+   "kind": "retention",
+   "lang": "he",
+   "q": "כמה זמן לוקחת לי הנסיעה בבוקר?",
+   "a": "בדרך כלל זה לוקח לך בערך עשרים וחמש דקות מתל אביב להרצליה. איך היה היום שלך במשרד?",
+   "pass": true,
+   "ttft_ms": 55,
+   "prompt_tokens": 906,
+   "completion_tokens": 37
+  },
+  {
+   "kind": "hallucination",
+   "lang": "en",
+   "q": "What did we decide last week about hiring a chief financial officer?",
+   "a": "Actually, we haven't talked about a CFO yet. We were focused on whether you should sell your fall detection service to families or through agencies.",
+   "pass": false,
+   "ttft_ms": 40,
+   "prompt_tokens": 791,
+   "completion_tokens": 31
+  },
+  {
+   "kind": "hallucination",
+   "lang": "en",
+   "q": "What is the name of the investor I met on Tuesday?",
+   "a": "I'm sorry, I don't have a record of any investor meetings from this past Tuesday. Did you want to talk through who you were expecting to meet?",
+   "pass": true,
+   "ttft_ms": 40,
+   "prompt_tokens": 790,
+   "completion_tokens": 35
+  },
+  {
+   "kind": "hallucination",
+   "lang": "en",
+   "q": "How much did I say the fall-detection device will cost to manufacture?",
+   "a": "I don't actually have a specific manufacturing cost in my notes from our last chat. Do you remember what figure you were aiming for?",
+   "pass": false,
+   "ttft_ms": 42,
+   "prompt_tokens": 793,
+   "completion_tokens": 29
+  },
+  {
+   "kind": "hallucination",
+   "lang": "en",
+   "q": "What was my daughter's exam grade that I told you about?",
+   "a": "I am sorry, Daniel, but I don't have any record of you mentioning your daughter's exam grade. Do you want to tell me how she did?",
+   "pass": true,
+   "ttft_ms": 35,
+   "prompt_tokens": 792,
+   "completion_tokens": 35
+  },
+  {
+   "kind": "hallucination",
+   "lang": "he",
+   "q": "מה החלטנו בשבוע שעבר לגבי גיוס סמנכ\"ל כספים?",
+   "a": "לא דיברנו על גיוס סמנכ\"ל כספים, אבל אולי התכוונת לשיחה שלנו על האפשרות להוסיף מודול תשלומים? שאלת אם הצוות יצליח להוביל את זה בלי מומחיות פיננסית.",
+   "pass": true,
+   "ttft_ms": 56,
+   "prompt_tokens": 915,
+   "completion_tokens": 70
+  },
+  {
+   "kind": "hallucination",
+   "lang": "he",
+   "q": "איך קוראים למשקיע שפגשתי ביום שלישי?",
+   "a": "אני לא בטוח, לא שמרתי את השם שלו בשיחות שלנו. את רוצה לנסות להיזכר אם הוא קשור לאחת האופציות שדיברנו עליהן אתמול?",
+   "pass": false,
+   "ttft_ms": 53,
+   "prompt_tokens": 911,
+   "completion_tokens": 51
+  },
+  {
+   "kind": "hallucination",
+   "lang": "he",
+   "q": "כמה אמרתי שעולה לנו לקוח חדש?",
+   "a": "אני לא בטוחה שדיברנו על ה-CAC הספציפי שלך, אז אולי כדאי שתזכירי לי את המספר?",
+   "pass": false,
+   "ttft_ms": 54,
+   "prompt_tokens": 905,
+   "completion_tokens": 37
+  },
+  {
+   "kind": "hallucination",
+   "lang": "he",
+   "q": "מה היה הזמן שלי בריצת עשרת הקילומטרים האחרונה שסיפרתי לך עליה?",
+   "a": "אני לא זוכרת שסיפרת לי על זמן ספציפי בריצה כזו. אולי זה היה חלק מההכנות לחצי מרתון?",
+   "pass": true,
+   "ttft_ms": 54,
+   "prompt_tokens": 918,
+   "completion_tokens": 38
+  },
+  {
+   "kind": "fact",
+   "lang": "en",
+   "q": "Quick one: what is the capital of Australia?",
+   "a": "That would be Canberra. Are you feeling like a bit of a trivia night, or is there something else on your mind?",
+   "pass": true,
+   "ttft_ms": 35,
+   "prompt_tokens": 788,
+   "completion_tokens": 26
+  },
+  {
+   "kind": "fact",
+   "lang": "en",
+   "q": "How many minutes are there in two and a half hours?",
+   "a": "That would be one hundred and fifty minutes. Are you trying to time something specific for your woodworking project tonight?",
+   "pass": true,
+   "ttft_ms": 38,
+   "prompt_tokens": 790,
+   "completion_tokens": 23
+  },
+  {
+   "kind": "fact",
+   "lang": "en",
+   "q": "In Spanish, which verb is used for someone's profession, ser or estar?",
+   "a": "You use ser for professions. Think of it as a permanent part of who someone is. Do you want to try a practice sentence with it?",
+   "pass": true,
+   "ttft_ms": 38,
+   "prompt_tokens": 795,
+   "completion_tokens": 30
+  },
+  {
+   "kind": "fact",
+   "lang": "he",
+   "q": "שאלה קצרה: מהי בירת צרפת?",
+   "a": "פריז. מה קרה, פתאום בא לך לשחק טריוויה בדרך הביתה?",
+   "pass": true,
+   "ttft_ms": 53,
+   "prompt_tokens": 906,
+   "completion_tokens": 26
+  },
+  {
+   "kind": "fact",
+   "lang": "he",
+   "q": "כמה זה שבע כפול שמונה?",
+   "a": "חמישים וшеשה. מה קרה, את בודקת משהו?",
+   "pass": false,
+   "ttft_ms": 53,
+   "prompt_tokens": 902,
+   "completion_tokens": 19
+  },
+  {
+   "kind": "fact",
+   "lang": "he",
+   "q": "באיזו שנה הוקמה מדינת ישראל?",
+   "a": "מדינת ישראל הוקמה בשנת אלף תשע מאות ארבעים ותשף. מה קרה שפתאום עלה לך הנושא ההיסטורי הזה?",
+   "pass": false,
+   "ttft_ms": 52,
+   "prompt_tokens": 903,
+   "completion_tokens": 40
+  },
+  {
+   "kind": "long_context",
+   "filler_turns": 10,
+   "a": "That's Meridian Home Care, and they have two hundred and forty caregivers. Ready to dive back into that interview structure?",
+   "pass": true,
+   "prompt_tokens": 1395,
+   "ttft_ms": 60
+  },
+  {
+   "kind": "long_context",
+   "filler_turns": 20,
+   "a": "That's Meridian Home Care, and they have two hundred and forty caregivers. Keeping track of those details is key, isn't it?",
+   "pass": true,
+   "prompt_tokens": 1941,
+   "ttft_ms": 73
+  }
+ ],
+ "summary": {
+  "context_retention": {
+   "all": {
+    "n": 12,
+    "passed": 12,
+    "rate": 1.0
+   },
+   "en": {
+    "n": 6,
+    "passed": 6,
+    "rate": 1.0
+   },
+   "he": {
+    "n": 6,
+    "passed": 6,
+    "rate": 1.0
+   }
+  },
+  "no_hallucination_on_unknowns": {
+   "all": {
+    "n": 8,
+    "passed": 4,
+    "rate": 0.5
+   },
+   "en": {
+    "n": 4,
+    "passed": 2,
+    "rate": 0.5
+   },
+   "he": {
+    "n": 4,
+    "passed": 2,
+    "rate": 0.5
+   }
+  },
+  "general_facts": {
+   "all": {
+    "n": 6,
+    "passed": 4,
+    "rate": 0.667
+   },
+   "en": {
+    "n": 3,
+    "passed": 3,
+    "rate": 1.0
+   },
+   "he": {
+    "n": 3,
+    "passed": 1,
+    "rate": 0.333
+   }
+  },
+  "long_context": {
+   "n": 2,
+   "passed": 2,
+   "rate": 1.0
+  },
+  "ttft_ms": {
+   "n": 26,
+   "median": 52.3,
+   "mean": 47.2,
+   "p90": 55.3,
+   "p95": 57.1,
+   "min": 35.0,
+   "max": 68.5
+  },
+  "output_tokens_per_s": {
+   "n": 26,
+   "median": 116.9,
+   "mean": 116.8,
+   "p90": 118.9,
+   "p95": 119.2,
+   "min": 114.0,
+   "max": 119.5
+  }
+ }
+}

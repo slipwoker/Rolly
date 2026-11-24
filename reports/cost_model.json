@@ -43,10 +43,10 @@
   }
  },
  "infra_variable_usd_per_min": {
-  "cpu": 1.6666666666666667e-05,
+  "cpu": 0.0002222222222222222,
   "egress": 3.515625e-05,
   "storage": 4.14e-07,
-  "total": 5.2236916666666665e-05
+  "total": 0.0002577924722222222
  },
  "self_hosted_usd_per_min": [
   {
@@ -55,10 +55,10 @@
    "price_status": "unverified",
    "usd_per_gpu_hour": 0.69,
    "capacity": "low",
-   "conversations_per_gpu": 4.7,
-   "usd_per_min@30%": 0.00814482950925926,
-   "usd_per_min@60%": 0.004098533212962964,
-   "usd_per_min@80%": 0.003086959138888889
+   "conversations_per_gpu": 9.0,
+   "usd_per_min@30%": 0.0045170517314814815,
+   "usd_per_min@60%": 0.0023874221018518518,
+   "usd_per_min@80%": 0.0018550146944444445
   },
   {
    "gpu": "l4_runpod",
@@ -66,10 +66,10 @@
    "price_status": "unverified",
    "usd_per_gpu_hour": 0.69,
    "capacity": "base",
-   "conversations_per_gpu": 9.5,
-   "usd_per_min@30%": 0.004098533212962964,
-   "usd_per_min@60%": 0.0020753850648148153,
-   "usd_per_min@80%": 0.0015695980277777776
+   "conversations_per_gpu": 15.8,
+   "usd_per_min@30%": 0.002691654906084656,
+   "usd_per_min@60%": 0.001474723689153439,
+   "usd_per_min@80%": 0.0011704908849206348
   },
   {
    "gpu": "l4_runpod",
@@ -77,43 +77,43 @@
    "price_status": "unverified",
    "usd_per_gpu_hour": 0.69,
    "capacity": "high",
-   "conversations_per_gpu": 17.7,
-   "usd_per_min@30%": 0.0022173603734567905,
-   "usd_per_min@60%": 0.0011347986450617284,
-   "usd_per_min@80%": 0.0008641582129629629
+   "conversations_per_gpu": 22.5,
+   "usd_per_min@30%": 0.0019614961759259262,
+   "usd_per_min@60%": 0.0011096443240740743,
+   "usd_per_min@80%": 0.0008966813611111111
   },
   {
    "gpu": "l40s_runpod",
    "label": "L40S 48GB, RunPod Secure on-demand",
-   "price_status": "unverified",
+   "price_status": "measured",
    "usd_per_gpu_hour": 1.09,
    "capacity": "low",
-   "conversations_per_gpu": 10.5,
-   "usd_per_min@30%": 0.005805014694444445,
-   "usd_per_min@60%": 0.002928625805555556,
-   "usd_per_min@80%": 0.0022095285833333336
+   "conversations_per_gpu": 20.0,
+   "usd_per_min@30%": 0.0032855702500000005,
+   "usd_per_min@60%": 0.0017716813611111115,
+   "usd_per_min@80%": 0.001393209138888889
   },
   {
    "gpu": "l40s_runpod",
    "label": "L40S 48GB, RunPod Secure on-demand",
-   "price_status": "unverified",
+   "price_status": "measured",
    "usd_per_gpu_hour": 1.09,
    "capacity": "base",
-   "conversations_per_gpu": 21.1,
-   "usd_per_min@30%": 0.002928625805555556,
-   "usd_per_min@60%": 0.0014904313611111112,
-   "usd_per_min@80%": 0.00113088275
+   "conversations_per_gpu": 35.0,
+   "usd_per_min@30%": 0.0019879512023809522,
+   "usd_per_min@60%": 0.0011228718373015873,
+   "usd_per_min@80%": 0.0009066019960317461
   },
   {
    "gpu": "l40s_runpod",
    "label": "L40S 48GB, RunPod Secure on-demand",
-   "price_status": "unverified",
+   "price_status": "measured",
    "usd_per_gpu_hour": 1.09,
    "capacity": "high",
-   "conversations_per_gpu": 39.3,
-   "usd_per_min@30%": 0.0015913572870370372,
-   "usd_per_min@60%": 0.000821797101851852,
-   "usd_per_min@80%": 0.0006294070555555556
+   "conversations_per_gpu": 50.0,
+   "usd_per_min@30%": 0.0014689035833333334,
+   "usd_per_min@60%": 0.0008633480277777778,
+   "usd_per_min@80%": 0.000711959138888889
   },
   {
    "gpu": "l40s_community",
@@ -121,10 +121,10 @@
    "price_status": "unverified",
    "usd_per_gpu_hour": 0.79,
    "capacity": "low",
-   "conversations_per_gpu": 10.5,
-   "usd_per_min@30%": 0.004221681361111112,
-   "usd_per_min@60%": 0.0021369591388888894,
-   "usd_per_min@80%": 0.0016157785833333332
+   "conversations_per_gpu": 20.0,
+   "usd_per_min@30%": 0.002452236916666667,
+   "usd_per_min@60%": 0.0013550146944444445,
+   "usd_per_min@80%": 0.001080709138888889
   },
   {
    "gpu": "l40s_community",
@@ -132,10 +132,10 @@
    "price_status": "unverified",
    "usd_per_gpu_hour": 0.79,
    "capacity": "base",
-   "conversations_per_gpu": 21.1,
-   "usd_per_min@30%": 0.0021369591388888894,
-   "usd_per_min@60%": 0.001094598027777778,
-   "usd_per_min@80%": 0.0008340077499999999
+   "conversations_per_gpu": 35.0,
+   "usd_per_min@30%": 0.0015117607261904763,
+   "usd_per_min@60%": 0.0008847765992063492,
+   "usd_per_min@80%": 0.0007280305674603174
   },
   {
    "gpu": "l40s_community",
@@ -143,10 +143,10 @@
    "price_status": "unverified",
    "usd_per_gpu_hour": 0.79,
    "capacity": "high",
-   "conversations_per_gpu": 39.3,
-   "usd_per_min@30%": 0.001167746175925926,
-   "usd_per_min@60%": 0.0006099915462962964,
-   "usd_per_min@80%": 0.0004705528888888889
+   "conversations_per_gpu": 50.0,
+   "usd_per_min@30%": 0.0011355702500000001,
+   "usd_per_min@60%": 0.0006966813611111112,
+   "usd_per_min@80%": 0.0005869591388888888
   },
   {
    "gpu": "h100_hyperstack",
@@ -154,10 +154,10 @@
    "price_status": "unverified",
    "usd_per_gpu_hour": 2.5,
    "capacity": "low",
-   "conversations_per_gpu": 23.2,
-   "usd_per_min@30%": 0.006049711664141413,
-   "usd_per_min@60%": 0.00305097429040404,
-   "usd_per_min@80%": 0.0023012899469696964
+   "conversations_per_gpu": 44.0,
+   "usd_per_min@30%": 0.003414358128787879,
+   "usd_per_min@60%": 0.0018360753005050507,
+   "usd_per_min@80%": 0.0014415045934343435
   },
   {
    "gpu": "h100_hyperstack",
@@ -165,10 +165,10 @@
    "price_status": "unverified",
    "usd_per_gpu_hour": 2.5,
    "capacity": "base",
-   "conversations_per_gpu": 46.3,
-   "usd_per_min@30%": 0.00305097429040404,
-   "usd_per_min@60%": 0.0015516056035353532,
-   "usd_per_min@80%": 0.0011767634318181814
+   "conversations_per_gpu": 77.0,
+   "usd_per_min@30%": 0.002061544275974026,
+   "usd_per_min@60%": 0.001159668374098124,
+   "usd_per_min@80%": 0.0009341993986291485
   },
   {
    "gpu": "h100_hyperstack",
@@ -176,10 +176,10 @@
    "price_status": "unverified",
    "usd_per_gpu_hour": 2.5,
    "capacity": "high",
-   "conversations_per_gpu": 86.6,
-   "usd_per_min@30%": 0.0016568244587542085,
-   "usd_per_min@60%": 0.0008545306877104377,
-   "usd_per_min@80%": 0.0006539572449494949
+   "conversations_per_gpu": 110.0,
+   "usd_per_min@30%": 0.0015204187348484847,
+   "usd_per_min@60%": 0.0008891056035353535,
+   "usd_per_min@80%": 0.0007312773207070706
   },
   {
    "gpu": "hetzner_gex63",
@@ -187,10 +187,10 @@
    "price_status": "unverified",
    "usd_per_gpu_hour": 1.57,
    "capacity": "low",
-   "conversations_per_gpu": 10.5,
-   "usd_per_min@30%": 0.008338348027777779,
-   "usd_per_min@60%": 0.004195292472222223,
-   "usd_per_min@80%": 0.0031595285833333334
+   "conversations_per_gpu": 20.0,
+   "usd_per_min@30%": 0.004618903583333334,
+   "usd_per_min@60%": 0.0024383480277777782,
+   "usd_per_min@80%": 0.001893209138888889
   },
   {
    "gpu": "hetzner_gex63",
@@ -198,10 +198,10 @@
    "price_status": "unverified",
    "usd_per_gpu_hour": 1.57,
    "capacity": "base",
-   "conversations_per_gpu": 21.1,
-   "usd_per_min@30%": 0.004195292472222223,
-   "usd_per_min@60%": 0.002123764694444445,
-   "usd_per_min@80%": 0.00160588275
+   "conversations_per_gpu": 35.0,
+   "usd_per_min@30%": 0.0027498559642857145,
+   "usd_per_min@60%": 0.0015038242182539682,
+   "usd_per_min@80%": 0.0011923162817460316
   },
   {
    "gpu": "hetzner_gex63",
@@ -209,10 +209,10 @@
    "price_status": "unverified",
    "usd_per_gpu_hour": 1.57,
    "capacity": "high",
-   "conversations_per_gpu": 39.3,
-   "usd_per_min@30%": 0.0022691350648148152,
-   "usd_per_min@60%": 0.0011606859907407408,
-   "usd_per_min@80%": 0.0008835737222222223
+   "conversations_per_gpu": 50.0,
+   "usd_per_min@30%": 0.0020022369166666667,
+   "usd_per_min@60%": 0.0011300146944444446,
+   "usd_per_min@80%": 0.0009119591388888888
   },
   {
    "gpu": "owned_l40s",
@@ -220,10 +220,10 @@
    "price_status": "estimate",
    "usd_per_gpu_hour": 0.69,
    "capacity": "low",
-   "conversations_per_gpu": 10.5,
-   "usd_per_min@30%": 0.0036939035833333336,
-   "usd_per_min@60%": 0.00187307025,
-   "usd_per_min@80%": 0.0014178619166666665
+   "conversations_per_gpu": 20.0,
+   "usd_per_min@30%": 0.0021744591388888892,
+   "usd_per_min@60%": 0.0012161258055555556,
+   "usd_per_min@80%": 0.0009765424722222222
   },
   {
    "gpu": "owned_l40s",
@@ -231,10 +231,10 @@
    "price_status": "estimate",
    "usd_per_gpu_hour": 0.69,
    "capacity": "base",
-   "conversations_per_gpu": 21.1,
-   "usd_per_min@30%": 0.00187307025,
-   "usd_per_min@60%": 0.0009626535833333334,
-   "usd_per_min@80%": 0.0007350494166666667
+   "conversations_per_gpu": 35.0,
+   "usd_per_min@30%": 0.0013530305674603175,
+   "usd_per_min@60%": 0.0008054115198412699,
+   "usd_per_min@80%": 0.000668506757936508
   },
   {
    "gpu": "owned_l40s",
@@ -242,10 +242,10 @@
    "price_status": "estimate",
    "usd_per_gpu_hour": 0.69,
    "capacity": "high",
-   "conversations_per_gpu": 39.3,
-   "usd_per_min@30%": 0.0010265424722222223,
-   "usd_per_min@60%": 0.0005393896944444445,
-   "usd_per_min@80%": 0.0004176015
+   "conversations_per_gpu": 50.0,
+   "usd_per_min@30%": 0.0010244591388888888,
+   "usd_per_min@60%": 0.0006411258055555556,
+   "usd_per_min@80%": 0.0005452924722222222
   },
   {
    "gpu": "owned_l4",
@@ -253,10 +253,10 @@
    "price_status": "estimate",
    "usd_per_gpu_hour": 0.29,
    "capacity": "low",
-   "conversations_per_gpu": 4.7,
-   "usd_per_min@30%": 0.003453471484567901,
-   "usd_per_min@60%": 0.0017528542006172837,
-   "usd_per_min@80%": 0.0013276998796296294
+   "conversations_per_gpu": 9.0,
+   "usd_per_min@30%": 0.0020479159290123458,
+   "usd_per_min@60%": 0.001152854200617284,
+   "usd_per_min@80%": 0.0009290887685185185
   },
   {
    "gpu": "owned_l4",
@@ -264,10 +264,10 @@
    "price_status": "estimate",
    "usd_per_gpu_hour": 0.29,
    "capacity": "base",
-   "conversations_per_gpu": 9.5,
-   "usd_per_min@30%": 0.0017528542006172837,
-   "usd_per_min@60%": 0.0009025455586419752,
-   "usd_per_min@80%": 0.0006899683981481481
+   "conversations_per_gpu": 15.8,
+   "usd_per_min@30%": 0.0012807201618165783,
+   "usd_per_min@60%": 0.0007692563170194003,
+   "usd_per_min@80%": 0.0006413903558201057
   },
   {
    "gpu": "owned_l4",
@@ -275,10 +275,10 @@
    "price_status": "estimate",
    "usd_per_gpu_hour": 0.29,
    "capacity": "high",
-   "conversations_per_gpu": 17.7,
-   "usd_per_min@30%": 0.0009622163405349792,
-   "usd_per_min@60%": 0.000507226628600823,
-   "usd_per_min@80%": 0.00039347920061728387
+   "conversations_per_gpu": 22.5,
+   "usd_per_min@30%": 0.0009738418549382716,
+   "usd_per_min@60%": 0.0006158171635802468,
+   "usd_per_min@80%": 0.0005263109907407406
   }
  ],
  "conversations_per_gpu_needed_at_60pct_util": [
@@ -286,57 +286,57 @@
    "gpu": "l4_runpod",
    "usd_per_gpu_hour": 0.69,
    "target_0.05": 0.4,
-   "target_0.01": 1.9,
-   "target_0.005": 3.9,
-   "target_0.001": 20.2
+   "target_0.01": 2.0,
+   "target_0.005": 4.0,
+   "target_0.001": 25.8
   },
   {
    "gpu": "l40s_runpod",
    "usd_per_gpu_hour": 1.09,
    "target_0.05": 0.6,
-   "target_0.01": 3.0,
-   "target_0.005": 6.1,
-   "target_0.001": 31.9
+   "target_0.01": 3.1,
+   "target_0.005": 6.4,
+   "target_0.001": 40.8
   },
   {
    "gpu": "l40s_community",
    "usd_per_gpu_hour": 0.79,
    "target_0.05": 0.4,
-   "target_0.01": 2.2,
-   "target_0.005": 4.4,
-   "target_0.001": 23.2
+   "target_0.01": 2.3,
+   "target_0.005": 4.6,
+   "target_0.001": 29.6
   },
   {
    "gpu": "h100_hyperstack",
    "usd_per_gpu_hour": 2.5,
    "target_0.05": 1.4,
-   "target_0.01": 7.0,
-   "target_0.005": 14.0,
-   "target_0.001": 73.3
+   "target_0.01": 7.1,
+   "target_0.005": 14.6,
+   "target_0.001": 93.6
   },
   {
    "gpu": "hetzner_gex63",
    "usd_per_gpu_hour": 1.57,
    "target_0.05": 0.9,
-   "target_0.01": 4.4,
-   "target_0.005": 8.8,
-   "target_0.001": 46.0
+   "target_0.01": 4.5,
+   "target_0.005": 9.2,
+   "target_0.001": 58.8
   },
   {
    "gpu": "owned_l40s",
    "usd_per_gpu_hour": 0.69,
    "target_0.05": 0.4,
-   "target_0.01": 1.9,
-   "target_0.005": 3.9,
-   "target_0.001": 20.2
+   "target_0.01": 2.0,
+   "target_0.005": 4.0,
+   "target_0.001": 25.8
   },
   {
    "gpu": "owned_l4",
    "usd_per_gpu_hour": 0.29,
    "target_0.05": 0.2,
    "target_0.01": 0.8,
-   "target_0.005": 1.6,
-   "target_0.001": 8.5
+   "target_0.005": 1.7,
+   "target_0.001": 10.9
   }
  ],
  "per_minute_at_10k_dau": [
@@ -409,8 +409,8 @@
    "arch": "D:selfhost_speech_api_llm:low",
    "label": "Hybrid, self-hosted STT+TTS on L40S + API LLM (low capacity)",
    "status": "assumption",
-   "usd_per_min_variable": 0.0031359369166666672,
-   "usd_per_min_all_in_10k_dau": 0.00496927025,
+   "usd_per_min_variable": 0.003341492472222223,
+   "usd_per_min_all_in_10k_dau": 0.005174825805555556,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -421,8 +421,8 @@
    "arch": "D:selfhost_all_api_he_tts:low",
    "label": "Hybrid, self-hosted STT+LLM on L40S + commercial Hebrew TTS (low capacity)",
    "status": "assumption",
-   "usd_per_min_variable": 0.004014236916666666,
-   "usd_per_min_all_in_10k_dau": 0.00584757025,
+   "usd_per_min_variable": 0.004219792472222221,
+   "usd_per_min_all_in_10k_dau": 0.006053125805555555,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -433,8 +433,8 @@
    "arch": "D:selfhost_speech_api_llm:base",
    "label": "Hybrid, self-hosted STT+TTS on L40S + API LLM (base capacity)",
    "status": "assumption",
-   "usd_per_min_variable": 0.0021186035833333336,
-   "usd_per_min_all_in_10k_dau": 0.003951936916666667,
+   "usd_per_min_variable": 0.0023241591388888892,
+   "usd_per_min_all_in_10k_dau": 0.004157492472222222,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -445,8 +445,8 @@
    "arch": "D:selfhost_all_api_he_tts:base",
    "label": "Hybrid, self-hosted STT+LLM on L40S + commercial Hebrew TTS (base capacity)",
    "status": "assumption",
-   "usd_per_min_variable": 0.0030659369166666666,
-   "usd_per_min_all_in_10k_dau": 0.00489927025,
+   "usd_per_min_variable": 0.003271492472222222,
+   "usd_per_min_all_in_10k_dau": 0.005104825805555556,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -457,8 +457,8 @@
    "arch": "D:selfhost_speech_api_llm:high",
    "label": "Hybrid, self-hosted STT+TTS on L40S + API LLM (high capacity)",
    "status": "assumption",
-   "usd_per_min_variable": 0.0016172035833333335,
-   "usd_per_min_all_in_10k_dau": 0.0034505369166666668,
+   "usd_per_min_variable": 0.0018227591388888889,
+   "usd_per_min_all_in_10k_dau": 0.0036560924722222224,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -469,8 +469,8 @@
    "arch": "D:selfhost_all_api_he_tts:high",
    "label": "Hybrid, self-hosted STT+LLM on L40S + commercial Hebrew TTS (high capacity)",
    "status": "assumption",
-   "usd_per_min_variable": 0.0026408369166666668,
-   "usd_per_min_all_in_10k_dau": 0.00447417025,
+   "usd_per_min_variable": 0.0028463924722222224,
+   "usd_per_min_all_in_10k_dau": 0.004679725805555556,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -480,9 +480,9 @@
   {
    "arch": "B:l4_runpod:low",
    "label": "Self-hosted modular, L4 24GB, RunPod Secure on-demand (low capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.0037023369166666663,
-   "usd_per_min_all_in_10k_dau": 0.00678567025,
+   "status": "capacity scaled from the L40S measurement; price unverified",
+   "usd_per_min_variable": 0.002210492472222222,
+   "usd_per_min_all_in_10k_dau": 0.005293825805555556,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -492,9 +492,9 @@
   {
    "arch": "B:l4_runpod:base",
    "label": "Self-hosted modular, L4 24GB, RunPod Secure on-demand (base capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.0018853369166666662,
-   "usd_per_min_all_in_10k_dau": 0.0049686702499999996,
+   "status": "capacity scaled from the L40S measurement; price unverified",
+   "usd_per_min_variable": 0.0013962924722222222,
+   "usd_per_min_all_in_10k_dau": 0.0044796258055555555,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -504,9 +504,9 @@
   {
    "arch": "B:l4_runpod:high",
    "label": "Self-hosted modular, L4 24GB, RunPod Secure on-demand (high capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.0010665369166666667,
-   "usd_per_min_all_in_10k_dau": 0.00414987025,
+   "status": "capacity scaled from the L40S measurement; price unverified",
+   "usd_per_min_variable": 0.0010627924722222222,
+   "usd_per_min_all_in_10k_dau": 0.004146125805555555,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -516,9 +516,9 @@
   {
    "arch": "B:l40s_runpod:low",
    "label": "Self-hosted modular, L40S 48GB, RunPod Secure on-demand (low capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.002679136916666667,
-   "usd_per_min_all_in_10k_dau": 0.00576247025,
+   "status": "measured capacity and price",
+   "usd_per_min_variable": 0.0016856924722222224,
+   "usd_per_min_all_in_10k_dau": 0.004769025805555556,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -528,9 +528,9 @@
   {
    "arch": "B:l40s_runpod:base",
    "label": "Self-hosted modular, L40S 48GB, RunPod Secure on-demand (base capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.0013929369166666668,
-   "usd_per_min_all_in_10k_dau": 0.00447627025,
+   "status": "measured capacity and price",
+   "usd_per_min_variable": 0.0011079924722222222,
+   "usd_per_min_all_in_10k_dau": 0.0041913258055555555,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -540,9 +540,9 @@
   {
    "arch": "B:l40s_runpod:high",
    "label": "Self-hosted modular, L40S 48GB, RunPod Secure on-demand (high capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.0008043369166666667,
-   "usd_per_min_all_in_10k_dau": 0.0038876702500000005,
+   "status": "measured capacity and price",
+   "usd_per_min_variable": 0.000875459138888889,
+   "usd_per_min_all_in_10k_dau": 0.003958792472222222,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -553,9 +553,9 @@
   {
    "arch": "B:l40s_community:low",
    "label": "Self-hosted modular, L40S 48GB, marketplace floor (low capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.001956136916666667,
-   "usd_per_min_all_in_10k_dau": 0.00503947025,
+   "status": "capacity scaled from the L40S measurement; price unverified",
+   "usd_per_min_variable": 0.0012926924722222223,
+   "usd_per_min_all_in_10k_dau": 0.004376025805555556,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -565,21 +565,22 @@
   {
    "arch": "B:l40s_community:base",
    "label": "Self-hosted modular, L40S 48GB, marketplace floor (base capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.0010239369166666669,
-   "usd_per_min_all_in_10k_dau": 0.0041072702499999995,
+   "status": "capacity scaled from the L40S measurement; price unverified",
+   "usd_per_min_variable": 0.0008739924722222222,
+   "usd_per_min_all_in_10k_dau": 0.003957325805555556,
    "targets_met_variable": [
     0.05,
     0.01,
-    0.005
+    0.005,
+    0.001
    ]
   },
   {
    "arch": "B:l40s_community:high",
    "label": "Self-hosted modular, L40S 48GB, marketplace floor (high capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.0005973369166666667,
-   "usd_per_min_all_in_10k_dau": 0.0036806702500000003,
+   "status": "capacity scaled from the L40S measurement; price unverified",
+   "usd_per_min_variable": 0.000705459138888889,
+   "usd_per_min_all_in_10k_dau": 0.0037887924722222223,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -590,9 +591,9 @@
   {
    "arch": "B:h100_hyperstack:low",
    "label": "Self-hosted modular, H100 80GB, Hyperstack on-demand (low capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.0029105702499999998,
-   "usd_per_min_all_in_10k_dau": 0.005993903583333333,
+   "status": "capacity scaled from the L40S measurement; price unverified",
+   "usd_per_min_variable": 0.001832792472222222,
+   "usd_per_min_all_in_10k_dau": 0.004916125805555555,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -602,9 +603,9 @@
   {
    "arch": "B:h100_hyperstack:base",
    "label": "Self-hosted modular, H100 80GB, Hyperstack on-demand (base capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.0015772369166666667,
-   "usd_per_min_all_in_10k_dau": 0.00466057025,
+   "status": "capacity scaled from the L40S measurement; price unverified",
+   "usd_per_min_variable": 0.0012077924722222223,
+   "usd_per_min_all_in_10k_dau": 0.004291125805555556,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -614,43 +615,44 @@
   {
    "arch": "B:h100_hyperstack:high",
    "label": "Self-hosted modular, H100 80GB, Hyperstack on-demand (high capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.0009689035833333334,
-   "usd_per_min_all_in_10k_dau": 0.004052236916666667,
+   "status": "capacity scaled from the L40S measurement; price unverified",
+   "usd_per_min_variable": 0.0010077924722222222,
+   "usd_per_min_all_in_10k_dau": 0.0040911258055555556,
    "targets_met_variable": [
     0.05,
     0.01,
-    0.005,
-    0.001
+    0.005
    ]
   },
   {
    "arch": "B:hetzner_gex63:low",
    "label": "Self-hosted modular, Hetzner GEX63 dedicated (EUR 999/mo @1.15) (low capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.013617036916666667,
-   "usd_per_min_all_in_10k_dau": 0.016700370250000002,
-   "targets_met_variable": [
-    0.05
-   ]
-  },
-  {
-   "arch": "B:hetzner_gex63:base",
-   "label": "Self-hosted modular, Hetzner GEX63 dedicated (EUR 999/mo @1.15) (base capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.006834636916666668,
-   "usd_per_min_all_in_10k_dau": 0.00991797025,
+   "status": "capacity scaled from the L40S measurement; price unverified",
+   "usd_per_min_variable": 0.007416992472222222,
+   "usd_per_min_all_in_10k_dau": 0.010500325805555556,
    "targets_met_variable": [
     0.05,
     0.01
    ]
   },
   {
+   "arch": "B:hetzner_gex63:base",
+   "label": "Self-hosted modular, Hetzner GEX63 dedicated (EUR 999/mo @1.15) (base capacity)",
+   "status": "capacity scaled from the L40S measurement; price unverified",
+   "usd_per_min_variable": 0.004402592472222223,
+   "usd_per_min_all_in_10k_dau": 0.007485925805555556,
+   "targets_met_variable": [
+    0.05,
+    0.01,
+    0.005
+   ]
+  },
+  {
    "arch": "B:hetzner_gex63:high",
    "label": "Self-hosted modular, Hetzner GEX63 dedicated (EUR 999/mo @1.15) (high capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.003694636916666667,
-   "usd_per_min_all_in_10k_dau": 0.00677797025,
+   "status": "capacity scaled from the L40S measurement; price unverified",
+   "usd_per_min_variable": 0.003146592472222222,
+   "usd_per_min_all_in_10k_dau": 0.006229925805555555,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -660,20 +662,21 @@
   {
    "arch": "B:owned_l40s:low",
    "label": "Self-hosted modular, Owned 8xL40S server, 36-month amortisation, colo+power+10%/yr maintenance (low capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.006013836916666666,
-   "usd_per_min_all_in_10k_dau": 0.009097170249999998,
+   "status": "capacity scaled from the L40S measurement; price estimate",
+   "usd_per_min_variable": 0.0034041924722222217,
+   "usd_per_min_all_in_10k_dau": 0.0064875258055555555,
    "targets_met_variable": [
     0.05,
-    0.01
+    0.01,
+    0.005
    ]
   },
   {
    "arch": "B:owned_l40s:base",
    "label": "Self-hosted modular, Owned 8xL40S server, 36-month amortisation, colo+power+10%/yr maintenance (base capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.003033036916666666,
-   "usd_per_min_all_in_10k_dau": 0.006116370249999999,
+   "status": "capacity scaled from the L40S measurement; price estimate",
+   "usd_per_min_variable": 0.002079392472222222,
+   "usd_per_min_all_in_10k_dau": 0.005162725805555555,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -683,9 +686,9 @@
   {
    "arch": "B:owned_l40s:high",
    "label": "Self-hosted modular, Owned 8xL40S server, 36-month amortisation, colo+power+10%/yr maintenance (high capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.0016530369166666667,
-   "usd_per_min_all_in_10k_dau": 0.00473637025,
+   "status": "capacity scaled from the L40S measurement; price estimate",
+   "usd_per_min_variable": 0.0015273924722222223,
+   "usd_per_min_all_in_10k_dau": 0.004610725805555556,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -695,20 +698,21 @@
   {
    "arch": "B:owned_l4:low",
    "label": "Self-hosted modular, Owned 8xL4 server, 36-month amortisation (low capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.005620236916666667,
-   "usd_per_min_all_in_10k_dau": 0.008703570249999999,
+   "status": "capacity scaled from the L40S measurement; price estimate",
+   "usd_per_min_variable": 0.003204192472222222,
+   "usd_per_min_all_in_10k_dau": 0.006287525805555556,
    "targets_met_variable": [
     0.05,
-    0.01
+    0.01,
+    0.005
    ]
   },
   {
    "arch": "B:owned_l4:base",
    "label": "Self-hosted modular, Owned 8xL4 server, 36-month amortisation (base capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.0028362369166666664,
-   "usd_per_min_all_in_10k_dau": 0.00591957025,
+   "status": "capacity scaled from the L40S measurement; price estimate",
+   "usd_per_min_variable": 0.0019513924722222222,
+   "usd_per_min_all_in_10k_dau": 0.005034725805555556,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -718,9 +722,9 @@
   {
    "arch": "B:owned_l4:high",
    "label": "Self-hosted modular, Owned 8xL4 server, 36-month amortisation (high capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.0015602369166666666,
-   "usd_per_min_all_in_10k_dau": 0.0046435702499999995,
+   "status": "capacity scaled from the L40S measurement; price estimate",
+   "usd_per_min_variable": 0.0014409924722222221,
+   "usd_per_min_all_in_10k_dau": 0.0045243258055555555,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -730,9 +734,9 @@
   {
    "arch": "B:blend_owned_l40s_cloud:low",
    "label": "Self-hosted modular, owned L40S base load + cloud L40S for peaks (low capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.0025609369166666664,
-   "usd_per_min_all_in_10k_dau": 0.00564427025,
+   "status": "measured capacity; owned-hardware cost is an estimate",
+   "usd_per_min_variable": 0.0016054924722222223,
+   "usd_per_min_all_in_10k_dau": 0.004688825805555555,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -742,9 +746,9 @@
   {
    "arch": "B:blend_owned_l40s_cloud:base",
    "label": "Self-hosted modular, owned L40S base load + cloud L40S for peaks (base capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.0013120369166666668,
-   "usd_per_min_all_in_10k_dau": 0.00439537025,
+   "status": "measured capacity; owned-hardware cost is an estimate",
+   "usd_per_min_variable": 0.0010395258055555555,
+   "usd_per_min_all_in_10k_dau": 0.004122859138888889,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -754,9 +758,9 @@
   {
    "arch": "B:blend_owned_l40s_cloud:high",
    "label": "Self-hosted modular, owned L40S base load + cloud L40S for peaks (high capacity)",
-   "status": "assumption",
-   "usd_per_min_variable": 0.0007424369166666667,
-   "usd_per_min_all_in_10k_dau": 0.00382577025,
+   "status": "measured capacity; owned-hardware cost is an estimate",
+   "usd_per_min_variable": 0.0008092258055555555,
+   "usd_per_min_all_in_10k_dau": 0.0038925591388888894,
    "targets_met_variable": [
     0.05,
     0.01,
@@ -1164,12 +1168,12 @@
    "minutes": 180000,
    "api_usd": 176.4,
    "gpu_usd": 1569.6000000000001,
-   "infra_variable_usd": 9.402645,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 6000.0,
-   "total_usd": 7905.402645,
-   "usd_per_min_variable": 0.009752236916666667,
-   "usd_per_min_all_in": 0.043918903583333335,
+   "total_usd": 7942.402645,
+   "usd_per_min_variable": 0.009957792472222223,
+   "usd_per_min_all_in": 0.04412445913888889,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 2,
@@ -1184,12 +1188,12 @@
    "minutes": 900000,
    "api_usd": 882.0,
    "gpu_usd": 2616.0,
-   "infra_variable_usd": 47.013225,
+   "infra_variable_usd": 232.013225,
    "fixed_infra_usd": 350.0,
    "people_usd": 9000.0,
-   "total_usd": 12895.013225,
-   "usd_per_min_variable": 0.003938903583333334,
-   "usd_per_min_all_in": 0.014327792472222222,
+   "total_usd": 13080.013224999999,
+   "usd_per_min_variable": 0.004144459138888889,
+   "usd_per_min_all_in": 0.014533348027777776,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 9,
@@ -1204,12 +1208,12 @@
    "minutes": 9000000,
    "api_usd": 8820.0,
    "gpu_usd": 18933.300000000003,
-   "infra_variable_usd": 470.13225,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 15000.0,
-   "total_usd": 44723.432250000005,
-   "usd_per_min_variable": 0.0031359369166666672,
-   "usd_per_min_all_in": 0.00496927025,
+   "total_usd": 46573.432250000005,
+   "usd_per_min_variable": 0.003341492472222223,
+   "usd_per_min_all_in": 0.005174825805555556,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 86,
@@ -1224,12 +1228,12 @@
    "minutes": 90000000,
    "api_usd": 88200.0,
    "gpu_usd": 184395.30000000002,
-   "infra_variable_usd": 4701.3225,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 30000.0,
-   "total_usd": 315296.6225,
-   "usd_per_min_variable": 0.003081073583333333,
-   "usd_per_min_all_in": 0.0035032958055555554,
+   "total_usd": 333796.6225,
+   "usd_per_min_variable": 0.003286629138888889,
+   "usd_per_min_all_in": 0.003708851361111111,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 853,
@@ -1244,12 +1248,12 @@
    "minutes": 180000,
    "api_usd": 360.0,
    "gpu_usd": 1569.6000000000001,
-   "infra_variable_usd": 9.402645,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 6000.0,
-   "total_usd": 8089.0026450000005,
-   "usd_per_min_variable": 0.010772236916666667,
-   "usd_per_min_all_in": 0.044938903583333335,
+   "total_usd": 8126.0026450000005,
+   "usd_per_min_variable": 0.010977792472222223,
+   "usd_per_min_all_in": 0.04514445913888889,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 2,
@@ -1264,12 +1268,12 @@
    "minutes": 900000,
    "api_usd": 1800.0,
    "gpu_usd": 2485.2000000000003,
-   "infra_variable_usd": 47.013225,
+   "infra_variable_usd": 232.013225,
    "fixed_infra_usd": 350.0,
    "people_usd": 9000.0,
-   "total_usd": 13682.213225,
-   "usd_per_min_variable": 0.00481357025,
-   "usd_per_min_all_in": 0.015202459138888888,
+   "total_usd": 13867.213225,
+   "usd_per_min_variable": 0.0050191258055555564,
+   "usd_per_min_all_in": 0.015408014694444444,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 8,
@@ -1284,12 +1288,12 @@
    "minutes": 9000000,
    "api_usd": 18000.0,
    "gpu_usd": 17658.0,
-   "infra_variable_usd": 470.13225,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 15000.0,
-   "total_usd": 52628.132249999995,
-   "usd_per_min_variable": 0.004014236916666666,
-   "usd_per_min_all_in": 0.00584757025,
+   "total_usd": 54478.132249999995,
+   "usd_per_min_variable": 0.004219792472222221,
+   "usd_per_min_all_in": 0.006053125805555555,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 80,
@@ -1304,12 +1308,12 @@
    "minutes": 90000000,
    "api_usd": 180000.0,
    "gpu_usd": 172198.2,
-   "infra_variable_usd": 4701.3225,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 30000.0,
-   "total_usd": 394899.5225,
-   "usd_per_min_variable": 0.00396555025,
-   "usd_per_min_all_in": 0.004387772472222222,
+   "total_usd": 413399.5225,
+   "usd_per_min_variable": 0.004171105805555556,
+   "usd_per_min_all_in": 0.004593328027777778,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 796,
@@ -1324,12 +1328,12 @@
    "minutes": 180000,
    "api_usd": 176.4,
    "gpu_usd": 1569.6000000000001,
-   "infra_variable_usd": 9.402645,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 6000.0,
-   "total_usd": 7905.402645,
-   "usd_per_min_variable": 0.009752236916666667,
-   "usd_per_min_all_in": 0.043918903583333335,
+   "total_usd": 7942.402645,
+   "usd_per_min_variable": 0.009957792472222223,
+   "usd_per_min_all_in": 0.04412445913888889,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 2,
@@ -1344,12 +1348,12 @@
    "minutes": 900000,
    "api_usd": 882.0,
    "gpu_usd": 1896.6000000000001,
-   "infra_variable_usd": 47.013225,
+   "infra_variable_usd": 232.013225,
    "fixed_infra_usd": 350.0,
    "people_usd": 9000.0,
-   "total_usd": 12175.613225000001,
-   "usd_per_min_variable": 0.0031395702500000002,
-   "usd_per_min_all_in": 0.01352845913888889,
+   "total_usd": 12360.613225000001,
+   "usd_per_min_variable": 0.0033451258055555554,
+   "usd_per_min_all_in": 0.013734014694444446,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 5,
@@ -1364,12 +1368,12 @@
    "minutes": 9000000,
    "api_usd": 8820.0,
    "gpu_usd": 9777.300000000001,
-   "infra_variable_usd": 470.13225,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 15000.0,
-   "total_usd": 35567.43225,
-   "usd_per_min_variable": 0.0021186035833333336,
-   "usd_per_min_all_in": 0.003951936916666667,
+   "total_usd": 37417.43225,
+   "usd_per_min_variable": 0.0023241591388888892,
+   "usd_per_min_all_in": 0.004157492472222222,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 43,
@@ -1384,12 +1388,12 @@
    "minutes": 90000000,
    "api_usd": 88200.0,
    "gpu_usd": 92410.20000000001,
-   "infra_variable_usd": 4701.3225,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 30000.0,
-   "total_usd": 223311.52250000002,
-   "usd_per_min_variable": 0.002059016916666667,
-   "usd_per_min_all_in": 0.002481239138888889,
+   "total_usd": 241811.52250000002,
+   "usd_per_min_variable": 0.0022645724722222225,
+   "usd_per_min_all_in": 0.002686794694444445,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 427,
@@ -1404,12 +1408,12 @@
    "minutes": 180000,
    "api_usd": 360.0,
    "gpu_usd": 1569.6000000000001,
-   "infra_variable_usd": 9.402645,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 6000.0,
-   "total_usd": 8089.0026450000005,
-   "usd_per_min_variable": 0.010772236916666667,
-   "usd_per_min_all_in": 0.044938903583333335,
+   "total_usd": 8126.0026450000005,
+   "usd_per_min_variable": 0.010977792472222223,
+   "usd_per_min_all_in": 0.04514445913888889,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 2,
@@ -1424,12 +1428,12 @@
    "minutes": 900000,
    "api_usd": 1800.0,
    "gpu_usd": 1863.9,
-   "infra_variable_usd": 47.013225,
+   "infra_variable_usd": 232.013225,
    "fixed_infra_usd": 350.0,
    "people_usd": 9000.0,
-   "total_usd": 13060.913225,
-   "usd_per_min_variable": 0.004123236916666667,
-   "usd_per_min_all_in": 0.014512125805555555,
+   "total_usd": 13245.913225,
+   "usd_per_min_variable": 0.004328792472222223,
+   "usd_per_min_all_in": 0.014717681361111111,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 4,
@@ -1444,12 +1448,12 @@
    "minutes": 9000000,
    "api_usd": 18000.0,
    "gpu_usd": 9123.300000000001,
-   "infra_variable_usd": 470.13225,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 15000.0,
-   "total_usd": 44093.43225,
-   "usd_per_min_variable": 0.0030659369166666666,
-   "usd_per_min_all_in": 0.00489927025,
+   "total_usd": 45943.43225,
+   "usd_per_min_variable": 0.003271492472222222,
+   "usd_per_min_all_in": 0.005104825805555556,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 40,
@@ -1464,12 +1468,12 @@
    "minutes": 90000000,
    "api_usd": 180000.0,
    "gpu_usd": 86295.3,
-   "infra_variable_usd": 4701.3225,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 30000.0,
-   "total_usd": 308996.6225,
-   "usd_per_min_variable": 0.0030110735833333334,
-   "usd_per_min_all_in": 0.0034332958055555557,
+   "total_usd": 327496.6225,
+   "usd_per_min_variable": 0.003216629138888889,
+   "usd_per_min_all_in": 0.003638851361111111,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 398,
@@ -1484,12 +1488,12 @@
    "minutes": 180000,
    "api_usd": 176.4,
    "gpu_usd": 1569.6000000000001,
-   "infra_variable_usd": 9.402645,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 6000.0,
-   "total_usd": 7905.402645,
-   "usd_per_min_variable": 0.009752236916666667,
-   "usd_per_min_all_in": 0.043918903583333335,
+   "total_usd": 7942.402645,
+   "usd_per_min_variable": 0.009957792472222223,
+   "usd_per_min_all_in": 0.04412445913888889,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 2,
@@ -1504,12 +1508,12 @@
    "minutes": 900000,
    "api_usd": 882.0,
    "gpu_usd": 1602.3000000000002,
-   "infra_variable_usd": 47.013225,
+   "infra_variable_usd": 232.013225,
    "fixed_infra_usd": 350.0,
    "people_usd": 9000.0,
-   "total_usd": 11881.313225,
-   "usd_per_min_variable": 0.00281257025,
-   "usd_per_min_all_in": 0.013201459138888889,
+   "total_usd": 12066.313225,
+   "usd_per_min_variable": 0.0030181258055555554,
+   "usd_per_min_all_in": 0.013407014694444445,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 3,
@@ -1524,12 +1528,12 @@
    "minutes": 9000000,
    "api_usd": 8820.0,
    "gpu_usd": 5264.700000000001,
-   "infra_variable_usd": 470.13225,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 15000.0,
-   "total_usd": 31054.83225,
-   "usd_per_min_variable": 0.0016172035833333335,
-   "usd_per_min_all_in": 0.0034505369166666668,
+   "total_usd": 32904.83225,
+   "usd_per_min_variable": 0.0018227591388888889,
+   "usd_per_min_all_in": 0.0036560924722222224,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 22,
@@ -1544,12 +1548,12 @@
    "minutes": 90000000,
    "api_usd": 88200.0,
    "gpu_usd": 46368.600000000006,
-   "infra_variable_usd": 4701.3225,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 30000.0,
-   "total_usd": 177269.9225,
-   "usd_per_min_variable": 0.0015474435833333332,
-   "usd_per_min_all_in": 0.001969665805555555,
+   "total_usd": 195769.9225,
+   "usd_per_min_variable": 0.0017529991388888888,
+   "usd_per_min_all_in": 0.002175221361111111,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 214,
@@ -1564,12 +1568,12 @@
    "minutes": 180000,
    "api_usd": 360.0,
    "gpu_usd": 1569.6000000000001,
-   "infra_variable_usd": 9.402645,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 6000.0,
-   "total_usd": 8089.0026450000005,
-   "usd_per_min_variable": 0.010772236916666667,
-   "usd_per_min_all_in": 0.044938903583333335,
+   "total_usd": 8126.0026450000005,
+   "usd_per_min_variable": 0.010977792472222223,
+   "usd_per_min_all_in": 0.04514445913888889,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 2,
@@ -1584,12 +1588,12 @@
    "minutes": 900000,
    "api_usd": 1800.0,
    "gpu_usd": 1602.3000000000002,
-   "infra_variable_usd": 47.013225,
+   "infra_variable_usd": 232.013225,
    "fixed_infra_usd": 350.0,
    "people_usd": 9000.0,
-   "total_usd": 12799.313225,
-   "usd_per_min_variable": 0.00383257025,
-   "usd_per_min_all_in": 0.014221459138888889,
+   "total_usd": 12984.313225,
+   "usd_per_min_variable": 0.0040381258055555555,
+   "usd_per_min_all_in": 0.014427014694444445,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 3,
@@ -1604,12 +1608,12 @@
    "minutes": 9000000,
    "api_usd": 18000.0,
    "gpu_usd": 5297.400000000001,
-   "infra_variable_usd": 470.13225,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 15000.0,
-   "total_usd": 40267.532250000004,
-   "usd_per_min_variable": 0.0026408369166666668,
-   "usd_per_min_all_in": 0.00447417025,
+   "total_usd": 42117.532250000004,
+   "usd_per_min_variable": 0.0028463924722222224,
+   "usd_per_min_all_in": 0.004679725805555556,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 22,
@@ -1624,12 +1628,12 @@
    "minutes": 90000000,
    "api_usd": 180000.0,
    "gpu_usd": 47415.0,
-   "infra_variable_usd": 4701.3225,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 30000.0,
-   "total_usd": 270116.3225,
-   "usd_per_min_variable": 0.00257907025,
-   "usd_per_min_all_in": 0.0030012924722222223,
+   "total_usd": 288616.3225,
+   "usd_per_min_variable": 0.0027846258055555556,
+   "usd_per_min_all_in": 0.003206848027777778,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 218,
@@ -1643,19 +1647,19 @@
    "dau": 200,
    "minutes": 180000,
    "api_usd": 0.0,
-   "gpu_usd": 1242.0,
-   "infra_variable_usd": 9.402645,
+   "gpu_usd": 1055.6999999999998,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 15000.0,
-   "total_usd": 16401.402645,
-   "usd_per_min_variable": 0.006952236916666666,
-   "usd_per_min_all_in": 0.09111890358333333,
+   "total_usd": 16252.102644999999,
+   "usd_per_min_variable": 0.006122792472222221,
+   "usd_per_min_all_in": 0.09028945913888889,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 5,
+    "peak_gpus": 3,
     "min_gpus": 2,
-    "gpu_hours_per_month": 1800,
-    "realised_utilisation": 0.3518518518518519
+    "gpu_hours_per_month": 1530,
+    "realised_utilisation": 0.21786492374727673
    }
   },
   {
@@ -1663,19 +1667,19 @@
    "dau": 1000,
    "minutes": 900000,
    "api_usd": 0.0,
-   "gpu_usd": 3601.7999999999997,
-   "infra_variable_usd": 47.013225,
+   "gpu_usd": 2173.5,
+   "infra_variable_usd": 232.013225,
    "fixed_infra_usd": 350.0,
    "people_usd": 18750.0,
-   "total_usd": 22748.813224999998,
-   "usd_per_min_variable": 0.004054236916666666,
-   "usd_per_min_all_in": 0.025276459138888888,
+   "total_usd": 21505.513225,
+   "usd_per_min_variable": 0.0026727924722222225,
+   "usd_per_min_all_in": 0.023895014694444442,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 24,
+    "peak_gpus": 13,
     "min_gpus": 2,
-    "gpu_hours_per_month": 5220,
-    "realised_utilisation": 0.6066411238825032
+    "gpu_hours_per_month": 3150,
+    "realised_utilisation": 0.5291005291005292
    }
   },
   {
@@ -1683,19 +1687,19 @@
    "dau": 10000,
    "minutes": 9000000,
    "api_usd": 0.0,
-   "gpu_usd": 32850.899999999994,
-   "infra_variable_usd": 470.13225,
+   "gpu_usd": 17574.3,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 26250.0,
-   "total_usd": 61071.03225,
-   "usd_per_min_variable": 0.0037023369166666663,
-   "usd_per_min_all_in": 0.00678567025,
+   "total_usd": 47644.43225,
+   "usd_per_min_variable": 0.002210492472222222,
+   "usd_per_min_all_in": 0.005293825805555556,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 240,
+    "peak_gpus": 127,
     "min_gpus": 2,
-    "gpu_hours_per_month": 47610,
-    "realised_utilisation": 0.6651263740110621
+    "gpu_hours_per_month": 25470,
+    "realised_utilisation": 0.6543646119617852
    }
   },
   {
@@ -1703,19 +1707,19 @@
    "dau": 100000,
    "minutes": 90000000,
    "api_usd": 0.0,
-   "gpu_usd": 327867.3,
-   "infra_variable_usd": 4701.3225,
+   "gpu_usd": 172762.19999999998,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 52500.0,
-   "total_usd": 393068.6225,
-   "usd_per_min_variable": 0.0036952069166666665,
-   "usd_per_min_all_in": 0.004367429138888889,
+   "total_usd": 256463.5225,
+   "usd_per_min_variable": 0.002177372472222222,
+   "usd_per_min_all_in": 0.0028495946944444442,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 2399,
-    "min_gpus": 16,
-    "gpu_hours_per_month": 475170,
-    "realised_utilisation": 0.6664281555373165
+    "peak_gpus": 1263,
+    "min_gpus": 9,
+    "gpu_hours_per_month": 250380,
+    "realised_utilisation": 0.6656548712623479
    }
   },
   {
@@ -1723,19 +1727,19 @@
    "dau": 200,
    "minutes": 180000,
    "api_usd": 0.0,
-   "gpu_usd": 1055.6999999999998,
-   "infra_variable_usd": 9.402645,
+   "gpu_usd": 993.5999999999999,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 15000.0,
-   "total_usd": 16215.102644999999,
-   "usd_per_min_variable": 0.005917236916666665,
-   "usd_per_min_all_in": 0.09008390358333333,
+   "total_usd": 16190.002645,
+   "usd_per_min_variable": 0.005777792472222221,
+   "usd_per_min_all_in": 0.08994445913888889,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 3,
+    "peak_gpus": 2,
     "min_gpus": 2,
-    "gpu_hours_per_month": 1530,
-    "realised_utilisation": 0.2069716775599129
+    "gpu_hours_per_month": 1440,
+    "realised_utilisation": 0.13227513227513227
    }
   },
   {
@@ -1743,19 +1747,19 @@
    "dau": 1000,
    "minutes": 900000,
    "api_usd": 0.0,
-   "gpu_usd": 2070.0,
-   "infra_variable_usd": 47.013225,
+   "gpu_usd": 1490.3999999999999,
+   "infra_variable_usd": 232.013225,
    "fixed_infra_usd": 350.0,
    "people_usd": 18750.0,
-   "total_usd": 21217.013225,
-   "usd_per_min_variable": 0.002352236916666667,
-   "usd_per_min_all_in": 0.02357445913888889,
+   "total_usd": 20822.413225,
+   "usd_per_min_variable": 0.001913792472222222,
+   "usd_per_min_all_in": 0.023136014694444446,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 12,
+    "peak_gpus": 8,
     "min_gpus": 2,
-    "gpu_hours_per_month": 3000,
-    "realised_utilisation": 0.5277777777777778
+    "gpu_hours_per_month": 2160,
+    "realised_utilisation": 0.4409171075837743
    }
   },
   {
@@ -1763,19 +1767,19 @@
    "dau": 10000,
    "minutes": 9000000,
    "api_usd": 0.0,
-   "gpu_usd": 16497.899999999998,
-   "infra_variable_usd": 470.13225,
+   "gpu_usd": 10246.5,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 26250.0,
-   "total_usd": 44718.03225,
-   "usd_per_min_variable": 0.0018853369166666662,
-   "usd_per_min_all_in": 0.0049686702499999996,
+   "total_usd": 40316.63225,
+   "usd_per_min_variable": 0.0013962924722222222,
+   "usd_per_min_all_in": 0.0044796258055555555,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 120,
+    "peak_gpus": 73,
     "min_gpus": 2,
-    "gpu_hours_per_month": 23910,
-    "realised_utilisation": 0.6622054928202984
+    "gpu_hours_per_month": 14850,
+    "realised_utilisation": 0.641333974667308
    }
   },
   {
@@ -1783,19 +1787,19 @@
    "dau": 100000,
    "minutes": 90000000,
    "api_usd": 0.0,
-   "gpu_usd": 163944.0,
-   "infra_variable_usd": 4701.3225,
+   "gpu_usd": 98842.49999999999,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 52500.0,
-   "total_usd": 229145.3225,
-   "usd_per_min_variable": 0.0018738369166666669,
-   "usd_per_min_all_in": 0.002546059138888889,
+   "total_usd": 182543.82249999998,
+   "usd_per_min_variable": 0.001356042472222222,
+   "usd_per_min_all_in": 0.0020282646944444443,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 1200,
-    "min_gpus": 8,
-    "gpu_hours_per_month": 237600,
-    "realised_utilisation": 0.6663860830527498
+    "peak_gpus": 722,
+    "min_gpus": 5,
+    "gpu_hours_per_month": 143250,
+    "realised_utilisation": 0.6648383611734396
    }
   },
   {
@@ -1804,18 +1808,18 @@
    "minutes": 180000,
    "api_usd": 0.0,
    "gpu_usd": 993.5999999999999,
-   "infra_variable_usd": 9.402645,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 15000.0,
-   "total_usd": 16153.002645,
-   "usd_per_min_variable": 0.0055722369166666666,
-   "usd_per_min_all_in": 0.08973890358333333,
+   "total_usd": 16190.002645,
+   "usd_per_min_variable": 0.005777792472222221,
+   "usd_per_min_all_in": 0.08994445913888889,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 2,
     "min_gpus": 2,
     "gpu_hours_per_month": 1440,
-    "realised_utilisation": 0.11766975308641976
+    "realised_utilisation": 0.0925925925925926
    }
   },
   {
@@ -1823,19 +1827,19 @@
    "dau": 1000,
    "minutes": 900000,
    "api_usd": 0.0,
-   "gpu_usd": 1407.6,
-   "infra_variable_usd": 47.013225,
+   "gpu_usd": 1283.3999999999999,
+   "infra_variable_usd": 232.013225,
    "fixed_infra_usd": 350.0,
    "people_usd": 18750.0,
-   "total_usd": 20554.613225,
-   "usd_per_min_variable": 0.0016162369166666665,
-   "usd_per_min_all_in": 0.02283845913888889,
+   "total_usd": 20615.413225,
+   "usd_per_min_variable": 0.001683792472222222,
+   "usd_per_min_all_in": 0.022906014694444445,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 7,
+    "peak_gpus": 6,
     "min_gpus": 2,
-    "gpu_hours_per_month": 2040,
-    "realised_utilisation": 0.4153050108932462
+    "gpu_hours_per_month": 1860,
+    "realised_utilisation": 0.3584229390681004
    }
   },
   {
@@ -1843,19 +1847,19 @@
    "dau": 10000,
    "minutes": 9000000,
    "api_usd": 0.0,
-   "gpu_usd": 9128.699999999999,
-   "infra_variable_usd": 470.13225,
+   "gpu_usd": 7244.999999999999,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 26250.0,
-   "total_usd": 37348.83225,
-   "usd_per_min_variable": 0.0010665369166666667,
-   "usd_per_min_all_in": 0.00414987025,
+   "total_usd": 37315.132249999995,
+   "usd_per_min_variable": 0.0010627924722222222,
+   "usd_per_min_all_in": 0.004146125805555555,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 65,
+    "peak_gpus": 51,
     "min_gpus": 2,
-    "gpu_hours_per_month": 13230,
-    "realised_utilisation": 0.6403796086335769
+    "gpu_hours_per_month": 10500,
+    "realised_utilisation": 0.634920634920635
    }
   },
   {
@@ -1863,219 +1867,219 @@
    "dau": 100000,
    "minutes": 90000000,
    "api_usd": 0.0,
-   "gpu_usd": 87954.29999999999,
-   "infra_variable_usd": 4701.3225,
+   "gpu_usd": 69282.9,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 52500.0,
-   "total_usd": 153155.6225,
-   "usd_per_min_variable": 0.0010295069166666665,
-   "usd_per_min_all_in": 0.0017017291388888888,
+   "total_usd": 152984.22249999997,
+   "usd_per_min_variable": 0.0010276024722222221,
+   "usd_per_min_all_in": 0.0016998246944444442,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 642,
-    "min_gpus": 5,
-    "gpu_hours_per_month": 127470,
-    "realised_utilisation": 0.664644404347864
+    "peak_gpus": 506,
+    "min_gpus": 4,
+    "gpu_hours_per_month": 100410,
+    "realised_utilisation": 0.6639444942402815
    }
   },
   {
    "arch": "B:l40s_runpod:low",
    "dau": 200,
    "minutes": 180000,
+   "api_usd": 0.0,
+   "gpu_usd": 1569.6000000000001,
+   "infra_variable_usd": 46.402645,
+   "fixed_infra_usd": 150.0,
+   "people_usd": 15000.0,
+   "total_usd": 16766.002645,
+   "usd_per_min_variable": 0.008977792472222223,
+   "usd_per_min_all_in": 0.09314445913888889,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 2,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1440,
+    "realised_utilisation": 0.10416666666666669
+   }
+  },
+  {
+   "arch": "B:l40s_runpod:low",
+   "dau": 1000,
+   "minutes": 900000,
+   "api_usd": 0.0,
+   "gpu_usd": 2092.8,
+   "infra_variable_usd": 232.013225,
+   "fixed_infra_usd": 350.0,
+   "people_usd": 18750.0,
+   "total_usd": 21424.813225,
+   "usd_per_min_variable": 0.0025831258055555558,
+   "usd_per_min_all_in": 0.02380534802777778,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 6,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1920,
+    "realised_utilisation": 0.39062500000000006
+   }
+  },
+  {
+   "arch": "B:l40s_runpod:low",
+   "dau": 10000,
+   "minutes": 9000000,
+   "api_usd": 0.0,
+   "gpu_usd": 12851.1,
+   "infra_variable_usd": 2320.13225,
+   "fixed_infra_usd": 1500.0,
+   "people_usd": 26250.0,
+   "total_usd": 42921.23225,
+   "usd_per_min_variable": 0.0016856924722222224,
+   "usd_per_min_all_in": 0.004769025805555556,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 57,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 11790,
+    "realised_utilisation": 0.6361323155216285
+   }
+  },
+  {
+   "arch": "B:l40s_runpod:low",
+   "dau": 100000,
+   "minutes": 90000000,
+   "api_usd": 0.0,
+   "gpu_usd": 122952.00000000001,
+   "infra_variable_usd": 23201.3225,
+   "fixed_infra_usd": 8000.0,
+   "people_usd": 52500.0,
+   "total_usd": 206653.3225,
+   "usd_per_min_variable": 0.0016239258055555557,
+   "usd_per_min_all_in": 0.002296148027777778,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 569,
+    "min_gpus": 4,
+    "gpu_hours_per_month": 112800,
+    "realised_utilisation": 0.6648936170212766
+   }
+  },
+  {
+   "arch": "B:l40s_runpod:base",
+   "dau": 200,
+   "minutes": 180000,
+   "api_usd": 0.0,
+   "gpu_usd": 1569.6000000000001,
+   "infra_variable_usd": 46.402645,
+   "fixed_infra_usd": 150.0,
+   "people_usd": 15000.0,
+   "total_usd": 16766.002645,
+   "usd_per_min_variable": 0.008977792472222223,
+   "usd_per_min_all_in": 0.09314445913888889,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 2,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1440,
+    "realised_utilisation": 0.05952380952380953
+   }
+  },
+  {
+   "arch": "B:l40s_runpod:base",
+   "dau": 1000,
+   "minutes": 900000,
+   "api_usd": 0.0,
+   "gpu_usd": 1700.4,
+   "infra_variable_usd": 232.013225,
+   "fixed_infra_usd": 350.0,
+   "people_usd": 18750.0,
+   "total_usd": 21032.413225,
+   "usd_per_min_variable": 0.0021471258055555556,
+   "usd_per_min_all_in": 0.023369348027777778,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 4,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1560,
+    "realised_utilisation": 0.27472527472527475
+   }
+  },
+  {
+   "arch": "B:l40s_runpod:base",
+   "dau": 10000,
+   "minutes": 9000000,
+   "api_usd": 0.0,
+   "gpu_usd": 7651.8,
+   "infra_variable_usd": 2320.13225,
+   "fixed_infra_usd": 1500.0,
+   "people_usd": 26250.0,
+   "total_usd": 37721.93225,
+   "usd_per_min_variable": 0.0011079924722222222,
+   "usd_per_min_all_in": 0.0041913258055555555,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 33,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 7020,
+    "realised_utilisation": 0.6105006105006106
+   }
+  },
+  {
+   "arch": "B:l40s_runpod:base",
+   "dau": 100000,
+   "minutes": 90000000,
+   "api_usd": 0.0,
+   "gpu_usd": 70533.90000000001,
+   "infra_variable_usd": 23201.3225,
+   "fixed_infra_usd": 8000.0,
+   "people_usd": 52500.0,
+   "total_usd": 154235.2225,
+   "usd_per_min_variable": 0.0010415024722222222,
+   "usd_per_min_all_in": 0.0017137246944444445,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 325,
+    "min_gpus": 3,
+    "gpu_hours_per_month": 64710,
+    "realised_utilisation": 0.662295516259355
+   }
+  },
+  {
+   "arch": "B:l40s_runpod:high",
+   "dau": 200,
+   "minutes": 180000,
+   "api_usd": 0.0,
+   "gpu_usd": 1569.6000000000001,
+   "infra_variable_usd": 46.402645,
+   "fixed_infra_usd": 150.0,
+   "people_usd": 15000.0,
+   "total_usd": 16766.002645,
+   "usd_per_min_variable": 0.008977792472222223,
+   "usd_per_min_all_in": 0.09314445913888889,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 2,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1440,
+    "realised_utilisation": 0.041666666666666664
+   }
+  },
+  {
+   "arch": "B:l40s_runpod:high",
+   "dau": 1000,
+   "minutes": 900000,
    "api_usd": 0.0,
    "gpu_usd": 1602.3000000000002,
-   "infra_variable_usd": 9.402645,
-   "fixed_infra_usd": 150.0,
-   "people_usd": 15000.0,
-   "total_usd": 16761.702645,
-   "usd_per_min_variable": 0.008953903583333334,
-   "usd_per_min_all_in": 0.09312057025,
+   "infra_variable_usd": 232.013225,
+   "fixed_infra_usd": 350.0,
+   "people_usd": 18750.0,
+   "total_usd": 20934.313224999998,
+   "usd_per_min_variable": 0.002038125805555556,
+   "usd_per_min_all_in": 0.023260348027777777,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 3,
     "min_gpus": 2,
     "gpu_hours_per_month": 1470,
-    "realised_utilisation": 0.19387755102040816
-   }
-  },
-  {
-   "arch": "B:l40s_runpod:low",
-   "dau": 1000,
-   "minutes": 900000,
-   "api_usd": 0.0,
-   "gpu_usd": 3008.4,
-   "infra_variable_usd": 47.013225,
-   "fixed_infra_usd": 350.0,
-   "people_usd": 18750.0,
-   "total_usd": 22155.413225,
-   "usd_per_min_variable": 0.003394903583333334,
-   "usd_per_min_all_in": 0.024617125805555556,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 11,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 2760,
-    "realised_utilisation": 0.5163043478260869
-   }
-  },
-  {
-   "arch": "B:l40s_runpod:low",
-   "dau": 10000,
-   "minutes": 9000000,
-   "api_usd": 0.0,
-   "gpu_usd": 23642.100000000002,
-   "infra_variable_usd": 470.13225,
-   "fixed_infra_usd": 1500.0,
-   "people_usd": 26250.0,
-   "total_usd": 51862.23225,
-   "usd_per_min_variable": 0.002679136916666667,
-   "usd_per_min_all_in": 0.00576247025,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 108,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 21690,
-    "realised_utilisation": 0.6569847856154911
-   }
-  },
-  {
-   "arch": "B:l40s_runpod:low",
-   "dau": 100000,
-   "minutes": 90000000,
-   "api_usd": 0.0,
-   "gpu_usd": 233216.40000000002,
-   "infra_variable_usd": 4701.3225,
-   "fixed_infra_usd": 8000.0,
-   "people_usd": 52500.0,
-   "total_usd": 298417.72250000003,
-   "usd_per_min_variable": 0.0026435302500000006,
-   "usd_per_min_all_in": 0.0033157524722222226,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 1080,
-    "min_gpus": 8,
-    "gpu_hours_per_month": 213960,
-    "realised_utilisation": 0.6660123387549075
-   }
-  },
-  {
-   "arch": "B:l40s_runpod:base",
-   "dau": 200,
-   "minutes": 180000,
-   "api_usd": 0.0,
-   "gpu_usd": 1569.6000000000001,
-   "infra_variable_usd": 9.402645,
-   "fixed_infra_usd": 150.0,
-   "people_usd": 15000.0,
-   "total_usd": 16729.002645,
-   "usd_per_min_variable": 0.008772236916666667,
-   "usd_per_min_all_in": 0.09293890358333333,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 2,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 1440,
-    "realised_utilisation": 0.09895833333333333
-   }
-  },
-  {
-   "arch": "B:l40s_runpod:base",
-   "dau": 1000,
-   "minutes": 900000,
-   "api_usd": 0.0,
-   "gpu_usd": 2027.4,
-   "infra_variable_usd": 47.013225,
-   "fixed_infra_usd": 350.0,
-   "people_usd": 18750.0,
-   "total_usd": 21174.413225,
-   "usd_per_min_variable": 0.0023049035833333335,
-   "usd_per_min_all_in": 0.023527125805555556,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 6,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 1860,
-    "realised_utilisation": 0.38306451612903225
-   }
-  },
-  {
-   "arch": "B:l40s_runpod:base",
-   "dau": 10000,
-   "minutes": 9000000,
-   "api_usd": 0.0,
-   "gpu_usd": 12066.300000000001,
-   "infra_variable_usd": 470.13225,
-   "fixed_infra_usd": 1500.0,
-   "people_usd": 26250.0,
-   "total_usd": 40286.43225,
-   "usd_per_min_variable": 0.0013929369166666668,
-   "usd_per_min_all_in": 0.00447627025,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 54,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 11070,
-    "realised_utilisation": 0.6436314363143633
-   }
-  },
-  {
-   "arch": "B:l40s_runpod:base",
-   "dau": 100000,
-   "minutes": 90000000,
-   "api_usd": 0.0,
-   "gpu_usd": 116640.90000000001,
-   "infra_variable_usd": 4701.3225,
-   "fixed_infra_usd": 8000.0,
-   "people_usd": 52500.0,
-   "total_usd": 181842.2225,
-   "usd_per_min_variable": 0.0013482469166666666,
-   "usd_per_min_all_in": 0.002020469138888889,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 540,
-    "min_gpus": 4,
-    "gpu_hours_per_month": 107010,
-    "realised_utilisation": 0.6658256237734791
-   }
-  },
-  {
-   "arch": "B:l40s_runpod:high",
-   "dau": 200,
-   "minutes": 180000,
-   "api_usd": 0.0,
-   "gpu_usd": 1569.6000000000001,
-   "infra_variable_usd": 9.402645,
-   "fixed_infra_usd": 150.0,
-   "people_usd": 15000.0,
-   "total_usd": 16729.002645,
-   "usd_per_min_variable": 0.008772236916666667,
-   "usd_per_min_all_in": 0.09293890358333333,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 2,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 1440,
-    "realised_utilisation": 0.052951388888888895
-   }
-  },
-  {
-   "arch": "B:l40s_runpod:high",
-   "dau": 1000,
-   "minutes": 900000,
-   "api_usd": 0.0,
-   "gpu_usd": 1667.7,
-   "infra_variable_usd": 47.013225,
-   "fixed_infra_usd": 350.0,
-   "people_usd": 18750.0,
-   "total_usd": 20814.713225,
-   "usd_per_min_variable": 0.0019052369166666667,
-   "usd_per_min_all_in": 0.02312745913888889,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 3,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 1530,
-    "realised_utilisation": 0.24918300653594772
+    "realised_utilisation": 0.20408163265306123
    }
   },
   {
@@ -2083,19 +2087,19 @@
    "dau": 10000,
    "minutes": 9000000,
    "api_usd": 0.0,
-   "gpu_usd": 6768.900000000001,
-   "infra_variable_usd": 470.13225,
+   "gpu_usd": 5559.0,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 26250.0,
-   "total_usd": 34989.032250000004,
-   "usd_per_min_variable": 0.0008043369166666667,
-   "usd_per_min_all_in": 0.0038876702500000005,
+   "total_usd": 35629.13225,
+   "usd_per_min_variable": 0.000875459138888889,
+   "usd_per_min_all_in": 0.003958792472222222,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 29,
+    "peak_gpus": 23,
     "min_gpus": 2,
-    "gpu_hours_per_month": 6210,
-    "realised_utilisation": 0.6139291465378423
+    "gpu_hours_per_month": 5100,
+    "realised_utilisation": 0.5882352941176472
    }
   },
   {
@@ -2103,219 +2107,219 @@
    "dau": 100000,
    "minutes": 90000000,
    "api_usd": 0.0,
-   "gpu_usd": 62751.3,
-   "infra_variable_usd": 4701.3225,
+   "gpu_usd": 49442.4,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 52500.0,
-   "total_usd": 127952.6225,
-   "usd_per_min_variable": 0.0007494735833333333,
-   "usd_per_min_all_in": 0.0014216958055555556,
+   "total_usd": 133143.7225,
+   "usd_per_min_variable": 0.0008071524722222223,
+   "usd_per_min_all_in": 0.0014793746944444445,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 289,
+    "peak_gpus": 228,
     "min_gpus": 2,
-    "gpu_hours_per_month": 57570,
-    "realised_utilisation": 0.6622372763592148
+    "gpu_hours_per_month": 45360,
+    "realised_utilisation": 0.6613756613756614
    }
   },
   {
    "arch": "B:l40s_community:low",
    "dau": 200,
    "minutes": 180000,
+   "api_usd": 0.0,
+   "gpu_usd": 1137.6000000000001,
+   "infra_variable_usd": 46.402645,
+   "fixed_infra_usd": 150.0,
+   "people_usd": 15000.0,
+   "total_usd": 16334.002645,
+   "usd_per_min_variable": 0.006577792472222222,
+   "usd_per_min_all_in": 0.09074445913888889,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 2,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1440,
+    "realised_utilisation": 0.10416666666666669
+   }
+  },
+  {
+   "arch": "B:l40s_community:low",
+   "dau": 1000,
+   "minutes": 900000,
+   "api_usd": 0.0,
+   "gpu_usd": 1516.8000000000002,
+   "infra_variable_usd": 232.013225,
+   "fixed_infra_usd": 350.0,
+   "people_usd": 18750.0,
+   "total_usd": 20848.813224999998,
+   "usd_per_min_variable": 0.0019431258055555556,
+   "usd_per_min_all_in": 0.023165348027777775,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 6,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1920,
+    "realised_utilisation": 0.39062500000000006
+   }
+  },
+  {
+   "arch": "B:l40s_community:low",
+   "dau": 10000,
+   "minutes": 9000000,
+   "api_usd": 0.0,
+   "gpu_usd": 9314.1,
+   "infra_variable_usd": 2320.13225,
+   "fixed_infra_usd": 1500.0,
+   "people_usd": 26250.0,
+   "total_usd": 39384.23225,
+   "usd_per_min_variable": 0.0012926924722222223,
+   "usd_per_min_all_in": 0.004376025805555556,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 57,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 11790,
+    "realised_utilisation": 0.6361323155216285
+   }
+  },
+  {
+   "arch": "B:l40s_community:low",
+   "dau": 100000,
+   "minutes": 90000000,
+   "api_usd": 0.0,
+   "gpu_usd": 89112.0,
+   "infra_variable_usd": 23201.3225,
+   "fixed_infra_usd": 8000.0,
+   "people_usd": 52500.0,
+   "total_usd": 172813.3225,
+   "usd_per_min_variable": 0.0012479258055555554,
+   "usd_per_min_all_in": 0.001920148027777778,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 569,
+    "min_gpus": 4,
+    "gpu_hours_per_month": 112800,
+    "realised_utilisation": 0.6648936170212766
+   }
+  },
+  {
+   "arch": "B:l40s_community:base",
+   "dau": 200,
+   "minutes": 180000,
+   "api_usd": 0.0,
+   "gpu_usd": 1137.6000000000001,
+   "infra_variable_usd": 46.402645,
+   "fixed_infra_usd": 150.0,
+   "people_usd": 15000.0,
+   "total_usd": 16334.002645,
+   "usd_per_min_variable": 0.006577792472222222,
+   "usd_per_min_all_in": 0.09074445913888889,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 2,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1440,
+    "realised_utilisation": 0.05952380952380953
+   }
+  },
+  {
+   "arch": "B:l40s_community:base",
+   "dau": 1000,
+   "minutes": 900000,
+   "api_usd": 0.0,
+   "gpu_usd": 1232.4,
+   "infra_variable_usd": 232.013225,
+   "fixed_infra_usd": 350.0,
+   "people_usd": 18750.0,
+   "total_usd": 20564.413225,
+   "usd_per_min_variable": 0.0016271258055555555,
+   "usd_per_min_all_in": 0.02284934802777778,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 4,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1560,
+    "realised_utilisation": 0.27472527472527475
+   }
+  },
+  {
+   "arch": "B:l40s_community:base",
+   "dau": 10000,
+   "minutes": 9000000,
+   "api_usd": 0.0,
+   "gpu_usd": 5545.8,
+   "infra_variable_usd": 2320.13225,
+   "fixed_infra_usd": 1500.0,
+   "people_usd": 26250.0,
+   "total_usd": 35615.93225,
+   "usd_per_min_variable": 0.0008739924722222222,
+   "usd_per_min_all_in": 0.003957325805555556,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 33,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 7020,
+    "realised_utilisation": 0.6105006105006106
+   }
+  },
+  {
+   "arch": "B:l40s_community:base",
+   "dau": 100000,
+   "minutes": 90000000,
+   "api_usd": 0.0,
+   "gpu_usd": 51120.9,
+   "infra_variable_usd": 23201.3225,
+   "fixed_infra_usd": 8000.0,
+   "people_usd": 52500.0,
+   "total_usd": 134822.2225,
+   "usd_per_min_variable": 0.0008258024722222223,
+   "usd_per_min_all_in": 0.0014980246944444446,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 325,
+    "min_gpus": 3,
+    "gpu_hours_per_month": 64710,
+    "realised_utilisation": 0.662295516259355
+   }
+  },
+  {
+   "arch": "B:l40s_community:high",
+   "dau": 200,
+   "minutes": 180000,
+   "api_usd": 0.0,
+   "gpu_usd": 1137.6000000000001,
+   "infra_variable_usd": 46.402645,
+   "fixed_infra_usd": 150.0,
+   "people_usd": 15000.0,
+   "total_usd": 16334.002645,
+   "usd_per_min_variable": 0.006577792472222222,
+   "usd_per_min_all_in": 0.09074445913888889,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 2,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1440,
+    "realised_utilisation": 0.041666666666666664
+   }
+  },
+  {
+   "arch": "B:l40s_community:high",
+   "dau": 1000,
+   "minutes": 900000,
    "api_usd": 0.0,
    "gpu_usd": 1161.3,
-   "infra_variable_usd": 9.402645,
-   "fixed_infra_usd": 150.0,
-   "people_usd": 15000.0,
-   "total_usd": 16320.702645,
-   "usd_per_min_variable": 0.006503903583333332,
-   "usd_per_min_all_in": 0.09067057025,
+   "infra_variable_usd": 232.013225,
+   "fixed_infra_usd": 350.0,
+   "people_usd": 18750.0,
+   "total_usd": 20493.313224999998,
+   "usd_per_min_variable": 0.0015481258055555554,
+   "usd_per_min_all_in": 0.022770348027777776,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 3,
     "min_gpus": 2,
     "gpu_hours_per_month": 1470,
-    "realised_utilisation": 0.19387755102040816
-   }
-  },
-  {
-   "arch": "B:l40s_community:low",
-   "dau": 1000,
-   "minutes": 900000,
-   "api_usd": 0.0,
-   "gpu_usd": 2180.4,
-   "infra_variable_usd": 47.013225,
-   "fixed_infra_usd": 350.0,
-   "people_usd": 18750.0,
-   "total_usd": 21327.413225,
-   "usd_per_min_variable": 0.0024749035833333335,
-   "usd_per_min_all_in": 0.023697125805555556,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 11,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 2760,
-    "realised_utilisation": 0.5163043478260869
-   }
-  },
-  {
-   "arch": "B:l40s_community:low",
-   "dau": 10000,
-   "minutes": 9000000,
-   "api_usd": 0.0,
-   "gpu_usd": 17135.100000000002,
-   "infra_variable_usd": 470.13225,
-   "fixed_infra_usd": 1500.0,
-   "people_usd": 26250.0,
-   "total_usd": 45355.23225,
-   "usd_per_min_variable": 0.001956136916666667,
-   "usd_per_min_all_in": 0.00503947025,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 108,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 21690,
-    "realised_utilisation": 0.6569847856154911
-   }
-  },
-  {
-   "arch": "B:l40s_community:low",
-   "dau": 100000,
-   "minutes": 90000000,
-   "api_usd": 0.0,
-   "gpu_usd": 169028.4,
-   "infra_variable_usd": 4701.3225,
-   "fixed_infra_usd": 8000.0,
-   "people_usd": 52500.0,
-   "total_usd": 234229.7225,
-   "usd_per_min_variable": 0.00193033025,
-   "usd_per_min_all_in": 0.0026025524722222224,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 1080,
-    "min_gpus": 8,
-    "gpu_hours_per_month": 213960,
-    "realised_utilisation": 0.6660123387549075
-   }
-  },
-  {
-   "arch": "B:l40s_community:base",
-   "dau": 200,
-   "minutes": 180000,
-   "api_usd": 0.0,
-   "gpu_usd": 1137.6000000000001,
-   "infra_variable_usd": 9.402645,
-   "fixed_infra_usd": 150.0,
-   "people_usd": 15000.0,
-   "total_usd": 16297.002645,
-   "usd_per_min_variable": 0.006372236916666667,
-   "usd_per_min_all_in": 0.09053890358333333,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 2,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 1440,
-    "realised_utilisation": 0.09895833333333333
-   }
-  },
-  {
-   "arch": "B:l40s_community:base",
-   "dau": 1000,
-   "minutes": 900000,
-   "api_usd": 0.0,
-   "gpu_usd": 1469.4,
-   "infra_variable_usd": 47.013225,
-   "fixed_infra_usd": 350.0,
-   "people_usd": 18750.0,
-   "total_usd": 20616.413225,
-   "usd_per_min_variable": 0.0016849035833333334,
-   "usd_per_min_all_in": 0.022907125805555557,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 6,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 1860,
-    "realised_utilisation": 0.38306451612903225
-   }
-  },
-  {
-   "arch": "B:l40s_community:base",
-   "dau": 10000,
-   "minutes": 9000000,
-   "api_usd": 0.0,
-   "gpu_usd": 8745.300000000001,
-   "infra_variable_usd": 470.13225,
-   "fixed_infra_usd": 1500.0,
-   "people_usd": 26250.0,
-   "total_usd": 36965.43225,
-   "usd_per_min_variable": 0.0010239369166666669,
-   "usd_per_min_all_in": 0.0041072702499999995,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 54,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 11070,
-    "realised_utilisation": 0.6436314363143633
-   }
-  },
-  {
-   "arch": "B:l40s_community:base",
-   "dau": 100000,
-   "minutes": 90000000,
-   "api_usd": 0.0,
-   "gpu_usd": 84537.90000000001,
-   "infra_variable_usd": 4701.3225,
-   "fixed_infra_usd": 8000.0,
-   "people_usd": 52500.0,
-   "total_usd": 149739.2225,
-   "usd_per_min_variable": 0.0009915469166666667,
-   "usd_per_min_all_in": 0.001663769138888889,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 540,
-    "min_gpus": 4,
-    "gpu_hours_per_month": 107010,
-    "realised_utilisation": 0.6658256237734791
-   }
-  },
-  {
-   "arch": "B:l40s_community:high",
-   "dau": 200,
-   "minutes": 180000,
-   "api_usd": 0.0,
-   "gpu_usd": 1137.6000000000001,
-   "infra_variable_usd": 9.402645,
-   "fixed_infra_usd": 150.0,
-   "people_usd": 15000.0,
-   "total_usd": 16297.002645,
-   "usd_per_min_variable": 0.006372236916666667,
-   "usd_per_min_all_in": 0.09053890358333333,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 2,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 1440,
-    "realised_utilisation": 0.052951388888888895
-   }
-  },
-  {
-   "arch": "B:l40s_community:high",
-   "dau": 1000,
-   "minutes": 900000,
-   "api_usd": 0.0,
-   "gpu_usd": 1208.7,
-   "infra_variable_usd": 47.013225,
-   "fixed_infra_usd": 350.0,
-   "people_usd": 18750.0,
-   "total_usd": 20355.713225,
-   "usd_per_min_variable": 0.0013952369166666666,
-   "usd_per_min_all_in": 0.02261745913888889,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 3,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 1530,
-    "realised_utilisation": 0.24918300653594772
+    "realised_utilisation": 0.20408163265306123
    }
   },
   {
@@ -2323,19 +2327,19 @@
    "dau": 10000,
    "minutes": 9000000,
    "api_usd": 0.0,
-   "gpu_usd": 4905.900000000001,
-   "infra_variable_usd": 470.13225,
+   "gpu_usd": 4029.0,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 26250.0,
-   "total_usd": 33126.032250000004,
-   "usd_per_min_variable": 0.0005973369166666667,
-   "usd_per_min_all_in": 0.0036806702500000003,
+   "total_usd": 34099.13225,
+   "usd_per_min_variable": 0.000705459138888889,
+   "usd_per_min_all_in": 0.0037887924722222223,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 29,
+    "peak_gpus": 23,
     "min_gpus": 2,
-    "gpu_hours_per_month": 6210,
-    "realised_utilisation": 0.6139291465378423
+    "gpu_hours_per_month": 5100,
+    "realised_utilisation": 0.5882352941176472
    }
   },
   {
@@ -2343,19 +2347,19 @@
    "dau": 100000,
    "minutes": 90000000,
    "api_usd": 0.0,
-   "gpu_usd": 45480.3,
-   "infra_variable_usd": 4701.3225,
+   "gpu_usd": 35834.4,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 52500.0,
-   "total_usd": 110681.6225,
-   "usd_per_min_variable": 0.0005575735833333334,
-   "usd_per_min_all_in": 0.0012297958055555555,
+   "total_usd": 119535.7225,
+   "usd_per_min_variable": 0.0006559524722222223,
+   "usd_per_min_all_in": 0.0013281746944444445,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 289,
+    "peak_gpus": 228,
     "min_gpus": 2,
-    "gpu_hours_per_month": 57570,
-    "realised_utilisation": 0.6622372763592148
+    "gpu_hours_per_month": 45360,
+    "realised_utilisation": 0.6613756613756614
    }
   },
   {
@@ -2364,118 +2368,118 @@
    "minutes": 180000,
    "api_usd": 0.0,
    "gpu_usd": 3600.0,
-   "infra_variable_usd": 9.402645,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 15000.0,
-   "total_usd": 18759.402645000002,
-   "usd_per_min_variable": 0.020052236916666667,
-   "usd_per_min_all_in": 0.10421890358333334,
+   "total_usd": 18796.402645000002,
+   "usd_per_min_variable": 0.020257792472222223,
+   "usd_per_min_all_in": 0.1044244591388889,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 2,
     "min_gpus": 2,
     "gpu_hours_per_month": 1440,
-    "realised_utilisation": 0.08996212121212122
+    "realised_utilisation": 0.047348484848484855
    }
   },
   {
    "arch": "B:h100_hyperstack:low",
-   "dau": 1000,
-   "minutes": 900000,
-   "api_usd": 0.0,
-   "gpu_usd": 4500.0,
-   "infra_variable_usd": 47.013225,
-   "fixed_infra_usd": 350.0,
-   "people_usd": 18750.0,
-   "total_usd": 23647.013225,
-   "usd_per_min_variable": 0.005052236916666666,
-   "usd_per_min_all_in": 0.026274459138888887,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 5,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 1800,
-    "realised_utilisation": 0.3598484848484848
-   }
-  },
-  {
-   "arch": "B:h100_hyperstack:low",
-   "dau": 10000,
-   "minutes": 9000000,
-   "api_usd": 0.0,
-   "gpu_usd": 25725.0,
-   "infra_variable_usd": 470.13225,
-   "fixed_infra_usd": 1500.0,
-   "people_usd": 26250.0,
-   "total_usd": 53945.132249999995,
-   "usd_per_min_variable": 0.0029105702499999998,
-   "usd_per_min_all_in": 0.005993903583333333,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 50,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 10290,
-    "realised_utilisation": 0.6294725682480784
-   }
-  },
-  {
-   "arch": "B:h100_hyperstack:low",
-   "dau": 100000,
-   "minutes": 90000000,
-   "api_usd": 0.0,
-   "gpu_usd": 243825.0,
-   "infra_variable_usd": 4701.3225,
-   "fixed_infra_usd": 8000.0,
-   "people_usd": 52500.0,
-   "total_usd": 309026.3225,
-   "usd_per_min_variable": 0.0027614035833333334,
-   "usd_per_min_all_in": 0.0034336258055555555,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 491,
-    "min_gpus": 4,
-    "gpu_hours_per_month": 97530,
-    "realised_utilisation": 0.6641313162383602
-   }
-  },
-  {
-   "arch": "B:h100_hyperstack:base",
-   "dau": 200,
-   "minutes": 180000,
-   "api_usd": 0.0,
-   "gpu_usd": 3600.0,
-   "infra_variable_usd": 9.402645,
-   "fixed_infra_usd": 150.0,
-   "people_usd": 15000.0,
-   "total_usd": 18759.402645000002,
-   "usd_per_min_variable": 0.020052236916666667,
-   "usd_per_min_all_in": 0.10421890358333334,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 2,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 1440,
-    "realised_utilisation": 0.04498106060606061
-   }
-  },
-  {
-   "arch": "B:h100_hyperstack:base",
    "dau": 1000,
    "minutes": 900000,
    "api_usd": 0.0,
    "gpu_usd": 3825.0,
-   "infra_variable_usd": 47.013225,
+   "infra_variable_usd": 232.013225,
    "fixed_infra_usd": 350.0,
    "people_usd": 18750.0,
-   "total_usd": 22972.013225000002,
-   "usd_per_min_variable": 0.004302236916666667,
-   "usd_per_min_all_in": 0.025524459138888893,
+   "total_usd": 23157.013225000002,
+   "usd_per_min_variable": 0.004507792472222222,
+   "usd_per_min_all_in": 0.02573001469444445,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 3,
     "min_gpus": 2,
     "gpu_hours_per_month": 1530,
-    "realised_utilisation": 0.21167557932263814
+    "realised_utilisation": 0.22281639928698754
+   }
+  },
+  {
+   "arch": "B:h100_hyperstack:low",
+   "dau": 10000,
+   "minutes": 9000000,
+   "api_usd": 0.0,
+   "gpu_usd": 14175.0,
+   "infra_variable_usd": 2320.13225,
+   "fixed_infra_usd": 1500.0,
+   "people_usd": 26250.0,
+   "total_usd": 44245.132249999995,
+   "usd_per_min_variable": 0.001832792472222222,
+   "usd_per_min_all_in": 0.004916125805555555,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 26,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 5670,
+    "realised_utilisation": 0.6012506012506014
+   }
+  },
+  {
+   "arch": "B:h100_hyperstack:low",
+   "dau": 100000,
+   "minutes": 90000000,
+   "api_usd": 0.0,
+   "gpu_usd": 128625.0,
+   "infra_variable_usd": 23201.3225,
+   "fixed_infra_usd": 8000.0,
+   "people_usd": 52500.0,
+   "total_usd": 212326.3225,
+   "usd_per_min_variable": 0.001686959138888889,
+   "usd_per_min_all_in": 0.002359181361111111,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 259,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 51450,
+    "realised_utilisation": 0.66260270341903
+   }
+  },
+  {
+   "arch": "B:h100_hyperstack:base",
+   "dau": 200,
+   "minutes": 180000,
+   "api_usd": 0.0,
+   "gpu_usd": 3600.0,
+   "infra_variable_usd": 46.402645,
+   "fixed_infra_usd": 150.0,
+   "people_usd": 15000.0,
+   "total_usd": 18796.402645000002,
+   "usd_per_min_variable": 0.020257792472222223,
+   "usd_per_min_all_in": 0.1044244591388889,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 2,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1440,
+    "realised_utilisation": 0.027056277056277056
+   }
+  },
+  {
+   "arch": "B:h100_hyperstack:base",
+   "dau": 1000,
+   "minutes": 900000,
+   "api_usd": 0.0,
+   "gpu_usd": 3600.0,
+   "infra_variable_usd": 232.013225,
+   "fixed_infra_usd": 350.0,
+   "people_usd": 18750.0,
+   "total_usd": 22932.013225000002,
+   "usd_per_min_variable": 0.004257792472222222,
+   "usd_per_min_all_in": 0.02548001469444445,
+   "fleet": {
+    "mode": "autoscaled hourly",
+    "peak_gpus": 2,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1440,
+    "realised_utilisation": 0.13528138528138528
    }
   },
   {
@@ -2483,19 +2487,19 @@
    "dau": 10000,
    "minutes": 9000000,
    "api_usd": 0.0,
-   "gpu_usd": 13725.0,
-   "infra_variable_usd": 470.13225,
+   "gpu_usd": 8550.0,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 26250.0,
-   "total_usd": 41945.13225,
-   "usd_per_min_variable": 0.0015772369166666667,
-   "usd_per_min_all_in": 0.00466057025,
+   "total_usd": 38620.13225,
+   "usd_per_min_variable": 0.0012077924722222223,
+   "usd_per_min_all_in": 0.004291125805555556,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 25,
+    "peak_gpus": 15,
     "min_gpus": 2,
-    "gpu_hours_per_month": 5490,
-    "realised_utilisation": 0.5899155489319423
+    "gpu_hours_per_month": 3420,
+    "realised_utilisation": 0.5696058327637276
    }
   },
   {
@@ -2503,19 +2507,19 @@
    "dau": 100000,
    "minutes": 90000000,
    "api_usd": 0.0,
-   "gpu_usd": 122325.0,
-   "infra_variable_usd": 4701.3225,
+   "gpu_usd": 73800.0,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 52500.0,
-   "total_usd": 187526.3225,
-   "usd_per_min_variable": 0.0014114035833333333,
-   "usd_per_min_all_in": 0.002083625805555556,
+   "total_usd": 157501.3225,
+   "usd_per_min_variable": 0.0010777924722222222,
+   "usd_per_min_all_in": 0.0017500146944444445,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 246,
+    "peak_gpus": 148,
     "min_gpus": 2,
-    "gpu_hours_per_month": 48930,
-    "realised_utilisation": 0.6618917563123572
+    "gpu_hours_per_month": 29520,
+    "realised_utilisation": 0.6599091964945623
    }
   },
   {
@@ -2524,18 +2528,18 @@
    "minutes": 180000,
    "api_usd": 0.0,
    "gpu_usd": 3600.0,
-   "infra_variable_usd": 9.402645,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 15000.0,
-   "total_usd": 18759.402645000002,
-   "usd_per_min_variable": 0.020052236916666667,
-   "usd_per_min_all_in": 0.10421890358333334,
+   "total_usd": 18796.402645000002,
+   "usd_per_min_variable": 0.020257792472222223,
+   "usd_per_min_all_in": 0.1044244591388889,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 2,
     "min_gpus": 2,
     "gpu_hours_per_month": 1440,
-    "realised_utilisation": 0.024068813131313135
+    "realised_utilisation": 0.01893939393939394
    }
   },
   {
@@ -2544,18 +2548,18 @@
    "minutes": 900000,
    "api_usd": 0.0,
    "gpu_usd": 3600.0,
-   "infra_variable_usd": 47.013225,
+   "infra_variable_usd": 232.013225,
    "fixed_infra_usd": 350.0,
    "people_usd": 18750.0,
-   "total_usd": 22747.013225,
-   "usd_per_min_variable": 0.004052236916666667,
-   "usd_per_min_all_in": 0.02527445913888889,
+   "total_usd": 22932.013225000002,
+   "usd_per_min_variable": 0.004257792472222222,
+   "usd_per_min_all_in": 0.02548001469444445,
    "fleet": {
     "mode": "autoscaled hourly",
     "peak_gpus": 2,
     "min_gpus": 2,
     "gpu_hours_per_month": 1440,
-    "realised_utilisation": 0.12034406565656565
+    "realised_utilisation": 0.09469696969696971
    }
   },
   {
@@ -2563,159 +2567,159 @@
    "dau": 10000,
    "minutes": 9000000,
    "api_usd": 0.0,
-   "gpu_usd": 8250.0,
-   "infra_variable_usd": 470.13225,
+   "gpu_usd": 6750.0,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 26250.0,
-   "total_usd": 36470.13225,
-   "usd_per_min_variable": 0.0009689035833333334,
-   "usd_per_min_all_in": 0.004052236916666667,
+   "total_usd": 36820.13225,
+   "usd_per_min_variable": 0.0010077924722222222,
+   "usd_per_min_all_in": 0.0040911258055555556,
    "fleet": {
     "mode": "autoscaled hourly",
-    "peak_gpus": 14,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 3300,
-    "realised_utilisation": 0.525137741046832
-   }
-  },
-  {
-   "arch": "B:h100_hyperstack:high",
-   "dau": 100000,
-   "minutes": 90000000,
-   "api_usd": 0.0,
-   "gpu_usd": 66075.0,
-   "infra_variable_usd": 4701.3225,
-   "fixed_infra_usd": 8000.0,
-   "people_usd": 52500.0,
-   "total_usd": 131276.3225,
-   "usd_per_min_variable": 0.0007864035833333333,
-   "usd_per_min_all_in": 0.0014586258055555557,
-   "fleet": {
-    "mode": "autoscaled hourly",
-    "peak_gpus": 132,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 26430,
-    "realised_utilisation": 0.6556770887077357
-   }
-  },
-  {
-   "arch": "B:hetzner_gex63:low",
-   "dau": 200,
-   "minutes": 180000,
-   "api_usd": 0.0,
-   "gpu_usd": 3391.2000000000003,
-   "infra_variable_usd": 9.402645,
-   "fixed_infra_usd": 150.0,
-   "people_usd": 15000.0,
-   "total_usd": 18550.602645,
-   "usd_per_min_variable": 0.01889223691666667,
-   "usd_per_min_all_in": 0.10305890358333333,
-   "fleet": {
-    "mode": "fixed fleet sized for peak",
-    "peak_gpus": 3,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 2160,
-    "realised_utilisation": 0.13194444444444445
-   }
-  },
-  {
-   "arch": "B:hetzner_gex63:low",
-   "dau": 1000,
-   "minutes": 900000,
-   "api_usd": 0.0,
-   "gpu_usd": 12434.4,
-   "infra_variable_usd": 47.013225,
-   "fixed_infra_usd": 350.0,
-   "people_usd": 18750.0,
-   "total_usd": 31581.413225,
-   "usd_per_min_variable": 0.013868236916666667,
-   "usd_per_min_all_in": 0.03509045913888889,
-   "fleet": {
-    "mode": "fixed fleet sized for peak",
     "peak_gpus": 11,
     "min_gpus": 2,
-    "gpu_hours_per_month": 7920,
-    "realised_utilisation": 0.17992424242424243
+    "gpu_hours_per_month": 2700,
+    "realised_utilisation": 0.5050505050505051
    }
   },
   {
-   "arch": "B:hetzner_gex63:low",
-   "dau": 10000,
-   "minutes": 9000000,
-   "api_usd": 0.0,
-   "gpu_usd": 122083.20000000001,
-   "infra_variable_usd": 470.13225,
-   "fixed_infra_usd": 1500.0,
-   "people_usd": 26250.0,
-   "total_usd": 150303.33225,
-   "usd_per_min_variable": 0.013617036916666667,
-   "usd_per_min_all_in": 0.016700370250000002,
-   "fleet": {
-    "mode": "fixed fleet sized for peak",
-    "peak_gpus": 108,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 77760,
-    "realised_utilisation": 0.18325617283950618
-   }
-  },
-  {
-   "arch": "B:hetzner_gex63:low",
+   "arch": "B:h100_hyperstack:high",
    "dau": 100000,
    "minutes": 90000000,
    "api_usd": 0.0,
-   "gpu_usd": 1220832.0,
-   "infra_variable_usd": 4701.3225,
+   "gpu_usd": 52275.0,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 52500.0,
-   "total_usd": 1286033.3225,
-   "usd_per_min_variable": 0.013617036916666667,
-   "usd_per_min_all_in": 0.014289259138888889,
+   "total_usd": 135976.3225,
+   "usd_per_min_variable": 0.0008386258055555555,
+   "usd_per_min_all_in": 0.0015108480277777779,
    "fleet": {
-    "mode": "fixed fleet sized for peak",
-    "peak_gpus": 1080,
-    "min_gpus": 8,
-    "gpu_hours_per_month": 777600,
-    "realised_utilisation": 0.18325617283950618
+    "mode": "autoscaled hourly",
+    "peak_gpus": 104,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 20910,
+    "realised_utilisation": 0.6521455588887439
    }
   },
   {
-   "arch": "B:hetzner_gex63:base",
+   "arch": "B:hetzner_gex63:low",
    "dau": 200,
    "minutes": 180000,
    "api_usd": 0.0,
    "gpu_usd": 2260.8,
-   "infra_variable_usd": 9.402645,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 15000.0,
-   "total_usd": 17420.202645,
-   "usd_per_min_variable": 0.012612236916666669,
-   "usd_per_min_all_in": 0.09677890358333334,
+   "total_usd": 17457.202645,
+   "usd_per_min_variable": 0.012817792472222225,
+   "usd_per_min_all_in": 0.0969844591388889,
    "fleet": {
     "mode": "fixed fleet sized for peak",
     "peak_gpus": 2,
     "min_gpus": 2,
     "gpu_hours_per_month": 1440,
-    "realised_utilisation": 0.09895833333333333
+    "realised_utilisation": 0.10416666666666669
    }
   },
   {
-   "arch": "B:hetzner_gex63:base",
+   "arch": "B:hetzner_gex63:low",
    "dau": 1000,
    "minutes": 900000,
    "api_usd": 0.0,
    "gpu_usd": 6782.400000000001,
-   "infra_variable_usd": 47.013225,
+   "infra_variable_usd": 232.013225,
    "fixed_infra_usd": 350.0,
    "people_usd": 18750.0,
-   "total_usd": 25929.413225,
-   "usd_per_min_variable": 0.007588236916666667,
-   "usd_per_min_all_in": 0.02881045913888889,
+   "total_usd": 26114.413225,
+   "usd_per_min_variable": 0.007793792472222222,
+   "usd_per_min_all_in": 0.029016014694444446,
    "fleet": {
     "mode": "fixed fleet sized for peak",
     "peak_gpus": 6,
     "min_gpus": 2,
     "gpu_hours_per_month": 4320,
-    "realised_utilisation": 0.16493055555555555
+    "realised_utilisation": 0.17361111111111113
+   }
+  },
+  {
+   "arch": "B:hetzner_gex63:low",
+   "dau": 10000,
+   "minutes": 9000000,
+   "api_usd": 0.0,
+   "gpu_usd": 64432.8,
+   "infra_variable_usd": 2320.13225,
+   "fixed_infra_usd": 1500.0,
+   "people_usd": 26250.0,
+   "total_usd": 94502.93225,
+   "usd_per_min_variable": 0.007416992472222222,
+   "usd_per_min_all_in": 0.010500325805555556,
+   "fleet": {
+    "mode": "fixed fleet sized for peak",
+    "peak_gpus": 57,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 41040,
+    "realised_utilisation": 0.18274853801169594
+   }
+  },
+  {
+   "arch": "B:hetzner_gex63:low",
+   "dau": 100000,
+   "minutes": 90000000,
+   "api_usd": 0.0,
+   "gpu_usd": 643197.6,
+   "infra_variable_usd": 23201.3225,
+   "fixed_infra_usd": 8000.0,
+   "people_usd": 52500.0,
+   "total_usd": 726898.9225,
+   "usd_per_min_variable": 0.007404432472222222,
+   "usd_per_min_all_in": 0.008076654694444444,
+   "fleet": {
+    "mode": "fixed fleet sized for peak",
+    "peak_gpus": 569,
+    "min_gpus": 4,
+    "gpu_hours_per_month": 409680,
+    "realised_utilisation": 0.1830697129466901
+   }
+  },
+  {
+   "arch": "B:hetzner_gex63:base",
+   "dau": 200,
+   "minutes": 180000,
+   "api_usd": 0.0,
+   "gpu_usd": 2260.8,
+   "infra_variable_usd": 46.402645,
+   "fixed_infra_usd": 150.0,
+   "people_usd": 15000.0,
+   "total_usd": 17457.202645,
+   "usd_per_min_variable": 0.012817792472222225,
+   "usd_per_min_all_in": 0.0969844591388889,
+   "fleet": {
+    "mode": "fixed fleet sized for peak",
+    "peak_gpus": 2,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1440,
+    "realised_utilisation": 0.05952380952380953
+   }
+  },
+  {
+   "arch": "B:hetzner_gex63:base",
+   "dau": 1000,
+   "minutes": 900000,
+   "api_usd": 0.0,
+   "gpu_usd": 4521.6,
+   "infra_variable_usd": 232.013225,
+   "fixed_infra_usd": 350.0,
+   "people_usd": 18750.0,
+   "total_usd": 23853.613225,
+   "usd_per_min_variable": 0.005281792472222223,
+   "usd_per_min_all_in": 0.026504014694444446,
+   "fleet": {
+    "mode": "fixed fleet sized for peak",
+    "peak_gpus": 4,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 2880,
+    "realised_utilisation": 0.1488095238095238
    }
   },
   {
@@ -2723,19 +2727,19 @@
    "dau": 10000,
    "minutes": 9000000,
    "api_usd": 0.0,
-   "gpu_usd": 61041.600000000006,
-   "infra_variable_usd": 470.13225,
+   "gpu_usd": 37303.200000000004,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 26250.0,
-   "total_usd": 89261.73225,
-   "usd_per_min_variable": 0.006834636916666668,
-   "usd_per_min_all_in": 0.00991797025,
+   "total_usd": 67373.33225,
+   "usd_per_min_variable": 0.004402592472222223,
+   "usd_per_min_all_in": 0.007485925805555556,
    "fleet": {
     "mode": "fixed fleet sized for peak",
-    "peak_gpus": 54,
+    "peak_gpus": 33,
     "min_gpus": 2,
-    "gpu_hours_per_month": 38880,
-    "realised_utilisation": 0.18325617283950618
+    "gpu_hours_per_month": 23760,
+    "realised_utilisation": 0.18037518037518038
    }
   },
   {
@@ -2743,19 +2747,19 @@
    "dau": 100000,
    "minutes": 90000000,
    "api_usd": 0.0,
-   "gpu_usd": 610416.0,
-   "infra_variable_usd": 4701.3225,
+   "gpu_usd": 367380.0,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 52500.0,
-   "total_usd": 675617.3225,
-   "usd_per_min_variable": 0.006834636916666667,
-   "usd_per_min_all_in": 0.007506859138888889,
+   "total_usd": 451081.3225,
+   "usd_per_min_variable": 0.0043397924722222226,
+   "usd_per_min_all_in": 0.005012014694444444,
    "fleet": {
     "mode": "fixed fleet sized for peak",
-    "peak_gpus": 540,
-    "min_gpus": 4,
-    "gpu_hours_per_month": 388800,
-    "realised_utilisation": 0.18325617283950618
+    "peak_gpus": 325,
+    "min_gpus": 3,
+    "gpu_hours_per_month": 234000,
+    "realised_utilisation": 0.18315018315018317
    }
   },
   {
@@ -2764,18 +2768,18 @@
    "minutes": 180000,
    "api_usd": 0.0,
    "gpu_usd": 2260.8,
-   "infra_variable_usd": 9.402645,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 15000.0,
-   "total_usd": 17420.202645,
-   "usd_per_min_variable": 0.012612236916666669,
-   "usd_per_min_all_in": 0.09677890358333334,
+   "total_usd": 17457.202645,
+   "usd_per_min_variable": 0.012817792472222225,
+   "usd_per_min_all_in": 0.0969844591388889,
    "fleet": {
     "mode": "fixed fleet sized for peak",
     "peak_gpus": 2,
     "min_gpus": 2,
     "gpu_hours_per_month": 1440,
-    "realised_utilisation": 0.052951388888888895
+    "realised_utilisation": 0.041666666666666664
    }
   },
   {
@@ -2784,18 +2788,18 @@
    "minutes": 900000,
    "api_usd": 0.0,
    "gpu_usd": 3391.2000000000003,
-   "infra_variable_usd": 47.013225,
+   "infra_variable_usd": 232.013225,
    "fixed_infra_usd": 350.0,
    "people_usd": 18750.0,
-   "total_usd": 22538.213225,
-   "usd_per_min_variable": 0.0038202369166666673,
-   "usd_per_min_all_in": 0.02504245913888889,
+   "total_usd": 22723.213225,
+   "usd_per_min_variable": 0.0040257924722222225,
+   "usd_per_min_all_in": 0.025248014694444446,
    "fleet": {
     "mode": "fixed fleet sized for peak",
     "peak_gpus": 3,
     "min_gpus": 2,
     "gpu_hours_per_month": 2160,
-    "realised_utilisation": 0.17650462962962965
+    "realised_utilisation": 0.1388888888888889
    }
   },
   {
@@ -2803,19 +2807,19 @@
    "dau": 10000,
    "minutes": 9000000,
    "api_usd": 0.0,
-   "gpu_usd": 32781.6,
-   "infra_variable_usd": 470.13225,
+   "gpu_usd": 25999.2,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 26250.0,
-   "total_usd": 61001.73225,
-   "usd_per_min_variable": 0.003694636916666667,
-   "usd_per_min_all_in": 0.00677797025,
+   "total_usd": 56069.33225,
+   "usd_per_min_variable": 0.003146592472222222,
+   "usd_per_min_all_in": 0.006229925805555555,
    "fleet": {
     "mode": "fixed fleet sized for peak",
-    "peak_gpus": 29,
+    "peak_gpus": 23,
     "min_gpus": 2,
-    "gpu_hours_per_month": 20880,
-    "realised_utilisation": 0.18259099616858238
+    "gpu_hours_per_month": 16560,
+    "realised_utilisation": 0.1811594202898551
    }
   },
   {
@@ -2823,139 +2827,139 @@
    "dau": 100000,
    "minutes": 90000000,
    "api_usd": 0.0,
-   "gpu_usd": 326685.60000000003,
-   "infra_variable_usd": 4701.3225,
+   "gpu_usd": 257731.2,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 52500.0,
-   "total_usd": 391886.92250000004,
-   "usd_per_min_variable": 0.0036820769166666673,
-   "usd_per_min_all_in": 0.004354299138888889,
+   "total_usd": 341432.5225,
+   "usd_per_min_variable": 0.0031214724722222224,
+   "usd_per_min_all_in": 0.003793694694444445,
    "fleet": {
     "mode": "fixed fleet sized for peak",
-    "peak_gpus": 289,
+    "peak_gpus": 228,
     "min_gpus": 2,
-    "gpu_hours_per_month": 208080,
-    "realised_utilisation": 0.18322279892349094
+    "gpu_hours_per_month": 164160,
+    "realised_utilisation": 0.1827485380116959
    }
   },
   {
    "arch": "B:owned_l40s:low",
-   "dau": 200,
-   "minutes": 180000,
-   "api_usd": 0.0,
-   "gpu_usd": 1490.3999999999999,
-   "infra_variable_usd": 9.402645,
-   "fixed_infra_usd": 150.0,
-   "people_usd": 15000.0,
-   "total_usd": 16649.802645,
-   "usd_per_min_variable": 0.008332236916666666,
-   "usd_per_min_all_in": 0.09249890358333333,
-   "fleet": {
-    "mode": "fixed fleet sized for peak",
-    "peak_gpus": 3,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 2160,
-    "realised_utilisation": 0.13194444444444445
-   }
-  },
-  {
-   "arch": "B:owned_l40s:low",
-   "dau": 1000,
-   "minutes": 900000,
-   "api_usd": 0.0,
-   "gpu_usd": 5464.799999999999,
-   "infra_variable_usd": 47.013225,
-   "fixed_infra_usd": 350.0,
-   "people_usd": 18750.0,
-   "total_usd": 24611.813224999998,
-   "usd_per_min_variable": 0.006124236916666665,
-   "usd_per_min_all_in": 0.027346459138888887,
-   "fleet": {
-    "mode": "fixed fleet sized for peak",
-    "peak_gpus": 11,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 7920,
-    "realised_utilisation": 0.17992424242424243
-   }
-  },
-  {
-   "arch": "B:owned_l40s:low",
-   "dau": 10000,
-   "minutes": 9000000,
-   "api_usd": 0.0,
-   "gpu_usd": 53654.399999999994,
-   "infra_variable_usd": 470.13225,
-   "fixed_infra_usd": 1500.0,
-   "people_usd": 26250.0,
-   "total_usd": 81874.53224999999,
-   "usd_per_min_variable": 0.006013836916666666,
-   "usd_per_min_all_in": 0.009097170249999998,
-   "fleet": {
-    "mode": "fixed fleet sized for peak",
-    "peak_gpus": 108,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 77760,
-    "realised_utilisation": 0.18325617283950618
-   }
-  },
-  {
-   "arch": "B:owned_l40s:low",
-   "dau": 100000,
-   "minutes": 90000000,
-   "api_usd": 0.0,
-   "gpu_usd": 536544.0,
-   "infra_variable_usd": 4701.3225,
-   "fixed_infra_usd": 8000.0,
-   "people_usd": 52500.0,
-   "total_usd": 601745.3225,
-   "usd_per_min_variable": 0.006013836916666667,
-   "usd_per_min_all_in": 0.006686059138888889,
-   "fleet": {
-    "mode": "fixed fleet sized for peak",
-    "peak_gpus": 1080,
-    "min_gpus": 8,
-    "gpu_hours_per_month": 777600,
-    "realised_utilisation": 0.18325617283950618
-   }
-  },
-  {
-   "arch": "B:owned_l40s:base",
    "dau": 200,
    "minutes": 180000,
    "api_usd": 0.0,
    "gpu_usd": 993.5999999999999,
-   "infra_variable_usd": 9.402645,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 15000.0,
-   "total_usd": 16153.002645,
-   "usd_per_min_variable": 0.0055722369166666666,
-   "usd_per_min_all_in": 0.08973890358333333,
+   "total_usd": 16190.002645,
+   "usd_per_min_variable": 0.005777792472222221,
+   "usd_per_min_all_in": 0.08994445913888889,
    "fleet": {
     "mode": "fixed fleet sized for peak",
     "peak_gpus": 2,
     "min_gpus": 2,
     "gpu_hours_per_month": 1440,
-    "realised_utilisation": 0.09895833333333333
+    "realised_utilisation": 0.10416666666666669
    }
   },
   {
-   "arch": "B:owned_l40s:base",
+   "arch": "B:owned_l40s:low",
    "dau": 1000,
    "minutes": 900000,
    "api_usd": 0.0,
    "gpu_usd": 2980.7999999999997,
-   "infra_variable_usd": 47.013225,
+   "infra_variable_usd": 232.013225,
    "fixed_infra_usd": 350.0,
    "people_usd": 18750.0,
-   "total_usd": 22127.813224999998,
-   "usd_per_min_variable": 0.0033642369166666667,
-   "usd_per_min_all_in": 0.024586459138888888,
+   "total_usd": 22312.813224999998,
+   "usd_per_min_variable": 0.0035697924722222223,
+   "usd_per_min_all_in": 0.02479201469444444,
    "fleet": {
     "mode": "fixed fleet sized for peak",
     "peak_gpus": 6,
     "min_gpus": 2,
     "gpu_hours_per_month": 4320,
-    "realised_utilisation": 0.16493055555555555
+    "realised_utilisation": 0.17361111111111113
+   }
+  },
+  {
+   "arch": "B:owned_l40s:low",
+   "dau": 10000,
+   "minutes": 9000000,
+   "api_usd": 0.0,
+   "gpu_usd": 28317.6,
+   "infra_variable_usd": 2320.13225,
+   "fixed_infra_usd": 1500.0,
+   "people_usd": 26250.0,
+   "total_usd": 58387.73225,
+   "usd_per_min_variable": 0.0034041924722222217,
+   "usd_per_min_all_in": 0.0064875258055555555,
+   "fleet": {
+    "mode": "fixed fleet sized for peak",
+    "peak_gpus": 57,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 41040,
+    "realised_utilisation": 0.18274853801169594
+   }
+  },
+  {
+   "arch": "B:owned_l40s:low",
+   "dau": 100000,
+   "minutes": 90000000,
+   "api_usd": 0.0,
+   "gpu_usd": 282679.19999999995,
+   "infra_variable_usd": 23201.3225,
+   "fixed_infra_usd": 8000.0,
+   "people_usd": 52500.0,
+   "total_usd": 366380.52249999996,
+   "usd_per_min_variable": 0.003398672472222222,
+   "usd_per_min_all_in": 0.004070894694444444,
+   "fleet": {
+    "mode": "fixed fleet sized for peak",
+    "peak_gpus": 569,
+    "min_gpus": 4,
+    "gpu_hours_per_month": 409680,
+    "realised_utilisation": 0.1830697129466901
+   }
+  },
+  {
+   "arch": "B:owned_l40s:base",
+   "dau": 200,
+   "minutes": 180000,
+   "api_usd": 0.0,
+   "gpu_usd": 993.5999999999999,
+   "infra_variable_usd": 46.402645,
+   "fixed_infra_usd": 150.0,
+   "people_usd": 15000.0,
+   "total_usd": 16190.002645,
+   "usd_per_min_variable": 0.005777792472222221,
+   "usd_per_min_all_in": 0.08994445913888889,
+   "fleet": {
+    "mode": "fixed fleet sized for peak",
+    "peak_gpus": 2,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1440,
+    "realised_utilisation": 0.05952380952380953
+   }
+  },
+  {
+   "arch": "B:owned_l40s:base",
+   "dau": 1000,
+   "minutes": 900000,
+   "api_usd": 0.0,
+   "gpu_usd": 1987.1999999999998,
+   "infra_variable_usd": 232.013225,
+   "fixed_infra_usd": 350.0,
+   "people_usd": 18750.0,
+   "total_usd": 21319.213225,
+   "usd_per_min_variable": 0.0024657924722222223,
+   "usd_per_min_all_in": 0.023688014694444443,
+   "fleet": {
+    "mode": "fixed fleet sized for peak",
+    "peak_gpus": 4,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 2880,
+    "realised_utilisation": 0.1488095238095238
    }
   },
   {
@@ -2963,19 +2967,19 @@
    "dau": 10000,
    "minutes": 9000000,
    "api_usd": 0.0,
-   "gpu_usd": 26827.199999999997,
-   "infra_variable_usd": 470.13225,
+   "gpu_usd": 16394.399999999998,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 26250.0,
-   "total_usd": 55047.33224999999,
-   "usd_per_min_variable": 0.003033036916666666,
-   "usd_per_min_all_in": 0.006116370249999999,
+   "total_usd": 46464.53225,
+   "usd_per_min_variable": 0.002079392472222222,
+   "usd_per_min_all_in": 0.005162725805555555,
    "fleet": {
     "mode": "fixed fleet sized for peak",
-    "peak_gpus": 54,
+    "peak_gpus": 33,
     "min_gpus": 2,
-    "gpu_hours_per_month": 38880,
-    "realised_utilisation": 0.18325617283950618
+    "gpu_hours_per_month": 23760,
+    "realised_utilisation": 0.18037518037518038
    }
   },
   {
@@ -2983,19 +2987,19 @@
    "dau": 100000,
    "minutes": 90000000,
    "api_usd": 0.0,
-   "gpu_usd": 268272.0,
-   "infra_variable_usd": 4701.3225,
+   "gpu_usd": 161460.0,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 52500.0,
-   "total_usd": 333473.3225,
-   "usd_per_min_variable": 0.003033036916666667,
-   "usd_per_min_all_in": 0.003705259138888889,
+   "total_usd": 245161.3225,
+   "usd_per_min_variable": 0.0020517924722222225,
+   "usd_per_min_all_in": 0.0027240146944444445,
    "fleet": {
     "mode": "fixed fleet sized for peak",
-    "peak_gpus": 540,
-    "min_gpus": 4,
-    "gpu_hours_per_month": 388800,
-    "realised_utilisation": 0.18325617283950618
+    "peak_gpus": 325,
+    "min_gpus": 3,
+    "gpu_hours_per_month": 234000,
+    "realised_utilisation": 0.18315018315018317
    }
   },
   {
@@ -3004,18 +3008,18 @@
    "minutes": 180000,
    "api_usd": 0.0,
    "gpu_usd": 993.5999999999999,
-   "infra_variable_usd": 9.402645,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 15000.0,
-   "total_usd": 16153.002645,
-   "usd_per_min_variable": 0.0055722369166666666,
-   "usd_per_min_all_in": 0.08973890358333333,
+   "total_usd": 16190.002645,
+   "usd_per_min_variable": 0.005777792472222221,
+   "usd_per_min_all_in": 0.08994445913888889,
    "fleet": {
     "mode": "fixed fleet sized for peak",
     "peak_gpus": 2,
     "min_gpus": 2,
     "gpu_hours_per_month": 1440,
-    "realised_utilisation": 0.052951388888888895
+    "realised_utilisation": 0.041666666666666664
    }
   },
   {
@@ -3024,18 +3028,18 @@
    "minutes": 900000,
    "api_usd": 0.0,
    "gpu_usd": 1490.3999999999999,
-   "infra_variable_usd": 47.013225,
+   "infra_variable_usd": 232.013225,
    "fixed_infra_usd": 350.0,
    "people_usd": 18750.0,
-   "total_usd": 20637.413225,
-   "usd_per_min_variable": 0.0017082369166666665,
-   "usd_per_min_all_in": 0.02293045913888889,
+   "total_usd": 20822.413225,
+   "usd_per_min_variable": 0.001913792472222222,
+   "usd_per_min_all_in": 0.023136014694444446,
    "fleet": {
     "mode": "fixed fleet sized for peak",
     "peak_gpus": 3,
     "min_gpus": 2,
     "gpu_hours_per_month": 2160,
-    "realised_utilisation": 0.17650462962962965
+    "realised_utilisation": 0.1388888888888889
    }
   },
   {
@@ -3043,19 +3047,19 @@
    "dau": 10000,
    "minutes": 9000000,
    "api_usd": 0.0,
-   "gpu_usd": 14407.199999999999,
-   "infra_variable_usd": 470.13225,
+   "gpu_usd": 11426.4,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 26250.0,
-   "total_usd": 42627.33225,
-   "usd_per_min_variable": 0.0016530369166666667,
-   "usd_per_min_all_in": 0.00473637025,
+   "total_usd": 41496.532250000004,
+   "usd_per_min_variable": 0.0015273924722222223,
+   "usd_per_min_all_in": 0.004610725805555556,
    "fleet": {
     "mode": "fixed fleet sized for peak",
-    "peak_gpus": 29,
+    "peak_gpus": 23,
     "min_gpus": 2,
-    "gpu_hours_per_month": 20880,
-    "realised_utilisation": 0.18259099616858238
+    "gpu_hours_per_month": 16560,
+    "realised_utilisation": 0.1811594202898551
    }
   },
   {
@@ -3063,119 +3067,119 @@
    "dau": 100000,
    "minutes": 90000000,
    "api_usd": 0.0,
-   "gpu_usd": 143575.19999999998,
-   "infra_variable_usd": 4701.3225,
+   "gpu_usd": 113270.4,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 52500.0,
-   "total_usd": 208776.5225,
-   "usd_per_min_variable": 0.0016475169166666665,
-   "usd_per_min_all_in": 0.0023197391388888886,
+   "total_usd": 196971.7225,
+   "usd_per_min_variable": 0.0015163524722222222,
+   "usd_per_min_all_in": 0.0021885746944444446,
    "fleet": {
     "mode": "fixed fleet sized for peak",
-    "peak_gpus": 289,
+    "peak_gpus": 228,
     "min_gpus": 2,
-    "gpu_hours_per_month": 208080,
-    "realised_utilisation": 0.18322279892349094
+    "gpu_hours_per_month": 164160,
+    "realised_utilisation": 0.1827485380116959
    }
   },
   {
    "arch": "B:owned_l4:low",
-   "dau": 200,
-   "minutes": 180000,
-   "api_usd": 0.0,
-   "gpu_usd": 1044.0,
-   "infra_variable_usd": 9.402645,
-   "fixed_infra_usd": 150.0,
-   "people_usd": 15000.0,
-   "total_usd": 16203.402645,
-   "usd_per_min_variable": 0.005852236916666666,
-   "usd_per_min_all_in": 0.09001890358333334,
-   "fleet": {
-    "mode": "fixed fleet sized for peak",
-    "peak_gpus": 5,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 3600,
-    "realised_utilisation": 0.17592592592592596
-   }
-  },
-  {
-   "arch": "B:owned_l4:low",
-   "dau": 1000,
-   "minutes": 900000,
-   "api_usd": 0.0,
-   "gpu_usd": 5011.2,
-   "infra_variable_usd": 47.013225,
-   "fixed_infra_usd": 350.0,
-   "people_usd": 18750.0,
-   "total_usd": 24158.213225,
-   "usd_per_min_variable": 0.005620236916666666,
-   "usd_per_min_all_in": 0.02684245913888889,
-   "fleet": {
-    "mode": "fixed fleet sized for peak",
-    "peak_gpus": 24,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 17280,
-    "realised_utilisation": 0.18325617283950618
-   }
-  },
-  {
-   "arch": "B:owned_l4:low",
-   "dau": 10000,
-   "minutes": 9000000,
-   "api_usd": 0.0,
-   "gpu_usd": 50112.0,
-   "infra_variable_usd": 470.13225,
-   "fixed_infra_usd": 1500.0,
-   "people_usd": 26250.0,
-   "total_usd": 78332.13225,
-   "usd_per_min_variable": 0.005620236916666667,
-   "usd_per_min_all_in": 0.008703570249999999,
-   "fleet": {
-    "mode": "fixed fleet sized for peak",
-    "peak_gpus": 240,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 172800,
-    "realised_utilisation": 0.18325617283950618
-   }
-  },
-  {
-   "arch": "B:owned_l4:low",
-   "dau": 100000,
-   "minutes": 90000000,
-   "api_usd": 0.0,
-   "gpu_usd": 500911.19999999995,
-   "infra_variable_usd": 4701.3225,
-   "fixed_infra_usd": 8000.0,
-   "people_usd": 52500.0,
-   "total_usd": 566112.5225,
-   "usd_per_min_variable": 0.005617916916666666,
-   "usd_per_min_all_in": 0.006290139138888888,
-   "fleet": {
-    "mode": "fixed fleet sized for peak",
-    "peak_gpus": 2399,
-    "min_gpus": 16,
-    "gpu_hours_per_month": 1727280,
-    "realised_utilisation": 0.18333256140675902
-   }
-  },
-  {
-   "arch": "B:owned_l4:base",
    "dau": 200,
    "minutes": 180000,
    "api_usd": 0.0,
    "gpu_usd": 626.4,
-   "infra_variable_usd": 9.402645,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 15000.0,
-   "total_usd": 15785.802645,
-   "usd_per_min_variable": 0.0035322369166666664,
-   "usd_per_min_all_in": 0.08769890358333333,
+   "total_usd": 15822.802645,
+   "usd_per_min_variable": 0.003737792472222222,
+   "usd_per_min_all_in": 0.08790445913888889,
    "fleet": {
     "mode": "fixed fleet sized for peak",
     "peak_gpus": 3,
     "min_gpus": 2,
     "gpu_hours_per_month": 2160,
-    "realised_utilisation": 0.14660493827160495
+    "realised_utilisation": 0.154320987654321
+   }
+  },
+  {
+   "arch": "B:owned_l4:low",
+   "dau": 1000,
+   "minutes": 900000,
+   "api_usd": 0.0,
+   "gpu_usd": 2714.3999999999996,
+   "infra_variable_usd": 232.013225,
+   "fixed_infra_usd": 350.0,
+   "people_usd": 18750.0,
+   "total_usd": 22046.413225,
+   "usd_per_min_variable": 0.003273792472222222,
+   "usd_per_min_all_in": 0.024496014694444446,
+   "fleet": {
+    "mode": "fixed fleet sized for peak",
+    "peak_gpus": 13,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 9360,
+    "realised_utilisation": 0.1780626780626781
+   }
+  },
+  {
+   "arch": "B:owned_l4:low",
+   "dau": 10000,
+   "minutes": 9000000,
+   "api_usd": 0.0,
+   "gpu_usd": 26517.6,
+   "infra_variable_usd": 2320.13225,
+   "fixed_infra_usd": 1500.0,
+   "people_usd": 26250.0,
+   "total_usd": 56587.73225,
+   "usd_per_min_variable": 0.003204192472222222,
+   "usd_per_min_all_in": 0.006287525805555556,
+   "fleet": {
+    "mode": "fixed fleet sized for peak",
+    "peak_gpus": 127,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 91440,
+    "realised_utilisation": 0.18226888305628466
+   }
+  },
+  {
+   "arch": "B:owned_l4:low",
+   "dau": 100000,
+   "minutes": 90000000,
+   "api_usd": 0.0,
+   "gpu_usd": 263714.39999999997,
+   "infra_variable_usd": 23201.3225,
+   "fixed_infra_usd": 8000.0,
+   "people_usd": 52500.0,
+   "total_usd": 347415.7225,
+   "usd_per_min_variable": 0.003187952472222222,
+   "usd_per_min_all_in": 0.0038601746944444443,
+   "fleet": {
+    "mode": "fixed fleet sized for peak",
+    "peak_gpus": 1263,
+    "min_gpus": 9,
+    "gpu_hours_per_month": 909360,
+    "realised_utilisation": 0.18327908272484678
+   }
+  },
+  {
+   "arch": "B:owned_l4:base",
+   "dau": 200,
+   "minutes": 180000,
+   "api_usd": 0.0,
+   "gpu_usd": 417.59999999999997,
+   "infra_variable_usd": 46.402645,
+   "fixed_infra_usd": 150.0,
+   "people_usd": 15000.0,
+   "total_usd": 15614.002645,
+   "usd_per_min_variable": 0.002577792472222222,
+   "usd_per_min_all_in": 0.0867444591388889,
+   "fleet": {
+    "mode": "fixed fleet sized for peak",
+    "peak_gpus": 2,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1440,
+    "realised_utilisation": 0.13227513227513227
    }
   },
   {
@@ -3183,19 +3187,19 @@
    "dau": 1000,
    "minutes": 900000,
    "api_usd": 0.0,
-   "gpu_usd": 2505.6,
-   "infra_variable_usd": 47.013225,
+   "gpu_usd": 1670.3999999999999,
+   "infra_variable_usd": 232.013225,
    "fixed_infra_usd": 350.0,
    "people_usd": 18750.0,
-   "total_usd": 21652.613225,
-   "usd_per_min_variable": 0.002836236916666667,
-   "usd_per_min_all_in": 0.02405845913888889,
+   "total_usd": 21002.413225,
+   "usd_per_min_variable": 0.002113792472222222,
+   "usd_per_min_all_in": 0.023336014694444445,
    "fleet": {
     "mode": "fixed fleet sized for peak",
-    "peak_gpus": 12,
+    "peak_gpus": 8,
     "min_gpus": 2,
-    "gpu_hours_per_month": 8640,
-    "realised_utilisation": 0.18325617283950618
+    "gpu_hours_per_month": 5760,
+    "realised_utilisation": 0.16534391534391535
    }
   },
   {
@@ -3203,19 +3207,19 @@
    "dau": 10000,
    "minutes": 9000000,
    "api_usd": 0.0,
-   "gpu_usd": 25056.0,
-   "infra_variable_usd": 470.13225,
+   "gpu_usd": 15242.4,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 26250.0,
-   "total_usd": 53276.132249999995,
-   "usd_per_min_variable": 0.0028362369166666664,
-   "usd_per_min_all_in": 0.00591957025,
+   "total_usd": 45312.532250000004,
+   "usd_per_min_variable": 0.0019513924722222222,
+   "usd_per_min_all_in": 0.005034725805555556,
    "fleet": {
     "mode": "fixed fleet sized for peak",
-    "peak_gpus": 120,
+    "peak_gpus": 73,
     "min_gpus": 2,
-    "gpu_hours_per_month": 86400,
-    "realised_utilisation": 0.18325617283950618
+    "gpu_hours_per_month": 52560,
+    "realised_utilisation": 0.18119881133579765
    }
   },
   {
@@ -3223,19 +3227,19 @@
    "dau": 100000,
    "minutes": 90000000,
    "api_usd": 0.0,
-   "gpu_usd": 250559.99999999997,
-   "infra_variable_usd": 4701.3225,
+   "gpu_usd": 150753.59999999998,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 52500.0,
-   "total_usd": 315761.3225,
-   "usd_per_min_variable": 0.0028362369166666664,
-   "usd_per_min_all_in": 0.003508459138888889,
+   "total_usd": 234454.9225,
+   "usd_per_min_variable": 0.001932832472222222,
+   "usd_per_min_all_in": 0.002605054694444444,
    "fleet": {
     "mode": "fixed fleet sized for peak",
-    "peak_gpus": 1200,
-    "min_gpus": 8,
-    "gpu_hours_per_month": 864000,
-    "realised_utilisation": 0.18325617283950618
+    "peak_gpus": 722,
+    "min_gpus": 5,
+    "gpu_hours_per_month": 519840,
+    "realised_utilisation": 0.18320655439769012
    }
   },
   {
@@ -3244,18 +3248,18 @@
    "minutes": 180000,
    "api_usd": 0.0,
    "gpu_usd": 417.59999999999997,
-   "infra_variable_usd": 9.402645,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 15000.0,
-   "total_usd": 15577.002645,
-   "usd_per_min_variable": 0.0023722369166666664,
-   "usd_per_min_all_in": 0.08653890358333334,
+   "total_usd": 15614.002645,
+   "usd_per_min_variable": 0.002577792472222222,
+   "usd_per_min_all_in": 0.0867444591388889,
    "fleet": {
     "mode": "fixed fleet sized for peak",
     "peak_gpus": 2,
     "min_gpus": 2,
     "gpu_hours_per_month": 1440,
-    "realised_utilisation": 0.11766975308641976
+    "realised_utilisation": 0.0925925925925926
    }
   },
   {
@@ -3263,19 +3267,19 @@
    "dau": 1000,
    "minutes": 900000,
    "api_usd": 0.0,
-   "gpu_usd": 1461.6,
-   "infra_variable_usd": 47.013225,
+   "gpu_usd": 1252.8,
+   "infra_variable_usd": 232.013225,
    "fixed_infra_usd": 350.0,
    "people_usd": 18750.0,
-   "total_usd": 20608.613225,
-   "usd_per_min_variable": 0.0016762369166666664,
-   "usd_per_min_all_in": 0.02289845913888889,
+   "total_usd": 20584.813224999998,
+   "usd_per_min_variable": 0.001649792472222222,
+   "usd_per_min_all_in": 0.022872014694444442,
    "fleet": {
     "mode": "fixed fleet sized for peak",
-    "peak_gpus": 7,
+    "peak_gpus": 6,
     "min_gpus": 2,
-    "gpu_hours_per_month": 5040,
-    "realised_utilisation": 0.16809964726631393
+    "gpu_hours_per_month": 4320,
+    "realised_utilisation": 0.154320987654321
    }
   },
   {
@@ -3283,19 +3287,19 @@
    "dau": 10000,
    "minutes": 9000000,
    "api_usd": 0.0,
-   "gpu_usd": 13571.999999999998,
-   "infra_variable_usd": 470.13225,
+   "gpu_usd": 10648.8,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 26250.0,
-   "total_usd": 41792.132249999995,
-   "usd_per_min_variable": 0.0015602369166666666,
-   "usd_per_min_all_in": 0.0046435702499999995,
+   "total_usd": 40718.93225,
+   "usd_per_min_variable": 0.0014409924722222221,
+   "usd_per_min_all_in": 0.0045243258055555555,
    "fleet": {
     "mode": "fixed fleet sized for peak",
-    "peak_gpus": 65,
+    "peak_gpus": 51,
     "min_gpus": 2,
-    "gpu_hours_per_month": 46800,
-    "realised_utilisation": 0.18103038936372268
+    "gpu_hours_per_month": 36720,
+    "realised_utilisation": 0.1815541031227306
    }
   },
   {
@@ -3303,19 +3307,19 @@
    "dau": 100000,
    "minutes": 90000000,
    "api_usd": 0.0,
-   "gpu_usd": 134049.59999999998,
-   "infra_variable_usd": 4701.3225,
+   "gpu_usd": 105652.79999999999,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 52500.0,
-   "total_usd": 199250.9225,
-   "usd_per_min_variable": 0.0015416769166666665,
-   "usd_per_min_all_in": 0.0022138991388888887,
+   "total_usd": 189354.1225,
+   "usd_per_min_variable": 0.001431712472222222,
+   "usd_per_min_all_in": 0.0021039346944444442,
    "fleet": {
     "mode": "fixed fleet sized for peak",
-    "peak_gpus": 642,
-    "min_gpus": 5,
-    "gpu_hours_per_month": 462240,
-    "realised_utilisation": 0.1832862197607784
+    "peak_gpus": 506,
+    "min_gpus": 4,
+    "gpu_hours_per_month": 364320,
+    "realised_utilisation": 0.18298931342409602
    }
   },
   {
@@ -3323,199 +3327,199 @@
    "dau": 200,
    "minutes": 180000,
    "api_usd": 0.0,
-   "gpu_usd": 1026.3,
-   "infra_variable_usd": 9.402645,
+   "gpu_usd": 993.5999999999999,
+   "infra_variable_usd": 46.402645,
    "fixed_infra_usd": 150.0,
    "people_usd": 15000.0,
-   "total_usd": 16185.702645,
-   "usd_per_min_variable": 0.0057539035833333325,
-   "usd_per_min_all_in": 0.08992057025,
+   "total_usd": 16190.002645,
+   "usd_per_min_variable": 0.005777792472222221,
+   "usd_per_min_all_in": 0.08994445913888889,
+   "fleet": {
+    "mode": "blended: 2 owned + hourly cloud burst",
+    "peak_gpus": 2,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1440,
+    "realised_utilisation": 0.10416666666666669
+   }
+  },
+  {
+   "arch": "B:blend_owned_l40s_cloud:low",
+   "dau": 1000,
+   "minutes": 900000,
+   "api_usd": 0.0,
+   "gpu_usd": 1516.8000000000002,
+   "infra_variable_usd": 232.013225,
+   "fixed_infra_usd": 350.0,
+   "people_usd": 18750.0,
+   "total_usd": 20848.813224999998,
+   "usd_per_min_variable": 0.0019431258055555556,
+   "usd_per_min_all_in": 0.023165348027777775,
+   "fleet": {
+    "mode": "blended: 2 owned + hourly cloud burst",
+    "peak_gpus": 6,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1920,
+    "realised_utilisation": 0.39062500000000006
+   }
+  },
+  {
+   "arch": "B:blend_owned_l40s_cloud:low",
+   "dau": 10000,
+   "minutes": 9000000,
+   "api_usd": 0.0,
+   "gpu_usd": 12129.3,
+   "infra_variable_usd": 2320.13225,
+   "fixed_infra_usd": 1500.0,
+   "people_usd": 26250.0,
+   "total_usd": 42199.43225,
+   "usd_per_min_variable": 0.0016054924722222223,
+   "usd_per_min_all_in": 0.004688825805555555,
+   "fleet": {
+    "mode": "blended: 10 owned + hourly cloud burst",
+    "peak_gpus": 57,
+    "min_gpus": 10,
+    "gpu_hours_per_month": 13770,
+    "realised_utilisation": 0.5446623093681918
+   }
+  },
+  {
+   "arch": "B:blend_owned_l40s_cloud:low",
+   "dau": 100000,
+   "minutes": 90000000,
+   "api_usd": 0.0,
+   "gpu_usd": 118514.7,
+   "infra_variable_usd": 23201.3225,
+   "fixed_infra_usd": 8000.0,
+   "people_usd": 52500.0,
+   "total_usd": 202216.0225,
+   "usd_per_min_variable": 0.0015746224722222222,
+   "usd_per_min_all_in": 0.0022468446944444442,
+   "fleet": {
+    "mode": "blended: 95 owned + hourly cloud burst",
+    "peak_gpus": 569,
+    "min_gpus": 95,
+    "gpu_hours_per_month": 133830,
+    "realised_utilisation": 0.5604124635731899
+   }
+  },
+  {
+   "arch": "B:blend_owned_l40s_cloud:base",
+   "dau": 200,
+   "minutes": 180000,
+   "api_usd": 0.0,
+   "gpu_usd": 993.5999999999999,
+   "infra_variable_usd": 46.402645,
+   "fixed_infra_usd": 150.0,
+   "people_usd": 15000.0,
+   "total_usd": 16190.002645,
+   "usd_per_min_variable": 0.005777792472222221,
+   "usd_per_min_all_in": 0.08994445913888889,
+   "fleet": {
+    "mode": "blended: 2 owned + hourly cloud burst",
+    "peak_gpus": 2,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1440,
+    "realised_utilisation": 0.05952380952380953
+   }
+  },
+  {
+   "arch": "B:blend_owned_l40s_cloud:base",
+   "dau": 1000,
+   "minutes": 900000,
+   "api_usd": 0.0,
+   "gpu_usd": 1124.3999999999999,
+   "infra_variable_usd": 232.013225,
+   "fixed_infra_usd": 350.0,
+   "people_usd": 18750.0,
+   "total_usd": 20456.413225,
+   "usd_per_min_variable": 0.0015071258055555554,
+   "usd_per_min_all_in": 0.022729348027777777,
+   "fleet": {
+    "mode": "blended: 2 owned + hourly cloud burst",
+    "peak_gpus": 4,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1560,
+    "realised_utilisation": 0.27472527472527475
+   }
+  },
+  {
+   "arch": "B:blend_owned_l40s_cloud:base",
+   "dau": 10000,
+   "minutes": 9000000,
+   "api_usd": 0.0,
+   "gpu_usd": 7035.599999999999,
+   "infra_variable_usd": 2320.13225,
+   "fixed_infra_usd": 1500.0,
+   "people_usd": 26250.0,
+   "total_usd": 37105.73225,
+   "usd_per_min_variable": 0.0010395258055555555,
+   "usd_per_min_all_in": 0.004122859138888889,
+   "fleet": {
+    "mode": "blended: 6 owned + hourly cloud burst",
+    "peak_gpus": 33,
+    "min_gpus": 6,
+    "gpu_hours_per_month": 8040,
+    "realised_utilisation": 0.5330490405117271
+   }
+  },
+  {
+   "arch": "B:blend_owned_l40s_cloud:base",
+   "dau": 100000,
+   "minutes": 90000000,
+   "api_usd": 0.0,
+   "gpu_usd": 67872.0,
+   "infra_variable_usd": 23201.3225,
+   "fixed_infra_usd": 8000.0,
+   "people_usd": 52500.0,
+   "total_usd": 151573.3225,
+   "usd_per_min_variable": 0.0010119258055555555,
+   "usd_per_min_all_in": 0.0016841480277777778,
+   "fleet": {
+    "mode": "blended: 55 owned + hourly cloud burst",
+    "peak_gpus": 325,
+    "min_gpus": 55,
+    "gpu_hours_per_month": 76800,
+    "realised_utilisation": 0.5580357142857143
+   }
+  },
+  {
+   "arch": "B:blend_owned_l40s_cloud:high",
+   "dau": 200,
+   "minutes": 180000,
+   "api_usd": 0.0,
+   "gpu_usd": 993.5999999999999,
+   "infra_variable_usd": 46.402645,
+   "fixed_infra_usd": 150.0,
+   "people_usd": 15000.0,
+   "total_usd": 16190.002645,
+   "usd_per_min_variable": 0.005777792472222221,
+   "usd_per_min_all_in": 0.08994445913888889,
+   "fleet": {
+    "mode": "blended: 2 owned + hourly cloud burst",
+    "peak_gpus": 2,
+    "min_gpus": 2,
+    "gpu_hours_per_month": 1440,
+    "realised_utilisation": 0.041666666666666664
+   }
+  },
+  {
+   "arch": "B:blend_owned_l40s_cloud:high",
+   "dau": 1000,
+   "minutes": 900000,
+   "api_usd": 0.0,
+   "gpu_usd": 1026.3,
+   "infra_variable_usd": 232.013225,
+   "fixed_infra_usd": 350.0,
+   "people_usd": 18750.0,
+   "total_usd": 20358.313224999998,
+   "usd_per_min_variable": 0.0013981258055555555,
+   "usd_per_min_all_in": 0.022620348027777775,
    "fleet": {
     "mode": "blended: 2 owned + hourly cloud burst",
     "peak_gpus": 3,
     "min_gpus": 2,
     "gpu_hours_per_month": 1470,
-    "realised_utilisation": 0.19387755102040816
-   }
-  },
-  {
-   "arch": "B:blend_owned_l40s_cloud:low",
-   "dau": 1000,
-   "minutes": 900000,
-   "api_usd": 0.0,
-   "gpu_usd": 2432.4,
-   "infra_variable_usd": 47.013225,
-   "fixed_infra_usd": 350.0,
-   "people_usd": 18750.0,
-   "total_usd": 21579.413225,
-   "usd_per_min_variable": 0.0027549035833333334,
-   "usd_per_min_all_in": 0.023977125805555555,
-   "fleet": {
-    "mode": "blended: 2 owned + hourly cloud burst",
-    "peak_gpus": 11,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 2760,
-    "realised_utilisation": 0.5163043478260869
-   }
-  },
-  {
-   "arch": "B:blend_owned_l40s_cloud:low",
-   "dau": 10000,
-   "minutes": 9000000,
-   "api_usd": 0.0,
-   "gpu_usd": 22578.3,
-   "infra_variable_usd": 470.13225,
-   "fixed_infra_usd": 1500.0,
-   "people_usd": 26250.0,
-   "total_usd": 50798.43225,
-   "usd_per_min_variable": 0.0025609369166666664,
-   "usd_per_min_all_in": 0.00564427025,
-   "fleet": {
-    "mode": "blended: 18 owned + hourly cloud burst",
-    "peak_gpus": 108,
-    "min_gpus": 18,
-    "gpu_hours_per_month": 25470,
-    "realised_utilisation": 0.5594817432273264
-   }
-  },
-  {
-   "arch": "B:blend_owned_l40s_cloud:low",
-   "dau": 100000,
-   "minutes": 90000000,
-   "api_usd": 0.0,
-   "gpu_usd": 224802.0,
-   "infra_variable_usd": 4701.3225,
-   "fixed_infra_usd": 8000.0,
-   "people_usd": 52500.0,
-   "total_usd": 290003.3225,
-   "usd_per_min_variable": 0.002550036916666667,
-   "usd_per_min_all_in": 0.003222259138888889,
-   "fleet": {
-    "mode": "blended: 180 owned + hourly cloud burst",
-    "peak_gpus": 1080,
-    "min_gpus": 180,
-    "gpu_hours_per_month": 253800,
-    "realised_utilisation": 0.5614657210401891
-   }
-  },
-  {
-   "arch": "B:blend_owned_l40s_cloud:base",
-   "dau": 200,
-   "minutes": 180000,
-   "api_usd": 0.0,
-   "gpu_usd": 993.5999999999999,
-   "infra_variable_usd": 9.402645,
-   "fixed_infra_usd": 150.0,
-   "people_usd": 15000.0,
-   "total_usd": 16153.002645,
-   "usd_per_min_variable": 0.0055722369166666666,
-   "usd_per_min_all_in": 0.08973890358333333,
-   "fleet": {
-    "mode": "blended: 2 owned + hourly cloud burst",
-    "peak_gpus": 2,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 1440,
-    "realised_utilisation": 0.09895833333333333
-   }
-  },
-  {
-   "arch": "B:blend_owned_l40s_cloud:base",
-   "dau": 1000,
-   "minutes": 900000,
-   "api_usd": 0.0,
-   "gpu_usd": 1451.3999999999999,
-   "infra_variable_usd": 47.013225,
-   "fixed_infra_usd": 350.0,
-   "people_usd": 18750.0,
-   "total_usd": 20598.413225,
-   "usd_per_min_variable": 0.0016649035833333332,
-   "usd_per_min_all_in": 0.022887125805555558,
-   "fleet": {
-    "mode": "blended: 2 owned + hourly cloud burst",
-    "peak_gpus": 6,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 1860,
-    "realised_utilisation": 0.38306451612903225
-   }
-  },
-  {
-   "arch": "B:blend_owned_l40s_cloud:base",
-   "dau": 10000,
-   "minutes": 9000000,
-   "api_usd": 0.0,
-   "gpu_usd": 11338.2,
-   "infra_variable_usd": 470.13225,
-   "fixed_infra_usd": 1500.0,
-   "people_usd": 26250.0,
-   "total_usd": 39558.33225,
-   "usd_per_min_variable": 0.0013120369166666668,
-   "usd_per_min_all_in": 0.00439537025,
-   "fleet": {
-    "mode": "blended: 9 owned + hourly cloud burst",
-    "peak_gpus": 54,
-    "min_gpus": 9,
-    "gpu_hours_per_month": 12780,
-    "realised_utilisation": 0.557511737089202
-   }
-  },
-  {
-   "arch": "B:blend_owned_l40s_cloud:base",
-   "dau": 100000,
-   "minutes": 90000000,
-   "api_usd": 0.0,
-   "gpu_usd": 112401.0,
-   "infra_variable_usd": 4701.3225,
-   "fixed_infra_usd": 8000.0,
-   "people_usd": 52500.0,
-   "total_usd": 177602.3225,
-   "usd_per_min_variable": 0.0013011369166666667,
-   "usd_per_min_all_in": 0.001973359138888889,
-   "fleet": {
-    "mode": "blended: 90 owned + hourly cloud burst",
-    "peak_gpus": 540,
-    "min_gpus": 90,
-    "gpu_hours_per_month": 126900,
-    "realised_utilisation": 0.5614657210401891
-   }
-  },
-  {
-   "arch": "B:blend_owned_l40s_cloud:high",
-   "dau": 200,
-   "minutes": 180000,
-   "api_usd": 0.0,
-   "gpu_usd": 993.5999999999999,
-   "infra_variable_usd": 9.402645,
-   "fixed_infra_usd": 150.0,
-   "people_usd": 15000.0,
-   "total_usd": 16153.002645,
-   "usd_per_min_variable": 0.0055722369166666666,
-   "usd_per_min_all_in": 0.08973890358333333,
-   "fleet": {
-    "mode": "blended: 2 owned + hourly cloud burst",
-    "peak_gpus": 2,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 1440,
-    "realised_utilisation": 0.052951388888888895
-   }
-  },
-  {
-   "arch": "B:blend_owned_l40s_cloud:high",
-   "dau": 1000,
-   "minutes": 900000,
-   "api_usd": 0.0,
-   "gpu_usd": 1091.7,
-   "infra_variable_usd": 47.013225,
-   "fixed_infra_usd": 350.0,
-   "people_usd": 18750.0,
-   "total_usd": 20238.713225,
-   "usd_per_min_variable": 0.0012652369166666667,
-   "usd_per_min_all_in": 0.022487459138888888,
-   "fleet": {
-    "mode": "blended: 2 owned + hourly cloud burst",
-    "peak_gpus": 3,
-    "min_gpus": 2,
-    "gpu_hours_per_month": 1530,
-    "realised_utilisation": 0.24918300653594772
+    "realised_utilisation": 0.20408163265306123
    }
   },
   {
@@ -3523,19 +3527,19 @@
    "dau": 10000,
    "minutes": 9000000,
    "api_usd": 0.0,
-   "gpu_usd": 6211.8,
-   "infra_variable_usd": 470.13225,
+   "gpu_usd": 4962.900000000001,
+   "infra_variable_usd": 2320.13225,
    "fixed_infra_usd": 1500.0,
    "people_usd": 26250.0,
-   "total_usd": 34431.93225,
-   "usd_per_min_variable": 0.0007424369166666667,
-   "usd_per_min_all_in": 0.00382577025,
+   "total_usd": 35033.032250000004,
+   "usd_per_min_variable": 0.0008092258055555555,
+   "usd_per_min_all_in": 0.0038925591388888894,
    "fleet": {
-    "mode": "blended: 5 owned + hourly cloud burst",
-    "peak_gpus": 29,
-    "min_gpus": 5,
-    "gpu_hours_per_month": 7020,
-    "realised_utilisation": 0.5430911680911681
+    "mode": "blended: 4 owned + hourly cloud burst",
+    "peak_gpus": 23,
+    "min_gpus": 4,
+    "gpu_hours_per_month": 5610,
+    "realised_utilisation": 0.5347593582887701
    }
   },
   {
@@ -3543,19 +3547,19 @@
    "dau": 100000,
    "minutes": 90000000,
    "api_usd": 0.0,
-   "gpu_usd": 60476.7,
-   "infra_variable_usd": 4701.3225,
+   "gpu_usd": 47490.90000000001,
+   "infra_variable_usd": 23201.3225,
    "fixed_infra_usd": 8000.0,
    "people_usd": 52500.0,
-   "total_usd": 125678.02249999999,
-   "usd_per_min_variable": 0.00072420025,
-   "usd_per_min_all_in": 0.001396422472222222,
+   "total_usd": 131192.2225,
+   "usd_per_min_variable": 0.0007854691388888889,
+   "usd_per_min_all_in": 0.0014576913611111112,
    "fleet": {
-    "mode": "blended: 49 owned + hourly cloud burst",
-    "peak_gpus": 289,
-    "min_gpus": 49,
-    "gpu_hours_per_month": 68430,
-    "realised_utilisation": 0.5571386818646792
+    "mode": "blended: 38 owned + hourly cloud burst",
+    "peak_gpus": 228,
+    "min_gpus": 38,
+    "gpu_hours_per_month": 53610,
+    "realised_utilisation": 0.5595970900951315
    }
   }
  ],
@@ -3563,7 +3567,7 @@
   {
    "api": "A:openai_gpt_realtime_2_1_mini",
    "self_hosted": "B:l40s_runpod:low",
-   "break_even_dau": 584
+   "break_even_dau": 567
   },
   {
    "api": "A:openai_gpt_realtime_2_1_mini",
@@ -3573,7 +3577,7 @@
   {
    "api": "A:openai_gpt_realtime_2_1_mini",
    "self_hosted": "B:l40s_runpod:high",
-   "break_even_dau": 557
+   "break_even_dau": 561
   },
   {
    "api": "A:openai_gpt_realtime_2_1_mini",
@@ -3583,82 +3587,82 @@
   {
    "api": "A:openai_gpt_live_1_1",
    "self_hosted": "B:l40s_runpod:low",
-   "break_even_dau": 322
+   "break_even_dau": 318
   },
   {
    "api": "A:openai_gpt_live_1_1",
    "self_hosted": "B:l40s_runpod:base",
-   "break_even_dau": 316
+   "break_even_dau": 318
   },
   {
    "api": "A:openai_gpt_live_1_1",
    "self_hosted": "B:l40s_runpod:high",
-   "break_even_dau": 316
+   "break_even_dau": 318
   },
   {
    "api": "A:openai_gpt_live_1_1",
    "self_hosted": "B:blend_owned_l40s_cloud:base",
-   "break_even_dau": 302
+   "break_even_dau": 303
   },
   {
    "api": "A:gemini_3_8_live",
    "self_hosted": "B:l40s_runpod:low",
-   "break_even_dau": 260
+   "break_even_dau": 259
   },
   {
    "api": "A:gemini_3_8_live",
    "self_hosted": "B:l40s_runpod:base",
-   "break_even_dau": 258
+   "break_even_dau": 259
   },
   {
    "api": "A:gemini_3_8_live",
    "self_hosted": "B:l40s_runpod:high",
-   "break_even_dau": 258
+   "break_even_dau": 259
   },
   {
    "api": "A:gemini_3_8_live",
    "self_hosted": "B:blend_owned_l40s_cloud:base",
-   "break_even_dau": 246
+   "break_even_dau": 247
   },
   {
    "api": "D:all_api_list",
    "self_hosted": "B:l40s_runpod:low",
-   "break_even_dau": 3269
+   "break_even_dau": 2537
   },
   {
    "api": "D:all_api_list",
    "self_hosted": "B:l40s_runpod:base",
-   "break_even_dau": 2415
+   "break_even_dau": 2278
   },
   {
    "api": "D:all_api_list",
    "self_hosted": "B:l40s_runpod:high",
-   "break_even_dau": 2178
+   "break_even_dau": 2217
   },
   {
    "api": "D:all_api_list",
    "self_hosted": "B:blend_owned_l40s_cloud:base",
-   "break_even_dau": 2300
+   "break_even_dau": 2171
   },
   {
    "api": "D:all_api_committed",
    "self_hosted": "B:l40s_runpod:low",
-   "break_even_dau": 9357
+   "break_even_dau": 5191
   },
   {
    "api": "D:all_api_committed",
    "self_hosted": "B:l40s_runpod:base",
-   "break_even_dau": 4734
+   "break_even_dau": 4215
   },
   {
    "api": "D:all_api_committed",
    "self_hosted": "B:l40s_runpod:high",
-   "break_even_dau": 3818
+   "break_even_dau": 3910
   },
   {
    "api": "D:all_api_committed",
    "self_hosted": "B:blend_owned_l40s_cloud:base",
-   "break_even_dau": 4429
+   "break_even_dau": 4032
   }
  ],
  "one_time_dev_usd": {
