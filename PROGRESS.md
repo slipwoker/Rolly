@@ -11,19 +11,19 @@ emulators or on CPU only.
 | 1 Research and selection | **Done**, with verification limits | Six source-tagged reports (`docs/research/`), comparison matrix, licence report, decision log | Many vendor pages were unreachable from the research environment; those claims are tagged unverified |
 | 2 Unified test platform | **Done** | Browser client (drive, blind evaluation, dashboard), WebSocket backend, provider abstraction, telemetry, sessions, retention controls; 17 automated tests; browser end-to-end test in real Chromium | WebRTC/Opus transport (deliberately out of scope, decision D7); Docker images not built here |
 | 3 Proactive behaviour and memory | **Done** | Journey-start trigger, shared memory, proactive opener that references stored topics, summaries with action items that feed the next session, arrival event, natural ending | Voice command for "forget that"; retrieval for large memories |
-| 4 Quality benchmarks | **Partly done** | Executed on CPU: Hebrew/English WER on real speech with road noise, endpointing and barge-in detection, LLM context/hallucination probes, scripted scenarios through the full pipeline, 30-minute session, browser playback timings | Real-time latency (needs GPU); commercial baselines (need keys); human ratings (need people) |
-| 5 Infrastructure and scalability | **Partly done** | GPU and provider research; concurrency harness; session-layer capacity measured (about 40 sessions per vCPU); CPU-only concurrency run | Concurrency per GPU: not measured. GPU runbook is written but not executed |
-| 6 Financial feasibility | **Done as a model** | Parametric cost model, four DAU scenarios, utilisation grid, fleet strategies, break-even analysis | Its two largest inputs (conversations per GPU, GPU prices) are assumption / unverified |
+| 4 Quality benchmarks | **Done except human evaluation** | WER on real speech with road noise, endpointing and barge-in detection, LLM probes, scripted scenarios, 30-minute sessions, browser playback timings; real-time latency on an L40S; OpenAI Realtime baseline in three turn-detection modes and two models; hybrid pipeline | Human ratings; Gemini Live; mixed-language speech on real recordings; real networks and cars |
+| 5 Infrastructure and scalability | **Done on one GPU** | Concurrency ramp 1–50 on one L40S (35 within the P95 target), CPU cost per conversation, cold-start time, end-of-turn timing experiments, unattended pod scripts | Multi-GPU fleet behaviour; other GPU types; GPU speech synthesis |
+| 6 Financial feasibility | **Done, on measured capacity** | Cost model with measured L40S price, measured conversations per GPU and measured API token usage; four DAU scenarios, utilisation grid, fleet strategies, break-even | Staffing and the demand curve are assumptions; other GPU prices unverified |
 | 7 Licensing, privacy, security | **Done for the POC** | Licence report with verification status, privacy and retention document, secure credential handling, erasure endpoint | Legal review; items listed in `LICENSES.md` section 1 |
 
 ## Architectures
 
 | Architecture | State |
 |---|---|
-| A Commercial realtime (OpenAI Realtime, Gemini Live) | Built from SDK-documented protocols; tested against local protocol emulators; **never run against the live services** — with a key available, the attempt failed because this environment's proxy does not carry WebSocket upgrades |
-| B Self-hosted modular | Built and run end to end in Hebrew and English on CPU |
+| A Commercial realtime (OpenAI Realtime, Gemini Live) | OpenAI Realtime **run live** from the GPU pod (two models, three turn-detection modes); one bridge bug found and fixed. Gemini Live built, tested against an emulator only |
+| B Self-hosted modular | Built; run end to end in Hebrew and English on CPU and on an L40S (681 ms median response, 35 simultaneous conversations within target) |
 | C Self-hosted speech-to-speech | Evaluated, **no-go** (no Hebrew, short context); documented, not built |
-| D Hybrid | Same code as B with stages swappable to APIs by configuration. **Run** with a commercial language model (OpenAI `gpt-6-luna`): 12 of 12 scenarios, 28 of 28 checks. Commercial transcription measured separately. Commercial speech synthesis not run |
+| D Hybrid | Same code as B with stages swappable to APIs by configuration. **Run** with a commercial language model (OpenAI `gpt-6-luna`): 12 of 12 scenarios, 28 of 28 checks. Also run on the GPU host (1.33 s median). Commercial transcription measured separately. Commercial speech synthesis not run |
 
 ## Timeline of the session
 
@@ -46,10 +46,24 @@ emulators or on CPU only.
 11. Cost model, licence report, comparison matrix, privacy document, runbooks, final report.
 12. After the owner saved an OpenAI key: the realtime WebSocket turned out to be unreachable from this environment (HTTP 405 at the proxy). The key was used over HTTPS instead for LLM probes, a full hybrid scenario run with `gpt-6-luna`, and transcription accuracy with `gpt-transcribe`. A readiness flag was added to the health endpoint after a start-up race spoiled the first two scenario sessions.
 
+13. GPU run. The owner funded RunPod and saved an API key. The REST host failed through the session proxy; the GraphQL host worked. One L40S pod was created through the API and driven without shell access: a start command clones the repository and runs setup and benchmarks, publishing logs and results on a read-only HTTP port. Problems met and fixed: vLLM needs a C compiler that the slim CUDA image lacks; progress output was buffered, which I twice misread as a stalled run and restarted unnecessarily (about 20 minutes of pod time); the first concurrency ramp stopped after one level because of an over-strict stop rule.
+14. OpenAI Realtime from the pod. The owner set the key on the pod. The bridge worked on the first live call; the opener ignored memory (per-response instructions replace session instructions) and was fixed and re-run. Safety limits added: reply length cap, per-scenario timeout.
+15. Four benchmark passes on the pod; pod terminated at 21:55 UTC; $3.58 spent.
+
+## What changed in the conclusions during the session
+
+| Before the GPU run | After |
+|---|---|
+| Latency projected at 0.85–1.2 s; 800 ms median "at risk" | Measured 681 ms median, 1,072 ms P95 next to the server |
+| Hebrew quality needs a commercial language model | Self-hosted Gemma-4 26B is fluent in Hebrew and 13 times faster to first token than the API model |
+| Start on component APIs, self-host later | Self-host speech recognition and the language model from the start |
+| Capacity per GPU assumed at 10–39 | Measured 20–35 within the latency target on one L40S |
+| Commercial realtime cost estimated at $0.03–0.08 | Measured $0.07 (`gpt-realtime-2.1`) and $0.02 (mini) on short sessions |
+
 ## Next actions (in order of value)
 
-1. Approve and rent a GPU; run `infrastructure/run_benchmarks.sh` (`BLOCKERS.md` B2). This turns the latency and capacity assumptions into measurements.
-2. Run the scenario suite against the commercial realtime baselines from a machine with normal internet access; a Google key is still needed for Gemini Live (B1).
-3. Recruit evaluators for the blind test, with native Hebrew speakers (B3).
-4. Decide on the Hebrew TTS bake-off (B4).
-5. Re-verify unverified prices and re-run the cost model (B5).
+1. Blind human evaluation with native Hebrew speakers, including a Hebrew voice bake-off (B3, B4). This is now the main unknown.
+2. A trial over a mobile network and in a car; a recorded mixed Hebrew-English test set.
+3. Gemini Live baseline and 30-minute sessions on the commercial APIs (B1).
+4. Repeat the concurrency ramp on a second GPU type and on two GPUs behind a load balancer.
+5. Text normalisation before speech synthesis; investigate the number-word defect of the FP8 model.

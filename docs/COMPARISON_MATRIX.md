@@ -262,7 +262,7 @@ All cost figures are ESTIMATE built on the reports' assumptions and on unverifie
 
 ## Addendum: what the POC measured afterwards
 
-The tables above are research. These rows were then measured in the POC (details and caveats in `BENCHMARKS.md`; CPU only, small test sets):
+The tables above are research. These rows were then measured in the POC (details and caveats in `BENCHMARKS.md`; small test sets, synthetic users):
 
 | Layer | Item | Measured result | Effect on the POC decision |
 |---|---|---|---|
@@ -280,4 +280,12 @@ The tables above are research. These rows were then measured in the POC (details
 | STT | OpenAI `gpt-transcribe` (API) | Hebrew 19.5 % WER clean, 23.1 % at 5 dB; English 3.5 % | No accuracy advantage for Hebrew over the open Hebrew-tuned model |
 | LLM | OpenAI `gpt-6-luna` (API, reasoning off) | Recall 12 of 12; 0 of 8 unknown-fact probes invented; fluent Hebrew in transcripts; 0.67 s median to first token through the session proxy; about 950 prompt + 44 output tokens per turn | **Hybrid with this model is the recommended starting point** |
 
-Nothing was measured for the commercial realtime speech-to-speech APIs, for any GPU configuration, or for commercial speech synthesis.
+| LLM | `RedHatAI/gemma-4-26B-A4B-it-FP8-dynamic` on vLLM, one L40S | First token 52 ms, 117 tokens/s; recall 12 of 12; fluent Hebrew; Hebrew number words garbled in 2 of 3 probes | **Selected self-hosted model** |
+| Pipeline | Fully self-hosted on one L40S (GPU: both Whisper models + Gemma; CPU: speech synthesis) | 681 ms median / 1,072 ms P95 response (56 turns, no network); 35 simultaneous conversations at P95 1.48 s; 30 minutes, 134 turns, no drift | **Recommended architecture** |
+| Pipeline | Hybrid on the same host (API language model `gpt-6-luna`) | 1,333 ms median / 2,441 ms P95; API first token 711 ms | Fallback route |
+| Commercial realtime | OpenAI `gpt-realtime-2.1`, called from the pod | 1.62 s (server VAD) to 2.05 s (semantic, auto) median; 28 of 28 checks; $0.070–0.075 per connected minute from reported usage at unverified list prices | Baseline; not the default path |
+| Commercial realtime | OpenAI `gpt-realtime-2.1-mini` | 1.65–1.73 s median, P95 about 5.1 s; 55 of 56 checks; weaker Hebrew; $0.020 per connected minute | Baseline |
+| GPU | RunPod L40S, Secure Cloud, on demand | $1.09 per hour (API-listed and billed); other 48 GB options listed the same day: A40 $0.59, RTX A6000 $0.69, L40 $0.82, RTX 6000 Ada $1.09 | Used for the benchmark |
+
+Not measured: Google Gemini Live, other GPU types, commercial speech synthesis, and anything involving human listeners.
+

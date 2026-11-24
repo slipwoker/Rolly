@@ -1,7 +1,26 @@
 # GPU benchmark runbook
 
-Status: **written but not executed** — no GPU was available in the POC session. Expect to adjust details
-(image tags, vLLM flags, model ID availability) on first run. Budget approval is required before starting (`BLOCKERS.md` B2).
+Status: **executed on 2026-11-24** on one RunPod L40S, but through the unattended path below rather than the manual steps in
+sections 1–3, which remain as originally written and were not run by hand.
+
+## 0. Unattended path (what was actually used)
+
+No shell access is needed. Create a pod whose start command clones this repository and runs `infrastructure/pod_autorun.sh`;
+that script runs `pod_setup.sh` (uv, Python 3.12, models, vLLM, the application) and then a benchmark script, and publishes
+logs and result files on a read-only HTTP port.
+
+- Image `nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04`, GPU with 48 GB, container disk 60 GB, volume 80 GB at `/workspace`,
+  ports `8000/http,8001/http,22/tcp`.
+- Start command: see the header of `infrastructure/pod_autorun.sh`.
+- Environment: `ROLLY_WORKSPACE=/workspace`; `ROLLY_BENCH_SCRIPT=infrastructure/pod_bench2.sh` (or another pass) to choose the
+  experiment; `OPENAI_API_KEY` (as a RunPod Secret or pod variable, never in the repository) to enable the hybrid provider and the
+  OpenAI Realtime baseline.
+- Watch `https://<pod-id>-8001.proxy.runpod.net/status.json`, `setup.log`, `bench.out`, `results/index.txt`.
+- The repository must be readable by the pod (public, or add a token).
+- Changing a pod variable through the API restarts the container; everything heavy is cached on the volume, so a restart takes
+  about three minutes.
+- Lessons from the run: the slim CUDA image needs `build-essential` for vLLM (handled in `pod_setup.sh`); read progress from the
+  result files rather than from filtered console output; terminate the pod when done.
 
 ## 1. Rent the machine (about 20 minutes, about $1.09/h — price unverified)
 

@@ -1,57 +1,29 @@
 # Blockers and requests for human intervention
 
-Status on 2026-11-24. Nothing below blocks the code or the CPU-side measurements already in the repository; each item
-blocks the specific measurement named in "What it unblocks".
+Status on 2026-11-24 (end of session). The GPU and OpenAI baselines have been run. What still needs a person: evaluators (B3),
+the Hebrew voice decision (B4), a Google key (B1) and a price re-check (B5).
 
-## B1 — Commercial realtime baselines  ·  PARTLY RESOLVED, now blocked by the session network, not by keys
+## B1 — Commercial realtime baselines  ·  RESOLVED for OpenAI; OPEN for Google
 
-Update 2026-11-24: the owner saved an OpenAI API key through the secure form. The key works for HTTPS requests and was used for
-three small measurements (LLM probes with `gpt-6-luna`, the hybrid pipeline with `gpt-6-luna`, transcription with `gpt-transcribe`;
-see `BENCHMARKS.md`). **The realtime speech-to-speech baseline still could not be run**: the Realtime API needs a WebSocket connection,
-and this cloud session's outbound proxy does not carry WebSocket upgrades (the upgrade request comes back as HTTP 405; the proxy's own
-documentation lists WebSocket upgrades as unsupported and says not to work around it). The same applies to Gemini Live.
+2026-11-24: the OpenAI Realtime baseline was run from the rented GPU pod (this session's own network cannot open WebSockets), with
+the owner's key set as an environment variable on the pod. Results are in `BENCHMARKS.md` section 0. The pod has been terminated,
+which removed that variable; the key saved on the session environment (`api.openai.com`) remains until the owner removes it.
 
-What is needed now: run the baseline from a machine with normal internet access — your laptop, or the GPU host from B2:
+Still open: a Google Gemini API key for the Gemini Live baseline (bridge implemented, tested only against an emulator), and
+30-minute sessions on the commercial APIs to measure how their cost grows with context. Estimated cost: $5–$20.
 
-```bash
-OPENAI_API_KEY=sk-... infrastructure/run_dev.sh
-```
+## B2 — GPU for latency and concurrency measurement  ·  RESOLVED
 
-```bash
-PYTHONPATH=. .venv/bin/python -m benchmarks.run_scenarios --provider openai-realtime --hardware "OpenAI Realtime API from <where>"
-```
+2026-11-24: the owner funded a RunPod account ($50), saved an API key, and made the repository public so a pod could clone it.
+One L40S ran for 3 h 17 min ($3.58) and was terminated. Results: `BENCHMARKS.md` section 0. Scripts used:
+`infrastructure/pod_setup.sh`, `pod_autorun.sh`, `pod_bench.sh`, `pod_bench2.sh`, `pod_bench5.sh`.
 
-Expect first-run fixes: the bridge has only ever talked to a local emulator. Model IDs are confirmed to exist on the account
-(`gpt-realtime-2.1`, `gpt-realtime-2.1-mini`, `gpt-transcribe`). Estimated cost for one pass of the scenario suite: $3–$10.
-A Google key is still needed for the Gemini Live baseline.
-
-The original request, for reference:
-
-## B1 (original) — API keys for the commercial realtime baselines
-
-| | |
-|---|---|
-| What is required | An OpenAI API key with Realtime access and a Google Gemini API key (AI Studio) |
-| Why | Architecture A is the quality baseline. Both bridges are implemented and pass tests against local protocol emulators, but they have never talked to the real services, so there is no measured latency, Hebrew quality or cost for them |
-| Setup | OpenAI: platform.openai.com → API keys → create a project key; add at least $20 credit. Google: aistudio.google.com → Get API key. In a Claude cloud session the keys are entered through the secure credential form (never pasted in chat) for hosts `api.openai.com` and `generativelanguage.googleapis.com`. Locally: put `OPENAI_API_KEY` / `GEMINI_API_KEY` in `.env` |
-| Expected cost | Scenario suite ×3 plus one 30-minute session per provider is roughly 60–90 conversational minutes each: about $5–$20 for `gpt-realtime-2.1`, $2–$5 for the mini, $2–$10 for Gemini Live (estimates from unverified token prices). Suggested cap: $60 total |
-| Setup time | 10 minutes |
-| Alternatives | Run only one provider; or skip the baseline and compare self-hosted configurations only (loses the "comparable to ChatGPT Voice" answer) |
-| Security / licensing | User audio and the synthetic memory context are sent to the vendor. Benchmarks use synthetic profiles and synthetic speech only. Check that the model IDs in `config/providers.yaml` are available to the account (the IDs come from SDK inspection and were not confirmed on the vendors' pages) |
-| Can work continue without it | Yes |
-
-## B2 — GPU for latency and concurrency measurement  ·  OPEN (needs budget approval)
-
-| | |
-|---|---|
-| What is required | One rented 48 GB GPU (NVIDIA L40S) for roughly 20–40 hours, with Docker or SSH and one public TCP port |
-| Why | Every latency number in this repository was measured on a 4-vCPU container without a GPU, where a turn takes 5–10 s. The targets (median < 800 ms, P95 < 1.5 s), the maximum sustainable concurrency per GPU and therefore the self-hosted cost per minute cannot be measured without a GPU. The cost model currently uses assumed capacity |
-| Setup | See `infrastructure/GPU_RUNBOOK.md`. Short version: create a RunPod account, load $50 credit, create an API key or just start one L40S pod from the PyTorch template with ports 8000/TCP and 22/TCP exposed, then run three commands |
-| Expected cost | About $50 for 40 hours at ~$1.09/h (price unverified); $100–$200 with comparison runs on an L4 and an H100. Well inside the $300–$700 budget |
-| Setup time | 20–30 minutes for a human; the benchmark suite then runs unattended in about 2 hours |
-| Alternatives | Any provider with an L40S/A6000/A100 and SSH (Lambda, Hyperstack, Nebius; Nebius has an Israeli data centre). A 24 GB card (L4, RTX 4090) works with a smaller LLM. Modal per-second billing is an option if you prefer no idle cost |
-| Security / licensing | The pod runs open-weight models only; no user data. Expose the port with `ROLLY_ACCESS_TOKEN` set. RunPod's HTTP proxy is unauthenticated and has a 100 s limit, so use the direct TCP port for the WebSocket |
-| Can work continue without it | Yes, but research questions 1, 5 and 6 stay unanswered by measurement |
+Housekeeping for the owner:
+- The repository `slipwoker/Rolly` is still **public**; switch it back to private if that was only for the run.
+- RunPod API keys are saved on the session environment for `api.runpod.io` and `rest.runpod.io` (the second host never worked through
+  the proxy and can be deleted). Remove both in the environment settings if no further GPU runs are planned.
+- The environment's network access was changed to unrestricted during the session.
+- RunPod balance remaining: $46.42. No pods or volumes are left.
 
 ## B3 — Human evaluators for the blind test  ·  OPEN
 

@@ -92,8 +92,10 @@ Credentials are referenced by environment-variable name only.
 
 ## Status in one paragraph
 
-The platform, the self-hosted Hebrew/English pipeline, proactive memory, the benchmark suite and the cost model are built
-and were run on a 4-vCPU machine without a GPU. Speech-recognition accuracy, endpointing, interruption handling, context
-retention and memory were measured there, and a hybrid configuration with a commercial language model was run through the
-same scenarios. Real-time latency, concurrency per GPU, the commercial realtime speech-to-speech baselines and human
-ratings were **not** measured (no GPU, no WebSocket egress in the build environment, no evaluators) — the tooling for each is ready.
+The platform, the self-hosted Hebrew/English pipeline, proactive memory, the benchmark suite and the cost model are built.
+On one rented NVIDIA L40S the self-hosted pipeline answered in 681 ms (median) and held 35 simultaneous conversations within a
+1.5 s P95; the OpenAI Realtime baseline, run through the same harness, answered in 1.6–2.0 s at about fifty times the cost per
+minute. Not done: human evaluation (nobody has listened to the output), Gemini Live, real networks and cars. See `FINAL_REPORT.md`.
+
+To repeat the GPU run without shell access see `infrastructure/pod_autorun.sh`; with shell access, `infrastructure/pod_setup.sh`
+followed by `infrastructure/pod_bench.sh`.

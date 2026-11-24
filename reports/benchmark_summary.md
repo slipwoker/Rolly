@@ -70,6 +70,34 @@ File: `scenarios_hybrid-apillm_20261124T173920.json`
 | s10b_road_noise_he Conversation with simulated road noise (Hebrew, 5 dB SNR) | 2 | 6969, 8268 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
 | s12_proactive_end Proactive initiation and natural ending | 2 | 7219, 7470 | ✓proactive_opener_spoken ✓opener_references_memory ✓reply_contains_expected ✓session_ended_naturally |  |
 
+### `hybrid-apillm` — GPU pod: NVIDIA L40S, 46068 MiB; STT Whisper large-v3-turbo float16 on GPU; LLM OpenAI gpt-6-luna over HTTPS (reasoning off); TTS Piper/ReNikud on CPU; client on the same host
+
+File: `scenarios_hybrid-apillm_20261124T210851.json`
+
+- Scenarios run: 12 (failed: 0); user turns: 28 (no response: 0)
+- Response latency (end of user speech → first agent audio): median 1333 ms, p90 1847 ms, p95 2441 ms, max 3139 ms, n=28
+- Proactive opener, first audio after connect: median 875 ms
+- Stage medians (ms): llm_first_chunk_ms 819, llm_total_ms 1064, llm_ttft_ms 711, pipeline_ms 1022, provider_start_ms 0, stt_language_detect_ms 46, stt_ms 64, stt_queue_ms 0, summary_ms 2293, tts_ttfa_ms 122
+- Scripted checks passed: 28/28
+- Interruptions: 1/1 detected; speech onset → interrupt signalled median 162 ms; audio still arriving after the interrupt: median 0 ms
+- WER of the pipeline's transcripts on synthetic user speech: he: 0.0% clean / 0.0% all (n=7), en: 0.5% clean / 0.4% all (n=19), auto: 37.0% clean / 37.0% all (n=2)
+- Playout underruns per agent turn: 0.0
+
+| Scenario | Turns | Latency per turn (ms) | Checks | Error |
+|---|---:|---|---|---|
+| s01_he_brainstorm Hebrew entrepreneurial brainstorming | 3 | 1834, 1878, 1628 | ✓proactive_opener_spoken ✓opener_references_memory |  |
+| s02_en_brainstorm English entrepreneurial brainstorming | 3 | 1501, 1501, 1670 | ✓proactive_opener_spoken ✓opener_references_memory ✓summary_action_items |  |
+| s03_personal_planning Personal planning | 3 | 1429, 1230, 1372 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s04_learning Learning a new subject | 2 | 1254, 1299 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s05_continue_previous Continuing a previous conversation | 2 | 1428, 1293 | ✓proactive_opener_spoken ✓opener_references_memory ✓reply_contains_expected ✓reply_contains_expected |  |
+| s06_topic_switch Switching topics unexpectedly | 2 | 993, 1276 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s07_interrupt Interrupting the agent mid-sentence | 2 | 1314, 1174 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s08_correction Correcting misunderstood information | 3 | 1124, 1124, 1066 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s09_code_switch Hebrew-English code-switching | 2 | 2744, 1777 | ✓proactive_opener_spoken |  |
+| s10a_road_noise_en Conversation with simulated road noise (English, 5 dB SNR) | 2 | 1364, 1298 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s10b_road_noise_he Conversation with simulated road noise (Hebrew, 5 dB SNR) | 2 | 1293, 3139 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s12_proactive_end Proactive initiation and natural ending | 2 | 1352, 1083 | ✓proactive_opener_spoken ✓opener_references_memory ✓reply_contains_expected ✓session_ended_naturally |  |
+
 ### `modular-selfhosted` — 4 vCPU container, NO GPU: Whisper large-v3-turbo int8 routed by language (ivrit-ai model for Hebrew, stock model for English), Qwen3-4B-Instruct Q4_K_M on llama.cpp, Piper/ReNikud TTS (functional run, not a latency benchmark)
 
 File: `scenarios_modular-selfhosted_20261124T154837.json`
@@ -226,7 +254,181 @@ File: `scenarios_modular-selfhosted_20261124T201446.json`
 | s08_correction Correcting misunderstood information | 3 | 801, 827, 828 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
 | s12_proactive_end Proactive initiation and natural ending | 2 | 1026, 1136 | ✓proactive_opener_spoken ✓opener_references_memory ✓reply_contains_expected ✓session_ended_naturally |  |
 
+### `openai-realtime-eager` — OpenAI Realtime API called from a RunPod pod in Sweden (server-side WebSocket bridge); client on the same host; gpt-realtime-2.1; semantic_vad eagerness high
+
+File: `scenarios_openai-realtime-eager_20261124T212903.json`
+
+- Scenarios run: 6 (failed: 0); user turns: 15 (no response: 1)
+- Response latency (end of user speech → first agent audio): median 1972 ms, p90 3306 ms, p95 3410 ms, max 3559 ms, n=14
+- Proactive opener, first audio after connect: median 2134 ms
+- Stage medians (ms): provider_start_ms 890, summary_ms 2229
+- Scripted checks passed: 17/17
+- Interruptions: 1/1 detected; speech onset → interrupt signalled median 258 ms; audio still arriving after the interrupt: median 0 ms
+- WER of the pipeline's transcripts on synthetic user speech: he: 4.9% clean / 4.9% all (n=4), en: 0.0% clean / 0.0% all (n=10)
+- Playout underruns per agent turn: 0.0
+
+| Scenario | Turns | Latency per turn (ms) | Checks | Error |
+|---|---:|---|---|---|
+| s01_he_brainstorm Hebrew entrepreneurial brainstorming | 3 | 1669, 1760, 1594 | ✓proactive_opener_spoken ✓opener_references_memory |  |
+| s02_en_brainstorm English entrepreneurial brainstorming | 3 | 1797, 1744, 3329 | ✓proactive_opener_spoken ✓opener_references_memory ✓summary_action_items |  |
+| s05_continue_previous Continuing a previous conversation | 2 | 2759, 3026 | ✓proactive_opener_spoken ✓opener_references_memory ✓reply_contains_expected ✓reply_contains_expected |  |
+| s07_interrupt Interrupting the agent mid-sentence | 2 | 1973, 1927 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s08_correction Correcting misunderstood information | 3 | 3251, 3559, 2859 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s12_proactive_end Proactive initiation and natural ending | 2 | 1971, none | ✓proactive_opener_spoken ✓opener_references_memory ✓reply_contains_expected ✓session_ended_naturally |  |
+
+### `openai-realtime-mini` — OpenAI Realtime API called from a RunPod pod in Sweden (server-side WebSocket bridge); client on the same host; gpt-realtime-2.1-mini
+
+File: `scenarios_openai-realtime-mini_20261124T205232.json`
+
+- Scenarios run: 12 (failed: 0); user turns: 28 (no response: 0)
+- Response latency (end of user speech → first agent audio): median 1730 ms, p90 4878 ms, p95 5041 ms, max 6360 ms, n=28
+- Proactive opener, first audio after connect: median 1621 ms
+- Stage medians (ms): provider_start_ms 604, summary_ms 2248
+- Scripted checks passed: 27/28 — failed: s04_learning:reply_contains_expected
+- Interruptions: 1/1 detected; speech onset → interrupt signalled median 270 ms; audio still arriving after the interrupt: median 0 ms
+- WER of the pipeline's transcripts on synthetic user speech: he: 4.3% clean / 4.5% all (n=7), en: 0.0% clean / 0.0% all (n=18), auto: 22.2% clean / 22.2% all (n=2)
+- Playout underruns per agent turn: 0.61
+
+| Scenario | Turns | Latency per turn (ms) | Checks | Error |
+|---|---:|---|---|---|
+| s01_he_brainstorm Hebrew entrepreneurial brainstorming | 3 | 1979, 1714, 6360 | ✓proactive_opener_spoken ✓opener_references_memory |  |
+| s02_en_brainstorm English entrepreneurial brainstorming | 3 | 1954, 1470, 1387 | ✓proactive_opener_spoken ✓opener_references_memory ✓summary_action_items |  |
+| s03_personal_planning Personal planning | 3 | 1804, 1408, 4823 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s04_learning Learning a new subject | 2 | 1722, 1482 | ✓proactive_opener_spoken ✗reply_contains_expected |  |
+| s05_continue_previous Continuing a previous conversation | 2 | 3942, 4714 | ✓proactive_opener_spoken ✓opener_references_memory ✓reply_contains_expected ✓reply_contains_expected |  |
+| s06_topic_switch Switching topics unexpectedly | 2 | 5006, 4548 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s07_interrupt Interrupting the agent mid-sentence | 2 | 1908, 1518 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s08_correction Correcting misunderstood information | 3 | 1738, 5060, 2534 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s09_code_switch Hebrew-English code-switching | 2 | 1350, 1648 | ✓proactive_opener_spoken |  |
+| s10a_road_noise_en Conversation with simulated road noise (English, 5 dB SNR) | 2 | 1560, 1381 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s10b_road_noise_he Conversation with simulated road noise (Hebrew, 5 dB SNR) | 2 | 1547, 1876 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s12_proactive_end Proactive initiation and natural ending | 2 | 1310, 1340 | ✓proactive_opener_spoken ✓opener_references_memory ✓reply_contains_expected ✓session_ended_naturally |  |
+
+### `openai-realtime-mini` — OpenAI Realtime API called from a RunPod pod in Sweden (server-side WebSocket bridge); client on the same host; gpt-realtime-2.1-mini; semantic_vad auto
+
+File: `scenarios_openai-realtime-mini_20261124T214026.json`
+
+- Scenarios run: 12 (failed: 0); user turns: 28 (no response: 0)
+- Response latency (end of user speech → first agent audio): median 1646 ms, p90 4907 ms, p95 5097 ms, max 5313 ms, n=28
+- Proactive opener, first audio after connect: median 1696 ms
+- Stage medians (ms): provider_start_ms 568, summary_ms 2200
+- Scripted checks passed: 28/28
+- Interruptions: 1/1 detected; speech onset → interrupt signalled median 282 ms; audio still arriving after the interrupt: median 0 ms
+- WER of the pipeline's transcripts on synthetic user speech: he: 4.3% clean / 3.0% all (n=7), en: 0.0% clean / 0.0% all (n=19), auto: 29.6% clean / 29.6% all (n=2)
+- Playout underruns per agent turn: 0.0
+
+| Scenario | Turns | Latency per turn (ms) | Checks | Error |
+|---|---:|---|---|---|
+| s01_he_brainstorm Hebrew entrepreneurial brainstorming | 3 | 1381, 1539, 1734 | ✓proactive_opener_spoken ✓opener_references_memory |  |
+| s02_en_brainstorm English entrepreneurial brainstorming | 3 | 5313, 1574, 1794 | ✓proactive_opener_spoken ✓opener_references_memory ✓summary_action_items |  |
+| s03_personal_planning Personal planning | 3 | 1619, 1508, 2188 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s04_learning Learning a new subject | 2 | 1416, 2352 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s05_continue_previous Continuing a previous conversation | 2 | 4649, 2965 | ✓proactive_opener_spoken ✓opener_references_memory ✓reply_contains_expected ✓reply_contains_expected |  |
+| s06_topic_switch Switching topics unexpectedly | 2 | 1568, 4930 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s07_interrupt Interrupting the agent mid-sentence | 2 | 1596, 1319 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s08_correction Correcting misunderstood information | 3 | 3569, 5187, 1286 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s09_code_switch Hebrew-English code-switching | 2 | 2338, 2252 | ✓proactive_opener_spoken |  |
+| s10a_road_noise_en Conversation with simulated road noise (English, 5 dB SNR) | 2 | 1564, 4897 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s10b_road_noise_he Conversation with simulated road noise (Hebrew, 5 dB SNR) | 2 | 1631, 1661 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s12_proactive_end Proactive initiation and natural ending | 2 | 1555, 1554 | ✓proactive_opener_spoken ✓opener_references_memory ✓reply_contains_expected ✓session_ended_naturally |  |
+
+### `openai-realtime-servervad` — OpenAI Realtime API called from a RunPod pod in Sweden (server-side WebSocket bridge); client on the same host; gpt-realtime-2.1; server_vad 500 ms
+
+File: `scenarios_openai-realtime-servervad_20261124T213454.json`
+
+- Scenarios run: 6 (failed: 0); user turns: 15 (no response: 1)
+- Response latency (end of user speech → first agent audio): median 1619 ms, p90 1719 ms, p95 1780 ms, max 1891 ms, n=14
+- Proactive opener, first audio after connect: median 1930 ms
+- Stage medians (ms): provider_start_ms 561, summary_ms 2371
+- Scripted checks passed: 17/17
+- Interruptions: 1/1 detected; speech onset → interrupt signalled median 296 ms; audio still arriving after the interrupt: median 0 ms
+- WER of the pipeline's transcripts on synthetic user speech: he: 4.9% clean / 4.9% all (n=4), en: 0.0% clean / 0.0% all (n=10)
+- Playout underruns per agent turn: 0.0
+
+| Scenario | Turns | Latency per turn (ms) | Checks | Error |
+|---|---:|---|---|---|
+| s01_he_brainstorm Hebrew entrepreneurial brainstorming | 3 | 1708, 1720, 1718 | ✓proactive_opener_spoken ✓opener_references_memory |  |
+| s02_en_brainstorm English entrepreneurial brainstorming | 3 | 1537, 1621, 1595 | ✓proactive_opener_spoken ✓opener_references_memory ✓summary_action_items |  |
+| s05_continue_previous Continuing a previous conversation | 2 | 1636, 1891 | ✓proactive_opener_spoken ✓opener_references_memory ✓reply_contains_expected ✓reply_contains_expected |  |
+| s07_interrupt Interrupting the agent mid-sentence | 2 | 1617, 1588 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s08_correction Correcting misunderstood information | 3 | 1681, 1591, 1414 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s12_proactive_end Proactive initiation and natural ending | 2 | 1532, none | ✓proactive_opener_spoken ✓opener_references_memory ✓reply_contains_expected ✓session_ended_naturally |  |
+
+### `openai-realtime` — OpenAI Realtime API called from a RunPod pod in Sweden (server-side WebSocket bridge); client on the same host; smoke
+
+File: `scenarios_openai-realtime_20261124T202520.json`
+
+- Scenarios run: 1 (failed: 0); user turns: 3 (no response: 0)
+- Response latency (end of user speech → first agent audio): median 2158 ms, p90 3988 ms, p95 4216 ms, max 4445 ms, n=3
+- Proactive opener, first audio after connect: median 4177 ms
+- Stage medians (ms): provider_start_ms 1384, summary_ms 3612
+- Scripted checks passed: 2/3 — failed: s02_en_brainstorm:opener_references_memory
+- Interruptions: 0/0 detected; speech onset → interrupt signalled median – ms; audio still arriving after the interrupt: median – ms
+- WER of the pipeline's transcripts on synthetic user speech: en: 0.0% clean / 0.0% all (n=3)
+- Playout underruns per agent turn: 0.0
+
+| Scenario | Turns | Latency per turn (ms) | Checks | Error |
+|---|---:|---|---|---|
+| s02_en_brainstorm English entrepreneurial brainstorming | 3 | 2158, 1820, 4445 | ✓proactive_opener_spoken ✗opener_references_memory ✓summary_action_items |  |
+
+### `openai-realtime` — OpenAI Realtime API called from a RunPod pod in Sweden (server-side WebSocket bridge); client on the same host; smoke
+
+File: `scenarios_openai-realtime_20261124T203935.json`
+
+- Scenarios run: 1 (failed: 0); user turns: 3 (no response: 0)
+- Response latency (end of user speech → first agent audio): median 1895 ms, p90 3557 ms, p95 3764 ms, max 3972 ms, n=3
+- Proactive opener, first audio after connect: median 2014 ms
+- Stage medians (ms): provider_start_ms 674, summary_ms 3585
+- Scripted checks passed: 3/3
+- Interruptions: 0/0 detected; speech onset → interrupt signalled median – ms; audio still arriving after the interrupt: median – ms
+- WER of the pipeline's transcripts on synthetic user speech: en: 0.0% clean / 0.0% all (n=3)
+- Playout underruns per agent turn: 0.0
+
+| Scenario | Turns | Latency per turn (ms) | Checks | Error |
+|---|---:|---|---|---|
+| s02_en_brainstorm English entrepreneurial brainstorming | 3 | 3972, 1895, 1879 | ✓proactive_opener_spoken ✓opener_references_memory ✓summary_action_items |  |
+
+### `openai-realtime` — OpenAI Realtime API called from a RunPod pod in Sweden (server-side WebSocket bridge); client on the same host; gpt-realtime-2.1
+
+File: `scenarios_openai-realtime_20261124T204055.json`
+
+- Scenarios run: 12 (failed: 0); user turns: 28 (no response: 1)
+- Response latency (end of user speech → first agent audio): median 2049 ms, p90 5198 ms, p95 5468 ms, max 5628 ms, n=27
+- Proactive opener, first audio after connect: median 1864 ms
+- Stage medians (ms): provider_start_ms 569, summary_ms 2295
+- Scripted checks passed: 28/28
+- Interruptions: 1/1 detected; speech onset → interrupt signalled median 274 ms; audio still arriving after the interrupt: median 0 ms
+- WER of the pipeline's transcripts on synthetic user speech: he: 2.4% clean / 1.7% all (n=6), en: 0.0% clean / 0.0% all (n=19), auto: 33.3% clean / 33.3% all (n=2)
+- Playout underruns per agent turn: 0.0
+
+| Scenario | Turns | Latency per turn (ms) | Checks | Error |
+|---|---:|---|---|---|
+| s01_he_brainstorm Hebrew entrepreneurial brainstorming | 3 | 2084, 1780, 1923 | ✓proactive_opener_spoken ✓opener_references_memory |  |
+| s02_en_brainstorm English entrepreneurial brainstorming | 3 | 5628, 2049, 1993 | ✓proactive_opener_spoken ✓opener_references_memory ✓summary_action_items |  |
+| s03_personal_planning Personal planning | 3 | 1989, 1871, 4208 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s04_learning Learning a new subject | 2 | 1767, 2388 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s05_continue_previous Continuing a previous conversation | 2 | 3772, 4198 | ✓proactive_opener_spoken ✓opener_references_memory ✓reply_contains_expected ✓reply_contains_expected |  |
+| s06_topic_switch Switching topics unexpectedly | 2 | 5144, 5280 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s07_interrupt Interrupting the agent mid-sentence | 2 | 1513, 1966 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s08_correction Correcting misunderstood information | 3 | 5085, 5549, 1862 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s09_code_switch Hebrew-English code-switching | 2 | 1837, 1787 | ✓proactive_opener_spoken |  |
+| s10a_road_noise_en Conversation with simulated road noise (English, 5 dB SNR) | 2 | 2357, 2294 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s10b_road_noise_he Conversation with simulated road noise (Hebrew, 5 dB SNR) | 2 | 2094, 1710 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s12_proactive_end Proactive initiation and natural ending | 2 | 2029, none | ✓proactive_opener_spoken ✓opener_references_memory ✓reply_contains_expected ✓session_ended_naturally |  |
+
 ## Concurrency ramp
+
+### `hybrid-apillm` — GPU pod: NVIDIA L40S, 46068 MiB; STT Whisper large-v3-turbo float16 on GPU; LLM OpenAI gpt-6-luna over HTTPS (reasoning off); TTS Piper/ReNikud on CPU; client on the same host
+
+Targets: median ≤ 800 ms, p95 ≤ 1500 ms. Maximum sustainable concurrency: **0**
+
+| Concurrent sessions | Latency median (ms) | p95 (ms) | Failed turns | Failed sessions | Underruns | Server CPU mean / max | GPU utilisation mean | Late client frames |
+|---:|---:|---:|---:|---:|---:|---|---:|---:|
+| 1 | 1454 | 1691 | 0/5 | 0 | 0 | 1.9% / 5.9% | 1.1 | 0 |
+| 5 | 1292 | 1500 | 0/25 | 0 | 0 | 2.7% / 5.4% | 0.0 | 0 |
+| 10 | 1350 | 1964 | 0/50 | 0 | 0 | 2.3% / 6.8% | 3.1 | 0 |
+| 20 | 1414 | 2472 | 0/100 | 0 | 1 | 4.0% / 12.1% | 2.8 | 0 |
+| 35 | 1582 | 2907 | 0/175 | 0 | 14 | 4.9% / 8.6% | 7.2 | 0 |
 
 ### `mock` — 4 vCPU container, otherwise idle; MOCK provider (session layer only: transport, resampling, telemetry; no models)
 

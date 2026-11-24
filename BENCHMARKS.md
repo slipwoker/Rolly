@@ -5,22 +5,148 @@ Raw machine-readable results: `benchmarks/results/*.json`. Generated tables: `re
 
 ## Read this first: what was and was not measured
 
-All runs were made on **one 4-vCPU container with no GPU**. That hardware is two orders of magnitude too slow for real-time
-voice, so:
+Two environments were used on 2026-11-24:
 
-| Category | Measured here? | Why it is or is not valid |
+- **GPU pod**: one rented NVIDIA L40S (48 GB) on RunPod, Sweden. Real-time latency, concurrency, the 30-minute session, the
+  hybrid pipeline and the OpenAI Realtime baseline were measured here (section 0).
+- **CPU container**: 4 vCPU, no GPU. Accuracy, endpointing, memory behaviour and functional checks were measured here
+  (sections 1–6). Latencies from this machine (about 10 s) are not real-time figures and are kept only as a functional record.
+
+| Category | Measured? | Notes |
 |---|---|---|
-| Speech-recognition accuracy (WER), clean and in road noise | **Yes** | Accuracy does not depend on the hardware |
-| Endpointing and barge-in detection timing | **Yes** | Determined by the VAD configuration and the audio, not by the hardware |
-| Context retention, correction handling, hallucination probes, proactive opener, summaries | **Yes**, for the small CPU-sized LLM only | Behaviour of *that* model; a production model will differ |
-| Browser playout buffer and playback-stop time | **Yes** (headless Chromium, localhost) | Client-side property |
-| Session-layer CPU cost per user | **Yes** | CPU work, measured as CPU time |
-| Response latency of a real-time deployment | **No** | CPU latencies (about 10 s) say nothing about a GPU deployment |
-| Concurrency per GPU, GPU memory and utilisation | **No** | No GPU |
-| Commercial components over HTTPS: a low-cost LLM (`gpt-6-luna`) and transcription (`gpt-transcribe`) | **Yes** | Run with the owner's OpenAI key; latency includes this session's network proxy |
-| Commercial realtime speech-to-speech APIs (latency, Hebrew quality, cost) | **No** | They need a WebSocket; this session's outbound proxy does not carry WebSocket upgrades (HTTP 405). No Google key |
-| Human ratings | **No** | No evaluators |
-| Bandwidth with a production codec | **No** | POC streams raw PCM; Opus figures are estimates |
+| Response latency, self-hosted pipeline on a GPU | **Yes** | Section 0. Client on the same host: network and client playout are not included |
+| Concurrency per GPU | **Yes** | Section 0, one L40S, 1 to 50 simultaneous conversations |
+| Stable 30-minute session on a GPU | **Yes** | Section 0 |
+| OpenAI Realtime speech-to-speech baseline (latency, behaviour, token usage) | **Yes** | Section 0; first live use of the bridge, three turn-detection modes, two models |
+| Hybrid pipeline with a commercial language model | **Yes** | Section 0 (GPU) and section 4 (CPU) |
+| Speech-recognition accuracy, clean and in road noise | **Yes** | Section 1 |
+| Endpointing and barge-in detection | **Yes** | Section 2 |
+| Context retention, corrections, hallucination probes, proactive opener, summaries | **Yes** | Sections 0, 3, 4 |
+| Session-layer CPU cost | **Yes** | Section 5 |
+| Google Gemini Live baseline | **No** | No Google key |
+| Human ratings (naturalness, Hebrew quality, willingness to use) | **No** | No evaluators. Nobody has listened to any output |
+| Latency over a mobile network, real cars, real users | **No** | Synthetic users, client next to the server |
+| Cost per minute from real traffic | **No** | Modelled from measured capacity and measured token usage (`COSTS.md`) |
+
+## 0. GPU and commercial-baseline results (RunPod L40S)
+
+Raw files: `benchmarks/results/*_20261124T18…` to `…T21…` with "GPU pod" or "RunPod" in their `hardware_note`.
+Scripts: `infrastructure/pod_setup.sh`, `pod_bench.sh`, `pod_bench2.sh`, `pod_bench5.sh`. Total pod time 3 h 17 min, $3.58.
+
+**Setup.** Everything self-hosted ran on the one GPU: two Whisper large-v3-turbo models (Hebrew-tuned and stock, float16),
+and `RedHatAI/gemma-4-26B-A4B-it-FP8-dynamic` under vLLM with prefix caching; 36 GB of the 46 GB of GPU memory were in use.
+Speech synthesis ran on the pod's CPU (Piper English voice, ReNikud + Piper Hebrew voice). The benchmark client ran on the same
+machine and spoke synthetic user speech in real time. Response latency is "last user speech sample sent → first agent audio byte
+received", identical for every configuration.
+
+Caveats that apply to every number in this section: no network path and no client playout buffer (about 50 ms in Chromium on
+localhost; a mobile network adds its round trip); synthetic speech that is clean and has no hesitations; one run per
+configuration on one machine; small samples (14 to 56 turns per row). The English voice used here (`en_US-lessac`) has an
+unresolved dataset licence (`LICENSES.md`) and is a stand-in.
+
+### 0.1 Response latency by architecture
+
+| Configuration | Turns | Median | p90 | p95 | Max | Scripted checks |
+|---|---:|---:|---:|---:|---:|---:|
+| **Self-hosted pipeline**, default end-of-turn wait (544 ms, speculative start at 256 ms) | 56 | **681 ms** | 936 | 1,072 | 1,319 | 56 / 56 |
+| Self-hosted, shorter wait (416 / 192 ms) | 16 | 576 ms | 831 | 898 | 906 | 17 / 17 |
+| Self-hosted, shortest wait (320 / 160 ms) | 16 | 522 ms | 636 | 649 | 664 | 17 / 17 |
+| Self-hosted, speculative start switched off (544 ms) | 16 | 953 ms | 1,168 | 1,224 | 1,298 | 17 / 17 |
+| **Hybrid**: self-hosted speech + OpenAI `gpt-6-luna` (reasoning off) | 28 | 1,333 ms | 1,847 | 2,441 | 3,139 | 28 / 28 |
+| **OpenAI Realtime** `gpt-realtime-2.1`, semantic turn detection, eagerness auto (default) | 27 | 2,049 ms | 5,198 | 5,468 | 5,628 | 28 / 28 |
+| OpenAI Realtime `gpt-realtime-2.1`, semantic turn detection, eagerness high | 14 | 1,972 ms | 3,306 | 3,410 | 3,559 | 17 / 17 |
+| OpenAI Realtime `gpt-realtime-2.1`, server VAD, 500 ms silence | 14 | 1,619 ms | 1,719 | 1,780 | 1,891 | 17 / 17 |
+| OpenAI Realtime `gpt-realtime-2.1-mini`, eagerness auto (two runs) | 28 + 28 | 1,730 / 1,646 ms | 4,878 / 4,907 | 5,041 / 5,097 | 6,360 / 5,313 | 27 / 28, 28 / 28 |
+
+Against the targets (median < 800 ms, P95 < 1.5 s): the self-hosted pipeline meets both in every configuration except with the
+speculative start disabled. The hybrid and every OpenAI Realtime configuration miss the median target; server-VAD Realtime and
+nothing else among them comes close on P95. The OpenAI figures include the round trip from Sweden to OpenAI.
+
+Where the time goes in the self-hosted pipeline (median / p95 per stage, 56 turns): speech-to-text 63 / 101 ms; language model
+first token 56 / 65 ms; first speakable chunk 140 / 266 ms; first speech audio 119 / 257 ms; whole chain from the speculative start
+331 / 634 ms. The rest of the 681 ms is the deliberate wait to be sure the user has finished. In the hybrid the language model's
+first token takes 711 ms, which is the entire difference. Hebrew turns are slower than English ones (median 781 vs 670 ms).
+
+Other measurements from the same runs: interruption signalled 171 ms after the user's speech onset (self-hosted, 2 samples),
+274 ms (OpenAI Realtime, 1 sample); proactive opener audible 193 ms after connecting (self-hosted) against about 1.9 s
+(OpenAI Realtime); zero playout underruns in every GPU run.
+
+### 0.2 The end-of-turn wait: latency against cutting people off
+
+| End-of-turn wait / speculative start | Median latency (GPU, 16 turns) | P95 | Long sentences cut at a mid-sentence pause (FLEURS, 30 real recordings) |
+|---|---:|---:|---:|
+| 544 ms / 256 ms (default) | 652 ms | 904 ms | 3–4 of 30 (10–13 %) |
+| 416 ms / 192 ms | 576 ms | 898 ms | 5 of 30 (17 %) |
+| 320 ms / 160 ms | 522 ms | 649 ms | 8–10 of 30 (27–33 %) |
+| 544 ms, no speculative start | 953 ms | 1,224 ms | 3–4 of 30 |
+
+The speculative start is worth about 300 ms at no cost in cut-offs. Shortening the wait buys another 80–130 ms but roughly
+doubles to triples the cut-off rate on read sentences; the default is the better trade until a learned turn detector exists for Hebrew.
+
+### 0.3 Concurrency on one L40S
+
+Hebrew and English users mixed, five turns each, every level run to completion.
+
+| Simultaneous conversations | Turns | Median | P95 | Max | Failed turns | Playout underruns | GPU utilisation (mean) |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 5 | 871 ms | 908 | 911 | 0 | 0 | 7 % |
+| 2 | 10 | 756 ms | 962 | 965 | 0 | 0 | – |
+| 5 | 25 | 797 ms | 1,266 | 1,297 | 0 | 0 | 13 % |
+| 10 | 50 | 790 ms | 1,238 | 1,659 | 0 | 1 | 17 % |
+| 20 | 100 | 845 ms | 1,304 | 1,782 | 0 | 2 | 33 % |
+| 35 | 175 | 945 ms | 1,482 | 1,944 | 0 | 1 | 56 % |
+| 50 | 250 | 1,068 ms | 1,699 | 2,092 | 0 | 4 | 57 % |
+
+- **35 simultaneous conversations stay inside the 1.5 s P95 target; 50 complete without a single failed turn** but with P95 at 1.7 s.
+- The median creeps up from about 0.8 s to 0.95 s at 35. Read against the strict 800 ms median target the limit is between 10 and 20;
+  the single-session median in this mixed-language test is itself 0.76–0.87 s.
+- Server CPU: 0.15–0.18 CPU-seconds per session-second (speech synthesis and VAD run on CPU), i.e. about six conversations per core.
+- Hybrid ramp (API language model): median 1.29–1.58 s and P95 1.5–2.9 s from 1 to 35 conversations, no failed turns, GPU nearly idle
+  (speech recognition only). Its latency is set by the API, not by our hardware; 14 underruns appeared at 35.
+- Simulated users take about 4.4 turns per minute (measured in the 30-minute session), close to the 4 assumed in the cost model.
+
+### 0.4 Thirty-minute session on the GPU
+
+30.3 minutes, 134 turns, 0 failed, 0 underruns. Latency median 740 ms, P95 944 ms, max 1,048 ms; first third 782 ms, last third
+716 ms — no drift. The history was compacted ten times in the background (median 1.2 s each; the slowest turn of the session still took only 1,048 ms) and the fact
+stated in the first minute was recalled at the end. The same test on CPU, before block compaction existed, is in section 6.
+
+### 0.5 Self-hosted language model: `gemma-4-26B-A4B` (FP8) on the L40S
+
+| Probe (English · Hebrew) | Result |
+|---|---:|
+| Recall of facts present in memory | 6/6 · 6/6 |
+| No invented answer when the fact is not in memory | 4/4 · 4/4 |
+| General closed questions | 3/3 · 1/3 |
+| Fact recalled after 10 and 20 filler turns | pass, pass |
+| Time to first token / output speed | 52 ms median / 117 tokens per second |
+
+Hebrew conversation in the scenario transcripts is fluent, grammatical and uses the correct gender — comparable, on reading, to
+the commercial model. Two defects were found: in two of three Hebrew closed questions the number words were garbled (stray Cyrillic
+letters inside "חמישים ושש", a misspelt year). The prompt tells the model to spell numbers as words; this needs a fix (digits plus
+a text normaliser before speech synthesis) and a check whether the FP8 quantisation is responsible.
+
+### 0.6 OpenAI Realtime baseline: behaviour and measured cost
+
+- First live use of the bridge. It worked on the first call; one bug surfaced and was fixed (the opener ignored the user's memory
+  because per-response instructions replace the session instructions on this API).
+- Quality: `gpt-realtime-2.1` passed 28 of 28 scripted checks, with fluent Hebrew and correct use of memory. `gpt-realtime-2.1-mini`
+  passed 55 of 56 over two runs (the one miss is a correct answer worded differently from the keyword list) but its Hebrew had
+  gender and phrasing errors in the transcripts.
+- Hebrew-English mixed speech: `gpt-realtime-2.1` kept "payment module" in English and understood "Q2" where our pipeline
+  garbled both, but it also mis-heard "Stripe"; the synthetic stimulus remains invalid for a firm conclusion.
+- In the three `gpt-realtime-2.1` runs the farewell turn ended the session through the tool call without spoken audio
+  (counted as one "no response" each); the session still ended correctly.
+- **Cost from the token usage the API reported**, at list prices that could not be verified on OpenAI's own page:
+  `gpt-realtime-2.1` $0.070–0.075 per connected minute across four runs; `gpt-realtime-2.1-mini` $0.020–0.021. These are
+  one-to-two-minute sessions; the research estimate for 30-minute sessions is higher because the growing context is re-billed.
+  About half of the input tokens were served from cache.
+
+### 0.7 Operations notes from the pod
+
+- From container start to ready, with weights cached on the volume: about 3 minutes on each of five restarts (vLLM loading the 26B model dominates).
+- First start failed because the slim CUDA image has no C compiler, which vLLM needs at start-up; fixed in `pod_setup.sh`.
+- 27 GB of model weights downloaded in under three minutes in that data centre.
 
 ## 1. Speech recognition accuracy
 
@@ -107,7 +233,7 @@ Prompt caching, measured on the CPU server: the first turn of a session evaluate
 (12–14 s on this CPU); later turns reuse the cached prefix (about 880–1,100 cached tokens) and reach the first token in about 1.0–1.2 s.
 The same mechanism (prefix caching in vLLM, cached-input pricing in APIs) is what keeps the per-turn cost of a growing history bounded.
 
-## 4. Scripted scenarios through the full pipeline (CPU)
+## 4. Scripted scenarios through the full pipeline on the CPU container (functional record; GPU results are in section 0)
 
 `modular-selfhosted`: Silero VAD → Whisper (routed by language, int8) → Qwen3-4B Q4 on llama.cpp → Piper (English) / ReNikud + Piper (Hebrew).
 Synthetic user speech, real-time microphone simulation, real WebSocket.
@@ -157,7 +283,7 @@ finding that no model of 12B or below has a published Hebrew score.
   served from the provider's cache, because most prompts in these short sessions are below the provider's minimum cacheable size.
   At the unverified list price that is about $0.0001 per turn, or $0.0004 per conversational minute at four turns per minute.
 
-## 5. Concurrency
+## 5. Concurrency on the CPU container and session-layer cost
 
 | Run | Sessions | Latency median | Failed turns | Note |
 |---|---:|---:|---:|---|
@@ -169,11 +295,10 @@ finding that no model of 12B or below has a published Hebrew score.
 With the VAD cost measured separately (0.0065 CPU-seconds per second of audio), the session layer handles about 80 conversations per
 core at full load, about 40 with headroom.
 
-Maximum sustainable real-time concurrency of the full pipeline on this hardware: **0**. The run validates the harness
-(`benchmarks/concurrency.py`) and shows graceful degradation (queues grow, nothing crashes). The planned 1 / 5 / 10 / 20 / 50 ramp on
-a GPU has not been run.
+Maximum sustainable real-time concurrency of the full pipeline on the CPU container: **0**. That run validated the harness
+and showed graceful degradation. The ramp on a GPU is in section 0.3.
 
-## 6. Extended session
+## 6. Extended session on the CPU container (where the history problem was found)
 
 One continuous English conversation, simulated user, CPU.
 
@@ -200,30 +325,24 @@ the earlier synopsis over verbatim fixed that. Remaining cost on this CPU: the t
 the single LLM slot (10–20 s), which a deployment avoids by using a separate slot or model for it. With the default setting (24
 exchanges) a 30-minute conversation compacts two or three times; that configuration was not re-run for the full 30 minutes.
 
-## 7. Projected latency on a GPU (estimate, not a measurement)
+## 7. The earlier latency projection, for the record
 
-| Stage | Measured here (CPU) | Published for a GPU | Planning figure, one L40S |
-|---|---:|---|---:|
-| Wait before acting on end of speech (speculative start) | 190–230 ms after true end | — | 200–260 ms |
-| Speech-to-text, utterance up to 5 s | 6,100 ms | 231 ms p50 on L40S, 405 ms on L4 (ivrit.ai model card) | 230 ms |
-| LLM, first speakable chunk | 4,300 ms | not found for the planned model | 250–400 ms |
-| TTS, first chunk | 330 ms | — | 60–150 ms |
-| Network and playout | 50 ms (localhost Chromium) | — | 80–150 ms on mobile |
-| **End of speech → audible reply** | 10,500 ms | | **about 0.85–1.2 s** |
+Before the GPU run this file projected 0.85–1.2 s from end of speech to audible reply and judged the 800 ms median "at risk".
+The measurement (section 0) is 681 ms median and 1,072 ms P95 without network and playout: the projection was pessimistic,
+mainly because speech recognition took 63 ms instead of the 230 ms taken from the model card, and the language model produced its
+first speakable chunk in 140 ms instead of the assumed 250–400 ms. With a realistic 80–150 ms for mobile network and playout the
+median lands at about 0.76–0.83 s, i.e. on the target rather than comfortably under it.
 
-The endpoint commit at 544 ms is not the bottleneck in this projection; the serial STT → LLM → TTS chain after the speculative start is.
-Reading against the targets: P95 below 1.5 s looks reachable; a median below 800 ms does not, unless transcription runs
-incrementally during speech (a streaming recogniser) so that almost no STT time remains after the user stops. This projection must be
-replaced by the GPU measurement.
+## 8. Still not measured
 
-## 8. Not measured, and what is ready to measure it
-
-| Metric from the brief | Status | Ready-made tool |
+| Item | Why | What is ready |
 |---|---|---|
-| Median / P95 response latency in real time | Not measured | `benchmarks/run_scenarios.py` on a GPU host |
-| Maximum sustainable concurrency, GPU utilisation and memory | Not measured | `benchmarks/concurrency.py`, `/api/resources` |
-| Commercial realtime baseline: quality, latency, token usage | Not measured (WebSocket blocked in this session; no Google key) | same scripts with `--provider openai-realtime` / `gemini-live` from a machine with normal internet access |
-| Cost per connected / active minute from real usage | Not measured (modelled in `COSTS.md`) | `usage` telemetry events are recorded per session |
-| Session failure rate | 0 failed sessions in 12 scenario sessions, 7 full-pipeline concurrency sessions, 3 long sessions and 85 mock sessions. In one earlier development run the session was closed early by the model itself (fixed, decision D9) | — |
-| Human evaluation | Not performed | `frontend/eval.html`, `docs/HUMAN_EVALUATION.md` |
-| Network bandwidth | Raw PCM as built: 256 kbit/s up, up to 384 kbit/s down while the agent speaks. Opus estimate 0.8 MB per minute both ways | — |
+| Human evaluation | No evaluators | `frontend/eval.html`, `docs/HUMAN_EVALUATION.md` |
+| Google Gemini Live baseline | No Google key | `--provider gemini-live` (bridge tested against an emulator only) |
+| Latency over mobile networks and in real cars | Client ran next to the server | Browser client; needs a deployed HTTPS endpoint |
+| Mixed Hebrew-English speech on real recordings | No licensed test set | Scenario s09 with human recordings |
+| Other GPU types (L4, A40, RTX 6000 Ada), and each stage's capacity in isolation | Only one L40S run | `infrastructure/pod_*.sh` |
+| GPU speech synthesis and stronger Hebrew voices | Speech synthesis ran on CPU with stand-in voices | `BLOCKERS.md` B4 |
+| 30-minute sessions on the commercial APIs | Only short sessions were run | `benchmarks/long_session.py --provider openai-realtime` |
+| Session failure rate under real conditions | 0 failed sessions in all GPU runs (24 + 24 scenario sessions, 123 concurrency sessions, one 30-minute session) and all CPU runs | — |
+| Network bandwidth with a production codec | POC streams raw PCM: 256 kbit/s up, 265 kbit/s down measured in the 30-minute session. Opus estimate 0.8 MB per minute both ways | — |
