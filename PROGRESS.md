@@ -37,7 +37,8 @@ emulators or on CPU only.
    - session summary never reached the client when summarisation was slow → socket is drained during finalisation;
    - the simulated client assumed gapless playback → realistic playout-buffer model with underrun counting;
    - first session paid the model-loading time → optional warm-up at start;
-   - client-side latency was biased low by trailing silence in synthetic speech → clips are trimmed.
+   - client-side latency was biased low by trailing silence in synthetic speech → clips are trimmed;
+   - the 30-minute run showed latency collapsing after turn 40 because sliding-window history trimming defeated the LLM prefix cache, and an early fact was lost → block compaction with a cumulative synopsis (D15), verified in shorter runs.
 7. Browser client written and verified in headless Chromium with a fake microphone (proactive opener, barge-in, summary).
 8. Commercial bridges written; emulator tests added.
 9. Benchmarks: WER (FLEURS, three models, four noise levels), VAD/endpointing, LLM probes, session-layer capacity, scenarios, concurrency, long session.

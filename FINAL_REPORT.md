@@ -128,7 +128,7 @@ Break-even against self-hosting everything (all-in, with staff): about 250–600
 | P95 below 1.5 s | **Not measured.** Looks reachable | Estimate |
 | Playback stops within 300 ms of a detected interruption | **Met** on the measured path: about 45 ms plus network | Measured (one browser run, localhost) |
 | Hebrew conversational quality at least 4/5 | **Not evaluated.** Would not be met with the 4B model | No human evaluation performed |
-| Stable 30-minute sessions | See `reports/benchmark_summary.md`, "Extended session" | Measured on CPU |
+| Stable 30-minute sessions | **Met for stability** (31.6 minutes, 50 turns, no failed turn or error). The run exposed a latency cliff after turn 40 and loss of an early fact, both caused by history trimming that defeated the LLM prefix cache; fixed with block compaction and re-verified in 13-minute runs, not yet in a full 30-minute run | Measured on CPU |
 | Meaningful proactive initiation | **Met mechanically**: 12 of 12 sessions opened by the agent; 3 of 4 openers named the stored topic | Measured, keyword check |
 | Reliable cross-session memory | **Met**: a summary written by one session is in the next session's context; recall probes 11 of 12 | Measured |
 | Below $0.005 per minute at scale | **Plausible**: variable cost in every capacity scenario; all-in from about 10,000 daily users in the base case | Estimate on assumptions |
@@ -171,6 +171,7 @@ Break-even against self-hosting everything (all-in, with staff): about 250–600
 | Latency target (median 800 ms) | High | Projection only | GPU benchmark; streaming speech recognition; shorter speculative window |
 | Natural Hebrew voice | High | No open voice proven; POC voice is read-speech quality by expectation | Blind listening test of BlueV3, ZONOS3-Mini, commercial voices |
 | Hebrew-English code-switching | High | No model documented for it; POC test invalid | Record a small consented test set of real mixed speech; test streaming and commercial recognisers |
+| Long-session context handling | Medium | Measured: naive history trimming made first-token time 25 times slower after 40 turns and lost early facts; commercial realtime APIs bill the same uncached context | Block compaction with a cumulative synopsis (built); separate model for the synopsis; append-only fact list |
 | Users cut off mid-sentence | Medium | Measured: 10–13 % of long sentences split by the fixed endpoint | Learned turn detection for Hebrew; adaptive thresholds |
 | Capacity per GPU unknown | Medium | Assumption in the cost model | GPU concurrency ramp |
 | Prices | Medium | GPU and OpenAI prices unverified; GPU rental prices rose in 2026 (published by third parties) | Re-verify; keep the architecture portable across clouds |

@@ -77,12 +77,14 @@ class ModularProvider(VoiceProvider):
         self.llm = get_llm(config["llm"])
         self.tts = TTSRouter(config["tts"])
         self.tts.warm()
-        self.max_history_turns = int(config.get("max_history_turns", 40))
+        # user/agent exchanges kept verbatim before the older half is compacted into a synopsis
+        self.max_history_turns = int(config.get("max_history_turns") or 24)
         self.history: list[dict] = []
         self._turn: Optional[asyncio.Task] = None
         self._gate: Optional[_Gate] = None
         self._turn_state: dict = {}
         self._closed = False
+        self._compacting: Optional[asyncio.Task] = None
 
     def describe(self) -> dict:
         return {
@@ -106,6 +108,8 @@ class ModularProvider(VoiceProvider):
     async def close(self) -> None:
         self._closed = True
         await self._cancel_turn(emit_interrupt=False)
+        if self._compacting and not self._compacting.done():
+            self._compacting.cancel()
 
     # -- audio in ----------------------------------------------------------------
     def _agent_audible(self) -> bool:
@@ -217,10 +221,47 @@ class ModularProvider(VoiceProvider):
             spoken = clean_for_speech(state.get("agent_text", ""))
             if spoken:
                 self.history.append({"role": "assistant", "content": spoken})
-        if len(self.history) > self.max_history_turns * 2:
-            self.history = self.history[-self.max_history_turns * 2:]
-            while self.history and self.history[0]["role"] != "user":
-                self.history.pop(0)
+        if len(self.history) > self.max_history_turns * 2 and (self._compacting is None or self._compacting.done()):
+            self._compacting = asyncio.create_task(self._compact_history())
+
+    async def _compact_history(self) -> None:
+        """Replace the older half of the conversation by a short synopsis, in one block.
+
+        A sliding window that drops one old message per turn changes the prompt prefix on every
+        turn, which defeats LLM prefix caching (measured in the 30-minute run: cached tokens fell
+        from ~3,200 to 734 and time-to-first-token rose from ~2 s to ~50 s on CPU) and silently
+        forgets early facts.  Compacting in blocks invalidates the cache once per block, and the
+        synopsis keeps what was said."""
+        cut = len(self.history) // 2
+        while cut < len(self.history) and self.history[cut]["role"] != "user":
+            cut += 1
+        old = self.history[:cut]
+        if not old:
+            return
+        t0 = time.monotonic()
+        # An earlier synopsis is carried over verbatim and only the new turns are summarised:
+        # re-summarising a summary repeatedly loses details (observed with the 4B model).
+        prefix = "[Earlier in this conversation - summary] "
+        previous, fresh = "", old
+        if old[0]["content"].startswith(prefix):
+            previous, fresh = old[0]["content"][len(prefix):], old[2:]
+        text = "\n".join(f"{'USER' if m['role'] == 'user' else 'AGENT'}: {m['content']}" for m in fresh if not m["content"].startswith("[journey_start"))
+        synopsis = None
+        try:
+            res = await self.llm.complete([{"role": "user", "content":
+                "Summarise the following part of a spoken conversation in at most 120 words. Keep every concrete fact, number, name, "
+                "decision and commitment the USER stated, word for word where possible. Write plain sentences.\n\n" + text}],
+                max_tokens=220, temperature=0.1)
+            synopsis = res.text.strip() or None
+        except Exception:
+            synopsis = None
+        if self.history[:cut] != old:  # the conversation moved on in an unexpected way: try again later
+            return
+        combined = " ".join(x for x in (previous, synopsis or "") if x).strip()
+        head = [{"role": "user", "content": prefix + (combined or "(earlier turns were dropped)")},
+                {"role": "assistant", "content": "Understood, I remember that."}]
+        self.history = head + self.history[cut:]
+        await self.emit(base.METRIC, name="history_compaction_ms", value_ms=(time.monotonic() - t0) * 1000)
 
     def _messages(self, user_text: str) -> list[dict]:
         msgs = [{"role": "system", "content": self.ctx.system_prompt}] + [dict(m) for m in self.history]

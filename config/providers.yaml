@@ -19,6 +19,7 @@ providers:
     description: Silero VAD -> faster-whisper -> open-weight LLM (OpenAI-compatible server) -> self-hosted TTS
     requires_files: ["${ROLLY_VAD_MODEL:-models/silero_vad.onnx}"]
     vad_model: "${ROLLY_VAD_MODEL:-models/silero_vad.onnx}"
+    max_history_turns: ${ROLLY_MAX_HISTORY_TURNS:-24}
     vad:
       endpoint_silence_ms: ${ROLLY_ENDPOINT_SILENCE_MS:-544}
       eager_silence_ms: ${ROLLY_EAGER_SILENCE_MS:-256}
@@ -71,6 +72,7 @@ providers:
     description: Self-hosted VAD + STT + TTS with a low-cost commercial LLM over an OpenAI-compatible API
     requires_env: [ROLLY_HYBRID_LLM_BASE_URL]
     vad_model: "${ROLLY_VAD_MODEL:-models/silero_vad.onnx}"
+    max_history_turns: ${ROLLY_MAX_HISTORY_TURNS:-24}
     vad:
       endpoint_silence_ms: ${ROLLY_ENDPOINT_SILENCE_MS:-544}
       eager_silence_ms: ${ROLLY_EAGER_SILENCE_MS:-256}

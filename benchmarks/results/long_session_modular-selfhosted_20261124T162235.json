@@ -1,0 +1,552 @@
+{
+ "benchmark": "long_session",
+ "provider": "modular-selfhosted",
+ "hardware_note": "4 vCPU container, NO GPU: Whisper large-v3-turbo int8 routed by language (ivrit-ai model for Hebrew, stock model for English), Qwen3-4B-Instruct Q4_K_M on llama.cpp, Piper/ReNikud TTS (functional run, not a latency benchmark)",
+ "host": "Linux-6.18.44-fc-v819-x86_64-with-glibc2.39",
+ "target_minutes": 30.0,
+ "language": "en",
+ "started": "2026-11-24T16:22:35",
+ "turns": [
+  {
+   "t_min": 0.57,
+   "said": "By the way, remember this for later: my locker code at the gym is seven four two nine.",
+   "latency_ms": 10189,
+   "underruns": 0,
+   "agent_chars": 132
+  },
+  {
+   "t_min": 0.92,
+   "said": "Yes, let's continue with that topic.",
+   "latency_ms": 9995,
+   "underruns": 0,
+   "agent_chars": 253
+  },
+  {
+   "t_min": 1.41,
+   "said": "What do you think is the biggest risk here?",
+   "latency_ms": 12191,
+   "underruns": 0,
+   "agent_chars": 253
+  },
+  {
+   "t_min": 1.88,
+   "said": "Okay, and what would be a good first step this week?",
+   "latency_ms": 11629,
+   "underruns": 0,
+   "agent_chars": 220
+  },
+  {
+   "t_min": 2.32,
+   "said": "Can you summarise what we decided so far?",
+   "latency_ms": 11299,
+   "underruns": 1,
+   "agent_chars": 219
+  },
+  {
+   "t_min": 2.78,
+   "said": "I am not sure I agree. Give me the counter argument.",
+   "latency_ms": 10798,
+   "underruns": 1,
+   "agent_chars": 292
+  },
+  {
+   "t_min": 3.3,
+   "said": "How many interviews do I still have to schedule?",
+   "latency_ms": 9830,
+   "underruns": 1,
+   "agent_chars": 150
+  },
+  {
+   "t_min": 3.68,
+   "said": "What do you think is the biggest risk here?",
+   "latency_ms": 11771,
+   "underruns": 0,
+   "agent_chars": 223
+  },
+  {
+   "t_min": 4.15,
+   "said": "Okay, and what would be a good first step this week?",
+   "latency_ms": 13504,
+   "underruns": 0,
+   "agent_chars": 193
+  },
+  {
+   "t_min": 4.53,
+   "said": "Can you summarise what we decided so far?",
+   "latency_ms": 9062,
+   "underruns": 2,
+   "agent_chars": 227
+  },
+  {
+   "t_min": 5.04,
+   "said": "I am not sure I agree. Give me the counter argument.",
+   "latency_ms": 11573,
+   "underruns": 1,
+   "agent_chars": 203
+  },
+  {
+   "t_min": 5.43,
+   "said": "How many interviews do I still have to schedule?",
+   "latency_ms": 8663,
+   "underruns": 1,
+   "agent_chars": 132
+  },
+  {
+   "t_min": 5.82,
+   "said": "Yes, let's continue with that topic.",
+   "latency_ms": 11636,
+   "underruns": 0,
+   "agent_chars": 207
+  },
+  {
+   "t_min": 6.3,
+   "said": "What do you think is the biggest risk here?",
+   "latency_ms": 13946,
+   "underruns": 0,
+   "agent_chars": 179
+  },
+  {
+   "t_min": 6.77,
+   "said": "Okay, and what would be a good first step this week?",
+   "latency_ms": 15379,
+   "underruns": 0,
+   "agent_chars": 216
+  },
+  {
+   "t_min": 7.21,
+   "said": "Can you summarise what we decided so far?",
+   "latency_ms": 10797,
+   "underruns": 1,
+   "agent_chars": 258
+  },
+  {
+   "t_min": 7.76,
+   "said": "I am not sure I agree. Give me the counter argument.",
+   "latency_ms": 12722,
+   "underruns": 0,
+   "agent_chars": 188
+  },
+  {
+   "t_min": 8.13,
+   "said": "How many interviews do I still have to schedule?",
+   "latency_ms": 9817,
+   "underruns": 1,
+   "agent_chars": 105
+  },
+  {
+   "t_min": 8.52,
+   "said": "Yes, let's continue with that topic.",
+   "latency_ms": 13800,
+   "underruns": 0,
+   "agent_chars": 181
+  },
+  {
+   "t_min": 8.97,
+   "said": "What do you think is the biggest risk here?",
+   "latency_ms": 13376,
+   "underruns": 0,
+   "agent_chars": 180
+  },
+  {
+   "t_min": 9.45,
+   "said": "Okay, and what would be a good first step this week?",
+   "latency_ms": 16242,
+   "underruns": 0,
+   "agent_chars": 221
+  },
+  {
+   "t_min": 9.87,
+   "said": "Can you summarise what we decided so far?",
+   "latency_ms": 9739,
+   "underruns": 2,
+   "agent_chars": 179
+  },
+  {
+   "t_min": 10.37,
+   "said": "I am not sure I agree. Give me the counter argument.",
+   "latency_ms": 12603,
+   "underruns": 0,
+   "agent_chars": 188
+  },
+  {
+   "t_min": 10.75,
+   "said": "How many interviews do I still have to schedule?",
+   "latency_ms": 9705,
+   "underruns": 1,
+   "agent_chars": 105
+  },
+  {
+   "t_min": 11.1,
+   "said": "Yes, let's continue with that topic.",
+   "latency_ms": 11981,
+   "underruns": 0,
+   "agent_chars": 179
+  },
+  {
+   "t_min": 11.54,
+   "said": "What do you think is the biggest risk here?",
+   "latency_ms": 13510,
+   "underruns": 0,
+   "agent_chars": 177
+  },
+  {
+   "t_min": 11.97,
+   "said": "Okay, and what would be a good first step this week?",
+   "latency_ms": 12755,
+   "underruns": 0,
+   "agent_chars": 220
+  },
+  {
+   "t_min": 12.4,
+   "said": "Can you summarise what we decided so far?",
+   "latency_ms": 10781,
+   "underruns": 1,
+   "agent_chars": 199
+  },
+  {
+   "t_min": 12.86,
+   "said": "I am not sure I agree. Give me the counter argument.",
+   "latency_ms": 12240,
+   "underruns": 0,
+   "agent_chars": 188
+  },
+  {
+   "t_min": 13.24,
+   "said": "How many interviews do I still have to schedule?",
+   "latency_ms": 10132,
+   "underruns": 1,
+   "agent_chars": 105
+  },
+  {
+   "t_min": 13.6,
+   "said": "Yes, let's continue with that topic.",
+   "latency_ms": 12259,
+   "underruns": 0,
+   "agent_chars": 179
+  },
+  {
+   "t_min": 14.03,
+   "said": "What do you think is the biggest risk here?",
+   "latency_ms": 13111,
+   "underruns": 0,
+   "agent_chars": 177
+  },
+  {
+   "t_min": 14.47,
+   "said": "Okay, and what would be a good first step this week?",
+   "latency_ms": 13530,
+   "underruns": 0,
+   "agent_chars": 220
+  },
+  {
+   "t_min": 14.92,
+   "said": "Can you summarise what we decided so far?",
+   "latency_ms": 11840,
+   "underruns": 2,
+   "agent_chars": 199
+  },
+  {
+   "t_min": 15.42,
+   "said": "I am not sure I agree. Give me the counter argument.",
+   "latency_ms": 13336,
+   "underruns": 1,
+   "agent_chars": 188
+  },
+  {
+   "t_min": 15.82,
+   "said": "How many interviews do I still have to schedule?",
+   "latency_ms": 10690,
+   "underruns": 1,
+   "agent_chars": 105
+  },
+  {
+   "t_min": 16.19,
+   "said": "Yes, let's continue with that topic.",
+   "latency_ms": 12975,
+   "underruns": 0,
+   "agent_chars": 176
+  },
+  {
+   "t_min": 16.66,
+   "said": "What do you think is the biggest risk here?",
+   "latency_ms": 14637,
+   "underruns": 0,
+   "agent_chars": 177
+  },
+  {
+   "t_min": 17.11,
+   "said": "Okay, and what would be a good first step this week?",
+   "latency_ms": 14715,
+   "underruns": 0,
+   "agent_chars": 220
+  },
+  {
+   "t_min": 17.56,
+   "said": "Can you summarise what we decided so far?",
+   "latency_ms": 11591,
+   "underruns": 1,
+   "agent_chars": 199
+  },
+  {
+   "t_min": 18.97,
+   "said": "I am not sure I agree. Give me the counter argument.",
+   "latency_ms": 67019,
+   "underruns": 1,
+   "agent_chars": 188
+  },
+  {
+   "t_min": 20.23,
+   "said": "How many interviews do I still have to schedule?",
+   "latency_ms": 62235,
+   "underruns": 1,
+   "agent_chars": 105
+  },
+  {
+   "t_min": 21.46,
+   "said": "Yes, let's continue with that topic.",
+   "latency_ms": 64277,
+   "underruns": 0,
+   "agent_chars": 176
+  },
+  {
+   "t_min": 22.74,
+   "said": "What do you think is the biggest risk here?",
+   "latency_ms": 63910,
+   "underruns": 0,
+   "agent_chars": 177
+  },
+  {
+   "t_min": 23.99,
+   "said": "Okay, and what would be a good first step this week?",
+   "latency_ms": 62119,
+   "underruns": 0,
+   "agent_chars": 220
+  },
+  {
+   "t_min": 25.25,
+   "said": "Can you summarise what we decided so far?",
+   "latency_ms": 60131,
+   "underruns": 2,
+   "agent_chars": 199
+  },
+  {
+   "t_min": 26.62,
+   "said": "I am not sure I agree. Give me the counter argument.",
+   "latency_ms": 64420,
+   "underruns": 1,
+   "agent_chars": 188
+  },
+  {
+   "t_min": 27.89,
+   "said": "How many interviews do I still have to schedule?",
+   "latency_ms": 62377,
+   "underruns": 1,
+   "agent_chars": 105
+  },
+  {
+   "t_min": 29.05,
+   "said": "Yes, let's continue with that topic.",
+   "latency_ms": 59606,
+   "underruns": 0,
+   "agent_chars": 176
+  },
+  {
+   "t_min": 30.24,
+   "said": "What do you think is the biggest risk here?",
+   "latency_ms": 58322,
+   "underruns": 0,
+   "agent_chars": 177
+  }
+ ],
+ "memory_probe": {
+  "reply": "I don’t have access to your gym schedule or locker room details. You might want to check your app or ask a gym staff member. Let me know if you’d like help with something else.",
+  "pass": false
+ },
+ "actual_minutes": 31.63,
+ "session_survived": true,
+ "turns_completed": 50,
+ "turns_failed": 0,
+ "response_latency_ms": {
+  "n": 50,
+  "median": 12662.5,
+  "mean": 22095.3,
+  "p90": 62249.2,
+  "p95": 64111.8,
+  "min": 8663,
+  "max": 67019
+ },
+ "latency_first_third_ms": {
+  "n": 16,
+  "median": 11436.0,
+  "mean": 11391.4,
+  "p90": 13725.0,
+  "p95": 14304.2,
+  "min": 8663,
+  "max": 15379
+ },
+ "latency_last_third_ms": {
+  "n": 16,
+  "median": 59868.5,
+  "mean": 43897.5,
+  "p90": 64348.5,
+  "p95": 65069.8,
+  "min": 10690,
+  "max": 67019
+ },
+ "underruns": 25,
+ "errors": [],
+ "stats": {
+  "duration_s": 1897.9,
+  "turns_user": 51,
+  "turns_agent": 52,
+  "interruptions": 0,
+  "errors": 0,
+  "response_latency_ms": {
+   "n": 51,
+   "median": 12664.4,
+   "mean": 22792.8,
+   "p90": 62207.5,
+   "p95": 64058.1,
+   "min": 8638.1,
+   "max": 66963.1
+  },
+  "endpoint_delay_ms": {
+   "n": 51,
+   "median": 541.2,
+   "mean": 546.1,
+   "p90": 561.2,
+   "p95": 564.1,
+   "min": 539.7,
+   "max": 566.1
+  },
+  "interrupt_detect_ms": {
+   "n": 0
+  },
+  "client_latency_ms": {
+   "n": 0
+  },
+  "client_stop_ms": {
+   "n": 0
+  },
+  "proactive_first_audio_ms": 8441.6,
+  "stages": {
+   "provider_start_ms": {
+    "n": 1,
+    "median": 0.1,
+    "mean": 0.1,
+    "p90": 0.1,
+    "p95": 0.1,
+    "min": 0.1,
+    "max": 0.1
+   },
+   "llm_first_chunk_ms": {
+    "n": 52,
+    "median": 6121.0,
+    "mean": 16026.1,
+    "p90": 55821.8,
+    "p95": 57336.0,
+    "min": 2507.8,
+    "max": 60478.6
+   },
+   "tts_ttfa_ms": {
+    "n": 52,
+    "median": 620.9,
+    "mean": 601.6,
+    "p90": 820.8,
+    "p95": 885.0,
+    "min": 170.8,
+    "max": 975.5
+   },
+   "pipeline_ms": {
+    "n": 52,
+    "median": 12349.3,
+    "mean": 22259.1,
+    "p90": 61932.4,
+    "p95": 63774.2,
+    "min": 8377.2,
+    "max": 66692.4
+   },
+   "llm_ttft_ms": {
+    "n": 52,
+    "median": 1800.6,
+    "mean": 12214.2,
+    "p90": 51732.7,
+    "p95": 52807.8,
+    "min": 871.4,
+    "max": 56035.8
+   },
+   "llm_total_ms": {
+    "n": 52,
+    "median": 13022.0,
+    "mean": 22943.0,
+    "p90": 62724.9,
+    "p95": 64665.1,
+    "min": 7414.4,
+    "max": 68092.7
+   },
+   "stt_ms": {
+    "n": 51,
+    "median": 5657.5,
+    "mean": 5739.6,
+    "p90": 6324.2,
+    "p95": 6579.5,
+    "min": 4946.5,
+    "max": 6765.9
+   },
+   "stt_queue_ms": {
+    "n": 51,
+    "median": 0.3,
+    "mean": 0.3,
+    "p90": 0.4,
+    "p95": 0.4,
+    "min": 0.1,
+    "max": 0.9
+   },
+   "end_marker_ignored": {
+    "n": 1,
+    "median": 0.0,
+    "mean": 0.0,
+    "p90": 0.0,
+    "p95": 0.0,
+    "min": 0.0,
+    "max": 0.0
+   },
+   "summary_ms": {
+    "n": 1,
+    "median": 844.9,
+    "mean": 844.9,
+    "p90": 844.9,
+    "p95": 844.9,
+    "min": 844.9,
+    "max": 844.9
+   }
+  },
+  "audio_in_s": 1896.16,
+  "audio_out_s": 519.4,
+  "bytes_up": 60677120,
+  "bytes_down": 24931194,
+  "kbps_up_raw": 255.8,
+  "kbps_down_raw": 105.1,
+  "usage": {
+   "llm": {
+    "prompt_tokens": 121264,
+    "completion_tokens": 2121,
+    "cached_tokens": 93699,
+    "model": "local@http://127.0.0.1:8081/v1"
+   },
+   "tts": {
+    "chars": 9573,
+    "audio_s": 520.5701133786847,
+    "engine": "en=sherpa-vits:vits-piper-en_US-lessac-medium:sid0:cpu | he=renikud+piper-he-noa:cpu"
+   },
+   "stt": {
+    "audio_s": 153.63200000000003,
+    "engine": "routed[he=faster-whisper:ivrit-ai/whisper-large-v3-turbo-ct2:cpu:int8_float32, en=faster-whisper:deepdml/faster-whisper-large-v3-turbo-ct2:cpu:int8_float32; mixed->he]"
+   }
+  },
+  "end_reason": "client_end"
+ },
+ "summary_method": "fallback_no_llm",
+ "client_late_mic_frames": 1,
+ "hardware_note_corrected": "note text corrected after the run to describe the STT routing that was actually active"
+}

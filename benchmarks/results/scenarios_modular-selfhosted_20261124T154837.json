@@ -3,7 +3,7 @@
  "provider": "modular-selfhosted",
  "url": "ws://127.0.0.1:8000/ws",
  "tag": "bench-cpu",
- "hardware_note": "4 vCPU container, NO GPU: ivrit-ai whisper-large-v3-turbo int8, Qwen3-4B-Instruct Q4_K_M on llama.cpp, Piper/ReNikud TTS (functional run, not a latency benchmark)",
+ "hardware_note": "4 vCPU container, NO GPU: Whisper large-v3-turbo int8 routed by language (ivrit-ai model for Hebrew, stock model for English), Qwen3-4B-Instruct Q4_K_M on llama.cpp, Piper/ReNikud TTS (functional run, not a latency benchmark)",
  "host": "Linux-6.18.44-fc-v819-x86_64-with-glibc2.39",
  "started": "2026-11-24T15:48:37",
  "repeat": 1,
@@ -3054,5 +3054,6 @@
    "min": 4840,
    "max": 17301
   }
- }
+ },
+ "hardware_note_corrected": "note text corrected after the run to describe the STT routing that was actually active"
 }

@@ -123,7 +123,7 @@ Synthetic user speech, real-time microphone simulation, real WebSocket.
 | Correcting misunderstood information | s08 | Passed: accepted "seven, not four" and answered "three left" |
 | Hebrew-English code-switching | s09 | **Inconclusive.** English terms were mis-transcribed ("Stripe" → "סטייפי", "roadmap" → "הוודמאפ"), but the synthetic Hebrew voice cannot pronounce English words properly, so the stimulus is not valid. Needs human recordings |
 | Road noise (5 dB) | s10a / s10b | English passed with 0 % WER. Hebrew: correct recall, but the model wrote "GERMANY" in Latin letters and an Arabic word inside a Hebrew sentence, which the Hebrew voice cannot speak; one word mis-transcribed |
-| Extended 30–60 minute conversation | long session | See section 6 |
+| Extended 30–60 minute conversation | long session | 31.6 minutes, 50 turns, no failures; exposed a latency cliff and forgetting, both fixed and re-verified in shorter runs (section 6) |
 | Proactive initiation | all | 12 of 12 sessions opened by the agent without user input; 3 of 4 keyword checks on the opener passed |
 | Summary and action items | s02 | Passed |
 | Natural ending | s12 | Passed: "זה מספיק להיום, להתראות" ended the session and produced a summary |
@@ -136,10 +136,13 @@ finding that no model of 12B or below has a published Hebrew score.
 
 | Run | Sessions | Latency median | Failed turns | Note |
 |---|---:|---:|---:|---|
-| Session layer only (mock provider: transport, resampling, telemetry) | 10 / 25 / 50 | unchanged across levels | 0 | 0.006 CPU-seconds per session-second; with VAD (0.0065) about 80 sessions per core at full load |
+| Session layer only (mock provider: transport, resampling, telemetry) | 10 / 25 / 50 | 424 / 462 / 462 ms | 0 / 340 | Flat across levels (the mock itself waits about 520 ms); 0.006 CPU-seconds per session-second at 25–50 sessions; about 0.45 MB of memory per session |
 | Full pipeline on 4 vCPU, no GPU | 1 | 11.4 s | 0 / 2 | |
 | | 2 | 19.9 s | 0 / 4 | |
 | | 4 | 64.7 s | 0 / 8 | No sessions dropped, but unusable |
+
+With the VAD cost measured separately (0.0065 CPU-seconds per second of audio), the session layer handles about 80 conversations per
+core at full load, about 40 with headroom.
 
 Maximum sustainable real-time concurrency of the full pipeline on this hardware: **0**. The run validates the harness
 (`benchmarks/concurrency.py`) and shows graceful degradation (queues grow, nothing crashes). The planned 1 / 5 / 10 / 20 / 50 ramp on
@@ -147,8 +150,30 @@ a GPU has not been run.
 
 ## 6. Extended session
 
-See `reports/benchmark_summary.md` ("Extended session") for the 30-minute run: completed turns, failures, latency drift between the
-first and last third, and the end-of-session memory probe.
+One continuous English conversation, simulated user, CPU.
+
+| Run | Minutes | Turns completed / failed | Session survived | Latency, first third → last third (median) | Early-fact probe at the end |
+|---|---:|---:|---|---|---|
+| 30-minute run, sliding-window history (as first built) | 31.6 | 50 / 0 | yes | 11.4 s → 59.9 s | **fail** |
+| Verification, block compaction, forced every 3 turns | 12.7 | 19 / 0 | yes | 8.7 s → 15.3 s | fail |
+| Verification, block compaction with cumulative synopsis | 12.7 | 18 / 0 | yes | 9.3 s → 17.5 s | **pass** ("Your locker code is 7429") |
+
+What the 30-minute run showed:
+
+1. **Stability**: no failed turn, no error, no dropped connection in 31.6 minutes.
+2. **A latency cliff at turn 41**: turns 1–40 had a median of 11.9 s, turns 41–50 a median of 62.3 s. The telemetry shows why: the history
+   window had filled and began dropping the oldest message on every turn, so the prompt prefix changed on every turn and the LLM's cached
+   prefix fell from about 3,280 tokens to 734. Time to first token went from about 2 s to about 50 s on this CPU.
+3. **Forgetting**: the fact stated in the first minute had been dropped by the same window.
+4. The end-of-journey summary of that run is the marked non-LLM fallback, because the LLM server process was killed by the container's
+   memory limit at the very end of the run. The fallback path worked as designed; the summary itself is not useful.
+
+The fix (decision D15) compacts the older half of the conversation into a synopsis in one block. In the verification runs the cache is
+rebuilt once after each compaction and then hits again (cached tokens per turn, second run: …1314, **734**, 1234, 1300, **858**, 1327, 1375,
+**968**, …). The first verification run still lost the fact because the weak model re-summarised its own summary five times; carrying
+the earlier synopsis over verbatim fixed that. Remaining cost on this CPU: the turn that coincides with writing a synopsis waits for
+the single LLM slot (10–20 s), which a deployment avoids by using a separate slot or model for it. With the default setting (24
+exchanges) a 30-minute conversation compacts two or three times; that configuration was not re-run for the full 30 minutes.
 
 ## 7. Projected latency on a GPU (estimate, not a measurement)
 
@@ -174,6 +199,6 @@ replaced by the GPU measurement.
 | Maximum sustainable concurrency, GPU utilisation and memory | Not measured | `benchmarks/concurrency.py`, `/api/resources` |
 | Commercial baseline quality, latency, token usage | Not measured | same scripts with `--provider openai-realtime` / `gemini-live` |
 | Cost per connected / active minute from real usage | Not measured (modelled in `COSTS.md`) | `usage` telemetry events are recorded per session |
-| Session failure rate | 0 failures in 12 scenario sessions, 7 concurrency sessions, the browser sessions and the long session on CPU | — |
+| Session failure rate | 0 failed sessions in 12 scenario sessions, 7 full-pipeline concurrency sessions, 3 long sessions and 85 mock sessions. In one earlier development run the session was closed early by the model itself (fixed, decision D9) | — |
 | Human evaluation | Not performed | `frontend/eval.html`, `docs/HUMAN_EVALUATION.md` |
 | Network bandwidth | Raw PCM as built: 256 kbit/s up, up to 384 kbit/s down while the agent speaks. Opus estimate 0.8 MB per minute both ways | — |

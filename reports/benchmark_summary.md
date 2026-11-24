@@ -37,15 +37,61 @@ False barge-ins on road noise alone (2 minutes, agent audible): -40 dBFS → 0.0
 |---|---:|---:|---:|---:|---:|---|
 | qwen3-4b-q4km-cpu | 6/6 · 5/6 | 3/4 · 3/4 | 3/3 · 2/3 | pass / pass | 1223 | 4 vCPU container, no GPU, llama.cpp b12676, 2 threads (shared with another benchmark) |
 
+## Scripted conversation scenarios (full pipeline through the WebSocket)
+
+### `modular-selfhosted` — 4 vCPU container, NO GPU: Whisper large-v3-turbo int8 routed by language (ivrit-ai model for Hebrew, stock model for English), Qwen3-4B-Instruct Q4_K_M on llama.cpp, Piper/ReNikud TTS (functional run, not a latency benchmark)
+
+- Scenarios run: 12 (failed: 0); user turns: 28 (no response: 0)
+- Response latency (end of user speech → first agent audio): median 10548 ms, p95 16089 ms, n=28
+- Proactive opener, first audio after connect: median 6689 ms
+- Stage medians (ms): end_marker_ignored 0, llm_first_chunk_ms 4278, llm_total_ms 9769, llm_ttft_ms 1191, pipeline_ms 9603, provider_start_ms 0, stt_language_detect_ms 5519, stt_ms 6092, stt_queue_ms 0, summary_ms 46044, tts_ttfa_ms 332
+- Scripted checks passed: 26/28 — failed: s01_he_brainstorm:opener_references_memory, s10b_road_noise_he:reply_contains_expected
+- Interruptions: 1/1 detected; speech onset → interrupt signalled median 162 ms; audio still arriving after the interrupt: median 0 ms
+- WER of the pipeline's transcripts on synthetic user speech: he: 4.3% clean / 6.1% all (n=7), en: 1.0% clean / 0.9% all (n=19), auto: 40.7% clean / 40.7% all (n=2)
+- Playout underruns per agent turn: 0.89
+
+| Scenario | Turns | Latency per turn (ms) | Checks | Error |
+|---|---:|---|---|---|
+| s01_he_brainstorm Hebrew entrepreneurial brainstorming | 3 | 12925, 10960, 12628 | ✓proactive_opener_spoken ✗opener_references_memory |  |
+| s02_en_brainstorm English entrepreneurial brainstorming | 3 | 10211, 9571, 11527 | ✓proactive_opener_spoken ✓opener_references_memory ✓summary_action_items |  |
+| s03_personal_planning Personal planning | 3 | 10956, 8588, 10101 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s04_learning Learning a new subject | 2 | 13377, 10431 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s05_continue_previous Continuing a previous conversation | 2 | 11838, 8189 | ✓proactive_opener_spoken ✓opener_references_memory ✓reply_contains_expected ✓reply_contains_expected |  |
+| s06_topic_switch Switching topics unexpectedly | 2 | 8800, 9433 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s07_interrupt Interrupting the agent mid-sentence | 2 | 9597, 8626 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s08_correction Correcting misunderstood information | 3 | 8505, 9025, 9485 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s09_code_switch Hebrew-English code-switching | 2 | 17523, 18019 | ✓proactive_opener_spoken |  |
+| s10a_road_noise_en Conversation with simulated road noise (English, 5 dB SNR) | 2 | 12787, 9243 | ✓proactive_opener_spoken ✓reply_contains_expected |  |
+| s10b_road_noise_he Conversation with simulated road noise (Hebrew, 5 dB SNR) | 2 | 13042, 13426 | ✓proactive_opener_spoken ✗reply_contains_expected |  |
+| s12_proactive_end Proactive initiation and natural ending | 2 | 13011, 10664 | ✓proactive_opener_spoken ✓opener_references_memory ✓reply_contains_expected ✓session_ended_naturally |  |
+
 ## Concurrency ramp
 
-### `mock` — 4 vCPU container shared with other benchmarks; MOCK provider (session layer only: transport, resampling, telemetry; no models)
+### `mock` — 4 vCPU container, otherwise idle; MOCK provider (session layer only: transport, resampling, telemetry; no models)
 
 Targets: median ≤ 800 ms, p95 ≤ 1500 ms. Maximum sustainable concurrency: **50**
 
 | Concurrent sessions | Latency median (ms) | p95 (ms) | Failed turns | Failed sessions | Underruns | Server CPU mean / max | Late client frames |
 |---:|---:|---:|---:|---:|---:|---|---:|
-| 10 | 304 | 445 | 0/40 | 0 | 0 | 93.9% / 98.4% | 0 |
-| 25 | 305 | 444 | 0/100 | 0 | 0 | 93.6% / 94.9% | 0 |
-| 50 | 306 | 448 | 0/200 | 0 | 0 | 94.2% / 96.1% | 0 |
+| 10 | 424 | 484 | 0/40 | 0 | 0 | 4.3% / 7.4% | 0 |
+| 25 | 462 | 484 | 0/100 | 0 | 0 | 6.3% / 10.6% | 0 |
+| 50 | 462 | 485 | 0/200 | 0 | 0 | 9.0% / 16.3% | 0 |
+
+### `modular-selfhosted` — 4 vCPU container, NO GPU: Whisper large-v3-turbo int8 routed by language (ivrit-ai model for Hebrew, stock model for English), Qwen3-4B-Instruct Q4_K_M on llama.cpp, Piper/ReNikud TTS (functional run, not a latency benchmark)
+
+Targets: median ≤ 800 ms, p95 ≤ 1500 ms. Maximum sustainable concurrency: **0**
+
+| Concurrent sessions | Latency median (ms) | p95 (ms) | Failed turns | Failed sessions | Underruns | Server CPU mean / max | Late client frames |
+|---:|---:|---:|---:|---:|---:|---|---:|
+| 1 | 11382 | 11897 | 0/2 | 0 | 2 | 61.9% / 100.0% | 0 |
+| 2 | 19944 | 23230 | 0/4 | 0 | 6 | 91.3% / 100.0% | 0 |
+| 4 | 64662 | 68742 | 0/8 | 0 | 15 | 89.9% / 99.9% | 0 |
+
+## Extended session
+
+| Provider | Hardware | Minutes | Survived | Turns ok / failed | Latency median first third → last third (ms) | Underruns | Memory probe |
+|---|---|---:|---|---:|---|---:|---|
+| `modular-selfhosted` | 4 vCPU container, NO GPU: Whisper large-v3-turbo int8 routed by language (ivrit-ai model for Hebrew, stock model for English), Qwen3-4B-Instruct Q4_K_M on llama.cpp, Piper/ReNikud TTS (functional run, not a latency benchmark) | 31.63 | True | 50 / 0 | 11436 → 59868 | 25 | fail |
+| `modular-selfhosted` | 4 vCPU container, NO GPU (same stack) - verification of block history compaction, max_history_turns=6 so that compaction happens several times in 10 minutes | 12.74 | True | 19 / 0 | 8714 → 15253 | 19 | fail |
+| `modular-selfhosted` | 4 vCPU container, NO GPU (same stack) - verification of block history compaction with cumulative synopsis, max_history_turns=6 so that compaction happens several times in 10 minutes | 12.65 | True | 18 / 0 | 9341 → 17515 | 12 | pass |
 

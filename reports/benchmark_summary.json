@@ -460,13 +460,189 @@
    }
   }
  ],
+ "scenarios": [
+  {
+   "provider": "modular-selfhosted",
+   "hardware": "4 vCPU container, NO GPU: Whisper large-v3-turbo int8 routed by language (ivrit-ai model for Hebrew, stock model for English), Qwen3-4B-Instruct Q4_K_M on llama.cpp, Piper/ReNikud TTS (functional run, not a latency benchmark)",
+   "file": "scenarios_modular-selfhosted_20261124T154837.json",
+   "scenarios": 12,
+   "scenarios_failed": 0,
+   "turns": 28,
+   "turns_without_response": 0,
+   "response_latency_ms": {
+    "n": 28,
+    "median": 10547.5,
+    "mean": 11160.3,
+    "p90": 13391.7,
+    "p95": 16089.0,
+    "min": 8189,
+    "max": 18019
+   },
+   "wer_synthetic_speech": {
+    "he": {
+     "n": 7,
+     "wer_all": 0.0606,
+     "wer_clean": 0.0426
+    },
+    "en": {
+     "n": 19,
+     "wer_all": 0.0087,
+     "wer_clean": 0.0096
+    },
+    "auto": {
+     "n": 2,
+     "wer_all": 0.4074,
+     "wer_clean": 0.4074
+    }
+   },
+   "checks_passed": 26,
+   "checks_total": 28,
+   "checks_failed": [
+    "s01_he_brainstorm:opener_references_memory",
+    "s10b_road_noise_he:reply_contains_expected"
+   ],
+   "interruptions": {
+    "attempted": 1,
+    "detected": 1,
+    "onset_to_interrupt_ms": {
+     "n": 1,
+     "median": 162,
+     "mean": 162.0,
+     "p90": 162,
+     "p95": 162,
+     "min": 162,
+     "max": 162
+    },
+    "audio_after_interrupt_ms": {
+     "n": 1,
+     "median": 0,
+     "mean": 0.0,
+     "p90": 0,
+     "p95": 0,
+     "min": 0,
+     "max": 0
+    }
+   },
+   "playout_underruns_per_turn": 0.89,
+   "stage_medians_ms": {
+    "provider_start_ms": {
+     "n": 12,
+     "median": 0.1,
+     "mean": 1.4,
+     "p90": 0.1,
+     "p95": 7.2,
+     "min": 0.1,
+     "max": 15.9
+    },
+    "llm_first_chunk_ms": {
+     "n": 12,
+     "median": 4277.9,
+     "mean": 4458.2,
+     "p90": 6306.2,
+     "p95": 6348.0,
+     "min": 2407.9,
+     "max": 6358.1
+    },
+    "tts_ttfa_ms": {
+     "n": 12,
+     "median": 331.7,
+     "mean": 343.1,
+     "p90": 513.5,
+     "p95": 525.4,
+     "min": 97.8,
+     "max": 538.0
+    },
+    "pipeline_ms": {
+     "n": 12,
+     "median": 9602.6,
+     "mean": 10403.1,
+     "p90": 12712.1,
+     "p95": 14771.5,
+     "min": 7879.4,
+     "max": 17258.7
+    },
+    "llm_ttft_ms": {
+     "n": 12,
+     "median": 1191.1,
+     "mean": 1491.4,
+     "p90": 2225.9,
+     "p95": 2301.7,
+     "min": 989.3,
+     "max": 2389.1
+    },
+    "llm_total_ms": {
+     "n": 12,
+     "median": 9769.2,
+     "mean": 10625.1,
+     "p90": 14662.6,
+     "p95": 15425.5,
+     "min": 6440.4,
+     "max": 16262.9
+    },
+    "stt_ms": {
+     "n": 12,
+     "median": 6092.4,
+     "mean": 6015.2,
+     "p90": 6340.0,
+     "p95": 6376.9,
+     "min": 5294.4,
+     "max": 6410.5
+    },
+    "stt_queue_ms": {
+     "n": 12,
+     "median": 0.3,
+     "mean": 224.3,
+     "p90": 1149.5,
+     "p95": 1337.7,
+     "min": 0.1,
+     "max": 1411.7
+    },
+    "summary_ms": {
+     "n": 12,
+     "median": 46044.3,
+     "mean": 49224.2,
+     "p90": 63530.3,
+     "p95": 72567.8,
+     "min": 32711.4,
+     "max": 83130.6
+    },
+    "end_marker_ignored": {
+     "n": 1,
+     "median": 0.0,
+     "mean": 0.0,
+     "p90": 0.0,
+     "p95": 0.0,
+     "min": 0.0,
+     "max": 0.0
+    },
+    "stt_language_detect_ms": {
+     "n": 1,
+     "median": 5519.1,
+     "mean": 5519.1,
+     "p90": 5519.1,
+     "p95": 5519.1,
+     "min": 5519.1,
+     "max": 5519.1
+    }
+   },
+   "opener_first_audio_ms": {
+    "n": 12,
+    "median": 6689.0,
+    "mean": 8734.7,
+    "p90": 17018.5,
+    "p95": 17256.5,
+    "min": 4840,
+    "max": 17301
+   }
+  }
+ ],
  "concurrency": [
   {
    "benchmark": "concurrency",
    "provider": "mock",
-   "hardware_note": "4 vCPU container shared with other benchmarks; MOCK provider (session layer only: transport, resampling, telemetry; no models)",
+   "hardware_note": "4 vCPU container, otherwise idle; MOCK provider (session layer only: transport, resampling, telemetry; no models)",
    "host": "Linux-6.18.44-fc-v819-x86_64-with-glibc2.39",
-   "started": "2026-11-24T15:25:01",
+   "started": "2026-11-24T17:24:03",
    "turns_per_user": 4,
    "targets_ms": {
     "median": 800,
@@ -475,15 +651,15 @@
    "levels": [
     {
      "concurrent_sessions": 10,
-     "wall_s": 33.6,
+     "wall_s": 32.6,
      "response_latency_ms": {
       "n": 40,
-      "median": 304.5,
-      "mean": 321.0,
-      "p90": 444.1,
-      "p95": 445.0,
-      "min": 242,
-      "max": 447
+      "median": 424.0,
+      "mean": 438.4,
+      "p90": 483.1,
+      "p95": 484.0,
+      "min": 402,
+      "max": 485
      },
      "turns_attempted": 40,
      "turns_failed": 0,
@@ -492,38 +668,38 @@
      "underruns": 0,
      "opener_first_audio_ms": {
       "n": 10,
-      "median": 125.5,
-      "mean": 126.2,
-      "p90": 129.2,
-      "p95": 130.1,
-      "min": 123,
-      "max": 131
+      "median": 126.0,
+      "mean": 127.3,
+      "p90": 128.9,
+      "p95": 133.0,
+      "min": 125,
+      "max": 137
      },
      "client_late_mic_frames": 0,
      "server_resources_last_60s": {
-      "n": 20,
-      "cpu_pct_mean": 93.9,
-      "cpu_pct_max": 98.4,
-      "ram_used_mb_max": 7605.5,
+      "n": 18,
+      "cpu_pct_mean": 4.3,
+      "cpu_pct_max": 7.4,
+      "ram_used_mb_max": 979.8,
       "cpu_count": 4
      },
-     "session_seconds_total": 303.2,
-     "server_process_cpu_s": 1.96,
-     "server_cpu_s_per_session_s": 0.00647,
-     "server_process_rss_mb": 83.8,
+     "session_seconds_total": 299.6,
+     "server_process_cpu_s": 2.82,
+     "server_cpu_s_per_session_s": 0.00941,
+     "server_process_rss_mb": 77.1,
      "sustainable": true
     },
     {
      "concurrent_sessions": 25,
-     "wall_s": 37.4,
+     "wall_s": 37.2,
      "response_latency_ms": {
       "n": 100,
-      "median": 305.0,
-      "mean": 325.1,
-      "p90": 443.0,
-      "p95": 444.1,
-      "min": 242,
-      "max": 453
+      "median": 462.0,
+      "mean": 446.0,
+      "p90": 484.0,
+      "p95": 484.0,
+      "min": 402,
+      "max": 485
      },
      "turns_attempted": 100,
      "turns_failed": 0,
@@ -532,38 +708,38 @@
      "underruns": 0,
      "opener_first_audio_ms": {
       "n": 25,
-      "median": 126,
-      "mean": 127.3,
-      "p90": 131.6,
-      "p95": 132.8,
-      "min": 124,
-      "max": 143
+      "median": 125,
+      "mean": 124.5,
+      "p90": 125.0,
+      "p95": 125.8,
+      "min": 123,
+      "max": 126
      },
      "client_late_mic_frames": 0,
      "server_resources_last_60s": {
       "n": 30,
-      "cpu_pct_mean": 93.6,
-      "cpu_pct_max": 94.9,
-      "ram_used_mb_max": 7633.7,
+      "cpu_pct_mean": 6.3,
+      "cpu_pct_max": 10.6,
+      "ram_used_mb_max": 925.1,
       "cpu_count": 4
      },
-     "session_seconds_total": 762.8,
-     "server_process_cpu_s": 4.65,
-     "server_cpu_s_per_session_s": 0.0061,
-     "server_process_rss_mb": 87.9,
+     "session_seconds_total": 751.7,
+     "server_process_cpu_s": 4.64,
+     "server_cpu_s_per_session_s": 0.00617,
+     "server_process_rss_mb": 82.9,
      "sustainable": true
     },
     {
      "concurrent_sessions": 50,
-     "wall_s": 44.4,
+     "wall_s": 43.9,
      "response_latency_ms": {
       "n": 200,
-      "median": 306.0,
-      "mean": 328.3,
-      "p90": 444.1,
-      "p95": 448.0,
-      "min": 241,
-      "max": 469
+      "median": 462.0,
+      "mean": 446.2,
+      "p90": 484.0,
+      "p95": 485.0,
+      "min": 402,
+      "max": 493
      },
      "turns_attempted": 200,
      "turns_failed": 0,
@@ -572,29 +748,774 @@
      "underruns": 0,
      "opener_first_audio_ms": {
       "n": 50,
-      "median": 126.0,
-      "mean": 126.9,
-      "p90": 130.0,
-      "p95": 130.0,
-      "min": 124,
-      "max": 131
+      "median": 125.0,
+      "mean": 124.9,
+      "p90": 126.0,
+      "p95": 126.0,
+      "min": 123,
+      "max": 128
      },
      "client_late_mic_frames": 0,
      "server_resources_last_60s": {
       "n": 30,
-      "cpu_pct_mean": 94.2,
-      "cpu_pct_max": 96.1,
-      "ram_used_mb_max": 7713.9,
+      "cpu_pct_mean": 9.0,
+      "cpu_pct_max": 16.3,
+      "ram_used_mb_max": 930.3,
       "cpu_count": 4
      },
-     "session_seconds_total": 1522.6,
-     "server_process_cpu_s": 7.9,
-     "server_cpu_s_per_session_s": 0.00519,
-     "server_process_rss_mb": 99.6,
+     "session_seconds_total": 1501.4,
+     "server_process_cpu_s": 8.71,
+     "server_cpu_s_per_session_s": 0.0058,
+     "server_process_rss_mb": 94.6,
      "sustainable": true
     }
    ],
    "max_sustainable_concurrency": 50
+  },
+  {
+   "benchmark": "concurrency",
+   "provider": "modular-selfhosted",
+   "hardware_note": "4 vCPU container, NO GPU: Whisper large-v3-turbo int8 routed by language (ivrit-ai model for Hebrew, stock model for English), Qwen3-4B-Instruct Q4_K_M on llama.cpp, Piper/ReNikud TTS (functional run, not a latency benchmark)",
+   "host": "Linux-6.18.44-fc-v819-x86_64-with-glibc2.39",
+   "started": "2026-11-24T16:15:20",
+   "turns_per_user": 2,
+   "targets_ms": {
+    "median": 800,
+    "p95": 1500
+   },
+   "levels": [
+    {
+     "concurrent_sessions": 1,
+     "wall_s": 72.4,
+     "response_latency_ms": {
+      "n": 2,
+      "median": 11382.0,
+      "mean": 11382.0,
+      "p90": 11839.6,
+      "p95": 11896.8,
+      "min": 10810,
+      "max": 11954
+     },
+     "turns_attempted": 2,
+     "turns_failed": 0,
+     "sessions_failed": 0,
+     "errors": [],
+     "underruns": 2,
+     "opener_first_audio_ms": {
+      "n": 1,
+      "median": 7504,
+      "mean": 7504.0,
+      "p90": 7504,
+      "p95": 7504,
+      "min": 7504,
+      "max": 7504
+     },
+     "client_late_mic_frames": 0,
+     "server_resources_last_60s": {
+      "n": 30,
+      "cpu_pct_mean": 61.9,
+      "cpu_pct_max": 100.0,
+      "ram_used_mb_max": 10503.3,
+      "cpu_count": 4
+     },
+     "session_seconds_total": 72.4,
+     "server_process_cpu_s": 41.99,
+     "server_cpu_s_per_session_s": 0.57998,
+     "server_process_rss_mb": 4247.1,
+     "sustainable": false
+    },
+    {
+     "concurrent_sessions": 2,
+     "wall_s": 115.7,
+     "response_latency_ms": {
+      "n": 4,
+      "median": 19944.0,
+      "mean": 19243.5,
+      "p90": 22820.7,
+      "p95": 23230.3,
+      "min": 13446,
+      "max": 23640
+     },
+     "turns_attempted": 4,
+     "turns_failed": 0,
+     "sessions_failed": 0,
+     "errors": [],
+     "underruns": 6,
+     "opener_first_audio_ms": {
+      "n": 2,
+      "median": 10810.0,
+      "mean": 10810.0,
+      "p90": 14683.6,
+      "p95": 15167.8,
+      "min": 5968,
+      "max": 15652
+     },
+     "client_late_mic_frames": 0,
+     "server_resources_last_60s": {
+      "n": 30,
+      "cpu_pct_mean": 91.3,
+      "cpu_pct_max": 100.0,
+      "ram_used_mb_max": 10494.6,
+      "cpu_count": 4
+     },
+     "session_seconds_total": 215.9,
+     "server_process_cpu_s": 79.98,
+     "server_cpu_s_per_session_s": 0.37047,
+     "server_process_rss_mb": 4240.6,
+     "sustainable": false
+    },
+    {
+     "concurrent_sessions": 4,
+     "wall_s": 231.6,
+     "response_latency_ms": {
+      "n": 8,
+      "median": 64662.5,
+      "mean": 63075.4,
+      "p90": 68425.5,
+      "p95": 68742.2,
+      "min": 50987,
+      "max": 69059
+     },
+     "turns_attempted": 8,
+     "turns_failed": 0,
+     "sessions_failed": 0,
+     "errors": [],
+     "underruns": 15,
+     "opener_first_audio_ms": {
+      "n": 4,
+      "median": 28515.5,
+      "mean": 30089.5,
+      "p90": 51744.4,
+      "p95": 55277.2,
+      "min": 4517,
+      "max": 58810
+     },
+     "client_late_mic_frames": 0,
+     "server_resources_last_60s": {
+      "n": 30,
+      "cpu_pct_mean": 89.9,
+      "cpu_pct_max": 99.9,
+      "ram_used_mb_max": 10526.7,
+      "cpu_count": 4
+     },
+     "session_seconds_total": 847.9,
+     "server_process_cpu_s": 170.31,
+     "server_cpu_s_per_session_s": 0.20086,
+     "server_process_rss_mb": 4248.8,
+     "sustainable": false
+    }
+   ],
+   "max_sustainable_concurrency": 0,
+   "hardware_note_corrected": "note text corrected after the run to describe the STT routing that was actually active"
+  }
+ ],
+ "long_session": [
+  {
+   "benchmark": "long_session",
+   "provider": "modular-selfhosted",
+   "hardware_note": "4 vCPU container, NO GPU: Whisper large-v3-turbo int8 routed by language (ivrit-ai model for Hebrew, stock model for English), Qwen3-4B-Instruct Q4_K_M on llama.cpp, Piper/ReNikud TTS (functional run, not a latency benchmark)",
+   "host": "Linux-6.18.44-fc-v819-x86_64-with-glibc2.39",
+   "target_minutes": 30.0,
+   "language": "en",
+   "started": "2026-11-24T16:22:35",
+   "memory_probe": {
+    "reply": "I don’t have access to your gym schedule or locker room details. You might want to check your app or ask a gym staff member. Let me know if you’d like help with something else.",
+    "pass": false
+   },
+   "actual_minutes": 31.63,
+   "session_survived": true,
+   "turns_completed": 50,
+   "turns_failed": 0,
+   "response_latency_ms": {
+    "n": 50,
+    "median": 12662.5,
+    "mean": 22095.3,
+    "p90": 62249.2,
+    "p95": 64111.8,
+    "min": 8663,
+    "max": 67019
+   },
+   "latency_first_third_ms": {
+    "n": 16,
+    "median": 11436.0,
+    "mean": 11391.4,
+    "p90": 13725.0,
+    "p95": 14304.2,
+    "min": 8663,
+    "max": 15379
+   },
+   "latency_last_third_ms": {
+    "n": 16,
+    "median": 59868.5,
+    "mean": 43897.5,
+    "p90": 64348.5,
+    "p95": 65069.8,
+    "min": 10690,
+    "max": 67019
+   },
+   "underruns": 25,
+   "errors": [],
+   "stats": {
+    "duration_s": 1897.9,
+    "turns_user": 51,
+    "turns_agent": 52,
+    "interruptions": 0,
+    "errors": 0,
+    "response_latency_ms": {
+     "n": 51,
+     "median": 12664.4,
+     "mean": 22792.8,
+     "p90": 62207.5,
+     "p95": 64058.1,
+     "min": 8638.1,
+     "max": 66963.1
+    },
+    "endpoint_delay_ms": {
+     "n": 51,
+     "median": 541.2,
+     "mean": 546.1,
+     "p90": 561.2,
+     "p95": 564.1,
+     "min": 539.7,
+     "max": 566.1
+    },
+    "interrupt_detect_ms": {
+     "n": 0
+    },
+    "client_latency_ms": {
+     "n": 0
+    },
+    "client_stop_ms": {
+     "n": 0
+    },
+    "proactive_first_audio_ms": 8441.6,
+    "stages": {
+     "provider_start_ms": {
+      "n": 1,
+      "median": 0.1,
+      "mean": 0.1,
+      "p90": 0.1,
+      "p95": 0.1,
+      "min": 0.1,
+      "max": 0.1
+     },
+     "llm_first_chunk_ms": {
+      "n": 52,
+      "median": 6121.0,
+      "mean": 16026.1,
+      "p90": 55821.8,
+      "p95": 57336.0,
+      "min": 2507.8,
+      "max": 60478.6
+     },
+     "tts_ttfa_ms": {
+      "n": 52,
+      "median": 620.9,
+      "mean": 601.6,
+      "p90": 820.8,
+      "p95": 885.0,
+      "min": 170.8,
+      "max": 975.5
+     },
+     "pipeline_ms": {
+      "n": 52,
+      "median": 12349.3,
+      "mean": 22259.1,
+      "p90": 61932.4,
+      "p95": 63774.2,
+      "min": 8377.2,
+      "max": 66692.4
+     },
+     "llm_ttft_ms": {
+      "n": 52,
+      "median": 1800.6,
+      "mean": 12214.2,
+      "p90": 51732.7,
+      "p95": 52807.8,
+      "min": 871.4,
+      "max": 56035.8
+     },
+     "llm_total_ms": {
+      "n": 52,
+      "median": 13022.0,
+      "mean": 22943.0,
+      "p90": 62724.9,
+      "p95": 64665.1,
+      "min": 7414.4,
+      "max": 68092.7
+     },
+     "stt_ms": {
+      "n": 51,
+      "median": 5657.5,
+      "mean": 5739.6,
+      "p90": 6324.2,
+      "p95": 6579.5,
+      "min": 4946.5,
+      "max": 6765.9
+     },
+     "stt_queue_ms": {
+      "n": 51,
+      "median": 0.3,
+      "mean": 0.3,
+      "p90": 0.4,
+      "p95": 0.4,
+      "min": 0.1,
+      "max": 0.9
+     },
+     "end_marker_ignored": {
+      "n": 1,
+      "median": 0.0,
+      "mean": 0.0,
+      "p90": 0.0,
+      "p95": 0.0,
+      "min": 0.0,
+      "max": 0.0
+     },
+     "summary_ms": {
+      "n": 1,
+      "median": 844.9,
+      "mean": 844.9,
+      "p90": 844.9,
+      "p95": 844.9,
+      "min": 844.9,
+      "max": 844.9
+     }
+    },
+    "audio_in_s": 1896.16,
+    "audio_out_s": 519.4,
+    "bytes_up": 60677120,
+    "bytes_down": 24931194,
+    "kbps_up_raw": 255.8,
+    "kbps_down_raw": 105.1,
+    "usage": {
+     "llm": {
+      "prompt_tokens": 121264,
+      "completion_tokens": 2121,
+      "cached_tokens": 93699,
+      "model": "local@http://127.0.0.1:8081/v1"
+     },
+     "tts": {
+      "chars": 9573,
+      "audio_s": 520.5701133786847,
+      "engine": "en=sherpa-vits:vits-piper-en_US-lessac-medium:sid0:cpu | he=renikud+piper-he-noa:cpu"
+     },
+     "stt": {
+      "audio_s": 153.63200000000003,
+      "engine": "routed[he=faster-whisper:ivrit-ai/whisper-large-v3-turbo-ct2:cpu:int8_float32, en=faster-whisper:deepdml/faster-whisper-large-v3-turbo-ct2:cpu:int8_float32; mixed->he]"
+     }
+    },
+    "end_reason": "client_end"
+   },
+   "summary_method": "fallback_no_llm",
+   "client_late_mic_frames": 1,
+   "hardware_note_corrected": "note text corrected after the run to describe the STT routing that was actually active"
+  },
+  {
+   "benchmark": "long_session",
+   "provider": "modular-selfhosted",
+   "hardware_note": "4 vCPU container, NO GPU (same stack) - verification of block history compaction, max_history_turns=6 so that compaction happens several times in 10 minutes",
+   "host": "Linux-6.18.44-fc-v819-x86_64-with-glibc2.39",
+   "target_minutes": 10.0,
+   "language": "en",
+   "started": "2026-11-24T16:56:26",
+   "memory_probe": {
+    "reply": "I don’t have access to your gym schedule or locker room details. You might want to check your phone or ask a gym staff member. I’m here for the elder-care and Spanish practice — not gym logistics. Let me know when you’re ready to continue.",
+    "pass": false
+   },
+   "actual_minutes": 12.74,
+   "session_survived": true,
+   "turns_completed": 19,
+   "turns_failed": 0,
+   "response_latency_ms": {
+    "n": 19,
+    "median": 10762,
+    "mean": 15462.6,
+    "p90": 30366.4,
+    "p95": 32544.3,
+    "min": 7611,
+    "max": 33555
+   },
+   "latency_first_third_ms": {
+    "n": 6,
+    "median": 8714.0,
+    "mean": 9002.7,
+    "p90": 10255.0,
+    "p95": 10508.5,
+    "min": 7926,
+    "max": 10762
+   },
+   "latency_last_third_ms": {
+    "n": 6,
+    "median": 15253.0,
+    "mean": 18704.2,
+    "p90": 32993.5,
+    "p95": 33274.2,
+    "min": 7611,
+    "max": 33555
+   },
+   "underruns": 19,
+   "errors": [],
+   "stats": {
+    "duration_s": 764.3,
+    "turns_user": 20,
+    "turns_agent": 21,
+    "interruptions": 0,
+    "errors": 0,
+    "response_latency_ms": {
+     "n": 20,
+     "median": 12467.7,
+     "mean": 15501.8,
+     "p90": 30082.6,
+     "p95": 32482.6,
+     "min": 7581.3,
+     "max": 33548.1
+    },
+    "endpoint_delay_ms": {
+     "n": 20,
+     "median": 541.2,
+     "mean": 543.7,
+     "p90": 547.0,
+     "p95": 561.3,
+     "min": 536.8,
+     "max": 565.2
+    },
+    "interrupt_detect_ms": {
+     "n": 0
+    },
+    "client_latency_ms": {
+     "n": 0
+    },
+    "client_stop_ms": {
+     "n": 0
+    },
+    "proactive_first_audio_ms": 15232.1,
+    "stages": {
+     "provider_start_ms": {
+      "n": 1,
+      "median": 22.8,
+      "mean": 22.8,
+      "p90": 22.8,
+      "p95": 22.8,
+      "min": 22.8,
+      "max": 22.8
+     },
+     "llm_first_chunk_ms": {
+      "n": 21,
+      "median": 8687.0,
+      "mean": 8680.0,
+      "p90": 19465.9,
+      "p95": 22156.7,
+      "min": 1949.8,
+      "max": 22298.2
+     },
+     "tts_ttfa_ms": {
+      "n": 21,
+      "median": 356.7,
+      "mean": 354.2,
+      "p90": 498.0,
+      "p95": 774.0,
+      "min": 74.2,
+      "max": 854.0
+     },
+     "pipeline_ms": {
+      "n": 21,
+      "median": 13947.7,
+      "mean": 15241.3,
+      "p90": 29565.2,
+      "p95": 32160.7,
+      "min": 7339.2,
+      "max": 33281.1
+     },
+     "llm_ttft_ms": {
+      "n": 21,
+      "median": 6818.2,
+      "mean": 6945.6,
+      "p90": 18234.9,
+      "p95": 20513.1,
+      "min": 865.1,
+      "max": 20746.9
+     },
+     "llm_total_ms": {
+      "n": 21,
+      "median": 15798.3,
+      "mean": 16746.9,
+      "p90": 27747.2,
+      "p95": 29576.2,
+      "min": 7221.4,
+      "max": 33116.6
+     },
+     "stt_ms": {
+      "n": 20,
+      "median": 5415.4,
+      "mean": 6515.2,
+      "p90": 10225.1,
+      "p95": 10451.7,
+      "min": 4436.5,
+      "max": 10617.7
+     },
+     "stt_queue_ms": {
+      "n": 20,
+      "median": 0.3,
+      "mean": 1.0,
+      "p90": 3.0,
+      "p95": 3.3,
+      "min": 0.2,
+      "max": 3.5
+     },
+     "history_compaction_ms": {
+      "n": 5,
+      "median": 34556.3,
+      "mean": 34158.2,
+      "p90": 37870.8,
+      "p95": 38379.2,
+      "min": 30093.2,
+      "max": 38887.7
+     },
+     "summary_ms": {
+      "n": 1,
+      "median": 87217.8,
+      "mean": 87217.8,
+      "p90": 87217.8,
+      "p95": 87217.8,
+      "min": 87217.8,
+      "max": 87217.8
+     }
+    },
+    "audio_in_s": 677.1,
+    "audio_out_s": 259.87,
+    "bytes_up": 21667200,
+    "bytes_down": 12473668,
+    "kbps_up_raw": 226.8,
+    "kbps_down_raw": 130.6,
+    "usage": {
+     "llm": {
+      "prompt_tokens": 25113,
+      "completion_tokens": 1062,
+      "cached_tokens": 21685,
+      "model": "local@http://127.0.0.1:8081/v1"
+     },
+     "tts": {
+      "chars": 4801,
+      "audio_s": 260.2638095238095,
+      "engine": "en=sherpa-vits:vits-piper-en_US-lessac-medium:sid0:cpu | he=renikud+piper-he-noa:cpu"
+     },
+     "stt": {
+      "audio_s": 61.40800000000001,
+      "engine": "routed[he=faster-whisper:ivrit-ai/whisper-large-v3-turbo-ct2:cpu:int8_float32, en=faster-whisper:deepdml/faster-whisper-large-v3-turbo-ct2:cpu:int8_float32; mixed->he]"
+     }
+    },
+    "end_reason": "client_end"
+   },
+   "summary_method": "llm",
+   "client_late_mic_frames": 0
+  },
+  {
+   "benchmark": "long_session",
+   "provider": "modular-selfhosted",
+   "hardware_note": "4 vCPU container, NO GPU (same stack) - verification of block history compaction with cumulative synopsis, max_history_turns=6 so that compaction happens several times in 10 minutes",
+   "host": "Linux-6.18.44-fc-v819-x86_64-with-glibc2.39",
+   "target_minutes": 10.0,
+   "language": "en",
+   "started": "2026-11-24T17:10:59",
+   "memory_probe": {
+    "reply": "Your locker code is 7429—remembered for later. I don’t have the exact time for your gym visit. You’ll know when you get there.",
+    "pass": true
+   },
+   "actual_minutes": 12.65,
+   "session_survived": true,
+   "turns_completed": 18,
+   "turns_failed": 0,
+   "response_latency_ms": {
+    "n": 18,
+    "median": 11623.5,
+    "mean": 15465.9,
+    "p90": 26667.6,
+    "p95": 28497.6,
+    "min": 8695,
+    "max": 33703
+   },
+   "latency_first_third_ms": {
+    "n": 6,
+    "median": 9341.0,
+    "mean": 9797.5,
+    "p90": 11251.5,
+    "p95": 11280.8,
+    "min": 8695,
+    "max": 11310
+   },
+   "latency_last_third_ms": {
+    "n": 6,
+    "median": 17515.0,
+    "mean": 19486.3,
+    "p90": 29990.0,
+    "p95": 31846.5,
+    "min": 9971,
+    "max": 33703
+   },
+   "underruns": 12,
+   "errors": [],
+   "stats": {
+    "duration_s": 759.13,
+    "turns_user": 19,
+    "turns_agent": 20,
+    "interruptions": 0,
+    "errors": 0,
+    "response_latency_ms": {
+     "n": 19,
+     "median": 11920.9,
+     "mean": 16469.0,
+     "p90": 28766.3,
+     "p95": 33842.4,
+     "min": 8651.3,
+     "max": 35122.1
+    },
+    "endpoint_delay_ms": {
+     "n": 19,
+     "median": 541.2,
+     "mean": 545.7,
+     "p90": 561.3,
+     "p95": 562.2,
+     "min": 539.9,
+     "max": 563.9
+    },
+    "interrupt_detect_ms": {
+     "n": 0
+    },
+    "client_latency_ms": {
+     "n": 0
+    },
+    "client_stop_ms": {
+     "n": 0
+    },
+    "proactive_first_audio_ms": 14672.8,
+    "stages": {
+     "provider_start_ms": {
+      "n": 1,
+      "median": 12.6,
+      "mean": 12.6,
+      "p90": 12.6,
+      "p95": 12.6,
+      "min": 12.6,
+      "max": 12.6
+     },
+     "llm_first_chunk_ms": {
+      "n": 20,
+      "median": 7169.6,
+      "mean": 8895.4,
+      "p90": 16401.8,
+      "p95": 21974.0,
+      "min": 2106.6,
+      "max": 22917.7
+     },
+     "tts_ttfa_ms": {
+      "n": 20,
+      "median": 384.9,
+      "mean": 405.6,
+      "p90": 562.1,
+      "p95": 641.5,
+      "min": 127.2,
+      "max": 872.3
+     },
+     "pipeline_ms": {
+      "n": 20,
+      "median": 13155.6,
+      "mean": 16134.4,
+      "p90": 27902.2,
+      "p95": 33509.1,
+      "min": 8389.8,
+      "max": 34878.2
+     },
+     "llm_ttft_ms": {
+      "n": 20,
+      "median": 4535.9,
+      "mean": 6449.6,
+      "p90": 14542.9,
+      "p95": 17312.6,
+      "min": 750.3,
+      "max": 19654.8
+     },
+     "llm_total_ms": {
+      "n": 20,
+      "median": 17241.0,
+      "mean": 16454.9,
+      "p90": 24596.7,
+      "p95": 28452.1,
+      "min": 6130.8,
+      "max": 32110.0
+     },
+     "stt_ms": {
+      "n": 19,
+      "median": 5760.4,
+      "mean": 7190.3,
+      "p90": 11385.8,
+      "p95": 11431.3,
+      "min": 5374.9,
+      "max": 11598.3
+     },
+     "stt_queue_ms": {
+      "n": 19,
+      "median": 0.3,
+      "mean": 0.7,
+      "p90": 2.1,
+      "p95": 2.7,
+      "min": 0.1,
+      "max": 3.2
+     },
+     "history_compaction_ms": {
+      "n": 5,
+      "median": 32532.4,
+      "mean": 32979.3,
+      "p90": 36063.3,
+      "p95": 36718.5,
+      "min": 28870.4,
+      "max": 37373.8
+     },
+     "end_marker_ignored": {
+      "n": 1,
+      "median": 0.0,
+      "mean": 0.0,
+      "p90": 0.0,
+      "p95": 0.0,
+      "min": 0.0,
+      "max": 0.0
+     },
+     "summary_ms": {
+      "n": 1,
+      "median": 100257.1,
+      "mean": 100257.1,
+      "p90": 100257.1,
+      "p95": 100257.1,
+      "min": 100257.1,
+      "max": 100257.1
+     }
+    },
+    "audio_in_s": 658.88,
+    "audio_out_s": 245.07,
+    "bytes_up": 21084160,
+    "bytes_down": 11763228,
+    "kbps_up_raw": 222.2,
+    "kbps_down_raw": 124.0,
+    "usage": {
+     "llm": {
+      "prompt_tokens": 25772,
+      "completion_tokens": 981,
+      "cached_tokens": 22841,
+      "model": "local@http://127.0.0.1:8081/v1"
+     },
+     "tts": {
+      "chars": 4499,
+      "audio_s": 245.49709750566893,
+      "engine": "en=sherpa-vits:vits-piper-en_US-lessac-medium:sid0:cpu | he=renikud+piper-he-noa:cpu"
+     },
+     "stt": {
+      "audio_s": 58.624,
+      "engine": "routed[he=faster-whisper:ivrit-ai/whisper-large-v3-turbo-ct2:cpu:int8_float32, en=faster-whisper:deepdml/faster-whisper-large-v3-turbo-ct2:cpu:int8_float32; mixed->he]"
+     }
+    },
+    "end_reason": "client_end"
+   },
+   "summary_method": "llm",
+   "client_late_mic_frames": 0
   }
  ]
 }
