@@ -159,8 +159,14 @@ class SimClient:
         """Speak `audio` (float32, 16 kHz).  Returns {'t_start','t_end'} on the client clock."""
         item = {"audio": np.asarray(audio, dtype=np.float32), "done": asyncio.Event()}
         await self._speech_q.put(item)
-        await item["done"].wait()
-        return {"t_start": item["t_start"], "t_end": item["t_end"]}
+        # the session can be closed by the server while we are speaking: never wait forever
+        done = asyncio.create_task(item["done"].wait())
+        closed = asyncio.create_task(self.closed.wait())
+        await asyncio.wait({done, closed}, return_when=asyncio.FIRST_COMPLETED)
+        for t in (done, closed):
+            t.cancel()
+        now = time.monotonic()
+        return {"t_start": item.get("t_start", now), "t_end": item.get("t_end", now), "aborted": "t_end" not in item}
 
     async def send_json(self, **msg) -> None:
         await self.ws.send(json.dumps(msg))

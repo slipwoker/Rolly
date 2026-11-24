@@ -105,9 +105,10 @@ def main() -> None:
             a = d.get("aggregate", {})
             lat = a.get("response_latency_ms", {})
             it = a.get("interruptions", {})
-            L += [f"### `{d['provider']}` — {d['hardware_note']}", "",
+            opts = d.get("session_options") or {}
+            L += [f"### `{d['provider']}` — {d['hardware_note']}" + (f" — session options {opts}" if opts else ""), "", f"File: `{d['_file']}`", "",
                   f"- Scenarios run: {a.get('scenarios')} (failed: {a.get('scenarios_failed')}); user turns: {a.get('turns')} (no response: {a.get('turns_without_response')})",
-                  f"- Response latency (end of user speech → first agent audio): median {stat(lat)} ms, p95 {stat(lat, 'p95')} ms, n={lat.get('n', 0)}",
+                  f"- Response latency (end of user speech → first agent audio): median {stat(lat)} ms, p90 {stat(lat, 'p90')} ms, p95 {stat(lat, 'p95')} ms, max {stat(lat, 'max')} ms, n={lat.get('n', 0)}",
                   f"- Proactive opener, first audio after connect: median {stat(a.get('opener_first_audio_ms'))} ms",
                   f"- Stage medians (ms): " + ", ".join(f"{k} {stat(v)}" for k, v in sorted(a.get('stage_medians_ms', {}).items())),
                   f"- Scripted checks passed: {a.get('checks_passed')}/{a.get('checks_total')}" + (f" — failed: {', '.join(a['checks_failed'])}" if a.get("checks_failed") else ""),
@@ -129,12 +130,12 @@ def main() -> None:
         for d in cons:
             L += [f"### `{d['provider']}` — {d['hardware_note']}", "",
                   f"Targets: median ≤ {d['targets_ms']['median']} ms, p95 ≤ {d['targets_ms']['p95']} ms. Maximum sustainable concurrency: **{d.get('max_sustainable_concurrency')}**", "",
-                  "| Concurrent sessions | Latency median (ms) | p95 (ms) | Failed turns | Failed sessions | Underruns | Server CPU mean / max | Late client frames |", "|---:|---:|---:|---:|---:|---:|---|---:|"]
+                  "| Concurrent sessions | Latency median (ms) | p95 (ms) | Failed turns | Failed sessions | Underruns | Server CPU mean / max | GPU utilisation mean | Late client frames |", "|---:|---:|---:|---:|---:|---:|---|---:|---:|"]
             for lv in d["levels"]:
                 r = lv.get("server_resources_last_60s") or {}
                 cpu = f"{r.get('cpu_pct_mean', '–')}% / {r.get('cpu_pct_max', '–')}%" if r else "–"
                 L.append(f"| {lv['concurrent_sessions']} | {stat(lv['response_latency_ms'])} | {stat(lv['response_latency_ms'], 'p95')} | {lv['turns_failed']}/{lv['turns_attempted']} | "
-                         f"{lv['sessions_failed']} | {lv['underruns']} | {cpu} | {lv['client_late_mic_frames']} |")
+                         f"{lv['sessions_failed']} | {lv['underruns']} | {cpu} | {r.get('gpu_util_pct_mean', '–') if r else '–'} | {lv['client_late_mic_frames']} |")
             L.append("")
 
     # ---- long session -------------------------------------------------------
