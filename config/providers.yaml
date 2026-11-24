@@ -140,6 +140,31 @@ providers:
     turn_detection: "${ROLLY_OPENAI_TURN_DETECTION:-semantic_vad}"
     transcription_model: "${ROLLY_OPENAI_TRANSCRIBE_MODEL:-gpt-transcribe}"
 
+  # Variants of the baseline with OpenAI's faster turn detection (for a fair latency comparison)
+  openai-realtime-servervad:
+    type: openai_realtime
+    architecture: commercial
+    description: OpenAI Realtime API with silence-based server VAD (500 ms)
+    requires_env: [OPENAI_API_KEY]
+    model: "${ROLLY_OPENAI_REALTIME_MODEL:-gpt-realtime-2.1}"
+    voice: "${ROLLY_OPENAI_REALTIME_VOICE:-marin}"
+    api_key_env: OPENAI_API_KEY
+    turn_detection: server_vad
+    silence_duration_ms: 500
+    transcription_model: "${ROLLY_OPENAI_TRANSCRIBE_MODEL:-gpt-transcribe}"
+
+  openai-realtime-eager:
+    type: openai_realtime
+    architecture: commercial
+    description: OpenAI Realtime API with semantic VAD, eagerness high
+    requires_env: [OPENAI_API_KEY]
+    model: "${ROLLY_OPENAI_REALTIME_MODEL:-gpt-realtime-2.1}"
+    voice: "${ROLLY_OPENAI_REALTIME_VOICE:-marin}"
+    api_key_env: OPENAI_API_KEY
+    turn_detection: semantic_vad
+    eagerness: high
+    transcription_model: "${ROLLY_OPENAI_TRANSCRIBE_MODEL:-gpt-transcribe}"
+
   gemini-live:
     type: gemini_live
     architecture: commercial

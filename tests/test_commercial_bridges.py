@@ -71,6 +71,10 @@ async def test_openai_realtime_bridge_maps_events_and_truncates_on_barge_in():
     assert types[0] == "session.update" and received[0]["session"]["audio"]["input"]["turn_detection"]["type"] == "semantic_vad"
     assert received[0]["session"]["instructions"].startswith("You are Rolly.")
     assert "response.create" in types, "proactive opener must be requested without user input"
+    opener = next(m for m in received if m["type"] == "conversation.item.create")
+    assert "journey_start" in opener["item"]["content"][0]["text"], "the journey-start event must be a conversation item"
+    assert "instructions" not in (next(m for m in received if m["type"] == "response.create").get("response") or {}), \
+        "per-response instructions would replace the session instructions (memory) on the live API"
     started = next(e for e in events if e.type == base.AGENT_TURN_STARTED)
     assert started.data["proactive"] is True
     audio = [e for e in events if e.type == base.AGENT_AUDIO]

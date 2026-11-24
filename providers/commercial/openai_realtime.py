@@ -92,7 +92,11 @@ class OpenAIRealtimeProvider(VoiceProvider):
         self._reader = asyncio.create_task(self._read())
         if self.ctx.proactive and self.ctx.opener_instruction:
             self._opener_pending = True
-            await self._send(type="response.create", response={"instructions": self.ctx.opener_instruction})
+            # The journey-start event goes in as a conversation item.  Per-response `instructions` would REPLACE the
+            # session instructions for that response (observed in the first live run: the opener ignored the memory).
+            await self._send(type="conversation.item.create",
+                             item={"type": "message", "role": "user", "content": [{"type": "input_text", "text": self.ctx.opener_instruction}]})
+            await self._send(type="response.create")
 
     async def push_audio(self, pcm16: bytes) -> None:
         if self.ws is None or self._closed:

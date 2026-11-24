@@ -1,0 +1,102 @@
+{
+ "benchmark": "vad_endpointing",
+ "vad": "silero-vad v5 onnx",
+ "config": {
+  "start_threshold": 0.5,
+  "end_threshold": 0.35,
+  "min_speech_ms": 96,
+  "bargein_min_speech_ms": 160,
+  "eager_silence_ms": 192.0,
+  "endpoint_silence_ms": 416.0,
+  "pre_roll_ms": 320,
+  "max_utterance_s": 30.0
+ },
+ "n_utterances": 30,
+ "started": "2026-11-24T20:21:20",
+ "conditions": [
+  {
+   "snr_db": "clean",
+   "barge_in_onset_detect_ms": {
+    "n": 30,
+    "median": 284.0,
+    "mean": 529.4,
+    "p90": 1127.4,
+    "p95": 1363.7,
+    "min": 84.0,
+    "max": 1526.0
+   },
+   "eager_point_after_speech_end_ms": {
+    "n": 30,
+    "median": 164.0,
+    "mean": -197.0,
+    "p90": 347.6,
+    "p95": 409.0,
+    "min": -2730.0,
+    "max": 612.0
+   },
+   "endpoint_after_speech_end_ms": {
+    "n": 30,
+    "median": 388.0,
+    "mean": 27.0,
+    "p90": 571.6,
+    "p95": 633.0,
+    "min": -2506.0,
+    "max": 836.0
+   },
+   "missed_utterances": 0,
+   "utterances_split_by_pause": 5,
+   "n_per_mode": 30
+  },
+  {
+   "snr_db": "5",
+   "barge_in_onset_detect_ms": {
+    "n": 30,
+    "median": 269.0,
+    "mean": 539.0,
+    "p90": 1139.6,
+    "p95": 1450.3,
+    "min": 148.0,
+    "max": 1590.0
+   },
+   "eager_point_after_speech_end_ms": {
+    "n": 30,
+    "median": 132.0,
+    "mean": -231.1,
+    "p90": 292.0,
+    "p95": 323.2,
+    "min": -2794.0,
+    "max": 484.0
+   },
+   "endpoint_after_speech_end_ms": {
+    "n": 30,
+    "median": 356.0,
+    "mean": -7.1,
+    "p90": 516.0,
+    "p95": 547.2,
+    "min": -2570.0,
+    "max": 708.0
+   },
+   "missed_utterances": 0,
+   "utterances_split_by_pause": 5,
+   "n_per_mode": 30
+  }
+ ],
+ "noise_only": [
+  {
+   "noise_rms_dbfs": -40,
+   "false_starts_per_min": 0.0
+  },
+  {
+   "noise_rms_dbfs": -30,
+   "false_starts_per_min": 0.0
+  },
+  {
+   "noise_rms_dbfs": -20,
+   "false_starts_per_min": 0.0
+  },
+  {
+   "noise_rms_dbfs": -12,
+   "false_starts_per_min": 0.0
+  }
+ ]
+}

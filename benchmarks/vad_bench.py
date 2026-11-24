@@ -56,8 +56,14 @@ def main() -> None:
     ap.add_argument("--n", type=int, default=30)
     ap.add_argument("--snr", nargs="+", default=["clean", "10", "5", "0"])
     ap.add_argument("--model", default=str(ROOT / "models/silero_vad.onnx"))
+    ap.add_argument("--endpoint-ms", type=float, default=None)
+    ap.add_argument("--eager-ms", type=float, default=None)
     a = ap.parse_args()
     cfg = VadConfig()
+    if a.endpoint_ms is not None:
+        cfg.endpoint_silence_ms = a.endpoint_ms
+    if a.eager_ms is not None:
+        cfg.eager_silence_ms = a.eager_ms
     noise = road_noise(120.0)
     items = load_fleurs("he", a.n // 2) + load_fleurs("en", a.n - a.n // 2)
     out = {"benchmark": "vad_endpointing", "vad": "silero-vad v5 onnx", "config": cfg.__dict__, "n_utterances": len(items),
@@ -105,7 +111,7 @@ def main() -> None:
         out["noise_only"].append({"noise_rms_dbfs": rms_db, "false_starts_per_min": round(fs / (len(noise) / SR / 60), 2)})
         print(f"noise only {rms_db} dBFS: false starts/min = {out['noise_only'][-1]['false_starts_per_min']}", flush=True)
     RESULTS.mkdir(parents=True, exist_ok=True)
-    path = RESULTS / f"vad_endpointing_{out['started'].replace(':', '').replace('-', '')}.json"
+    path = RESULTS / f"vad_endpointing_ep{int(cfg.endpoint_silence_ms)}_{out['started'].replace(':', '').replace('-', '')}.json"
     path.write_text(json.dumps(out, indent=1), encoding="utf-8")
     print("saved", path)
 
