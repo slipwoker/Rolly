@@ -1,0 +1,10 @@
+.venv/
+models/
+data/
+__pycache__/
+*.pyc
+.env
+.pytest_cache/
+node_modules/
+benchmarks/audio_cache/
+*.log

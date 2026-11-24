@@ -1,0 +1,110 @@
+# Named provider configurations.  `${VAR:-default}` is expanded from the environment.
+# No credential is ever stored here: keys are read from the environment variable named in *_key_env.
+#
+# architecture: commercial | modular | speech_to_speech | hybrid | mock
+
+providers:
+
+  # ---------------------------------------------------------------- test plumbing only
+  mock:
+    type: mock
+    architecture: mock
+    test_only: true
+    description: Deterministic tone generator used to test transport, telemetry and barge-in. Never benchmarked.
+
+  # ---------------------------------------------------------------- Architecture B: self-hosted modular
+  modular-selfhosted:
+    type: modular
+    architecture: modular
+    description: Silero VAD -> faster-whisper -> open-weight LLM (OpenAI-compatible server) -> self-hosted TTS
+    requires_files: ["${ROLLY_VAD_MODEL:-models/silero_vad.onnx}"]
+    vad_model: "${ROLLY_VAD_MODEL:-models/silero_vad.onnx}"
+    vad:
+      endpoint_silence_ms: ${ROLLY_ENDPOINT_SILENCE_MS:-544}
+      eager_silence_ms: ${ROLLY_EAGER_SILENCE_MS:-256}
+    stt:
+      engine: faster_whisper
+      model: "${ROLLY_STT_MODEL:-small}"
+      device: "${ROLLY_STT_DEVICE:-auto}"
+      compute_type: "${ROLLY_STT_COMPUTE:-default}"
+      num_workers: ${ROLLY_STT_WORKERS:-1}
+      cpu_threads: ${ROLLY_STT_CPU_THREADS:-0}
+    llm:
+      base_url: "${ROLLY_LLM_BASE_URL:-http://127.0.0.1:8081/v1}"
+      model: "${ROLLY_LLM_MODEL:-local}"
+      api_key_env: ROLLY_LLM_API_KEY
+      max_tokens: 120
+      temperature: 0.6
+    tts:
+      default: en
+      en:
+        engine: sherpa
+        kind: "${ROLLY_TTS_EN_KIND:-kokoro}"
+        model_dir: "${ROLLY_TTS_EN_DIR:-models/kokoro-multi-lang-v1_0}"
+        model_file: "${ROLLY_TTS_EN_FILE:-}"
+        speaker_id: ${ROLLY_TTS_EN_SPEAKER:-3}
+        num_threads: ${ROLLY_TTS_THREADS:-2}
+        num_instances: ${ROLLY_TTS_INSTANCES:-1}
+        provider: "${ROLLY_TTS_PROVIDER:-cpu}"
+      he:
+        engine: renikud_piper
+        model_dir: "${ROLLY_TTS_HE_DIR:-models/hebrew-tts}"
+        num_threads: ${ROLLY_TTS_THREADS:-2}
+        num_instances: ${ROLLY_TTS_INSTANCES:-1}
+        provider: "${ROLLY_TTS_PROVIDER:-cpu}"
+
+  # ---------------------------------------------------------------- Architecture D: hybrid
+  hybrid-apillm:
+    type: modular
+    architecture: hybrid
+    description: Self-hosted VAD + STT + TTS with a low-cost commercial LLM over an OpenAI-compatible API
+    requires_env: [ROLLY_HYBRID_LLM_BASE_URL]
+    vad_model: "${ROLLY_VAD_MODEL:-models/silero_vad.onnx}"
+    vad:
+      endpoint_silence_ms: ${ROLLY_ENDPOINT_SILENCE_MS:-544}
+      eager_silence_ms: ${ROLLY_EAGER_SILENCE_MS:-256}
+    stt:
+      engine: faster_whisper
+      model: "${ROLLY_STT_MODEL:-small}"
+      device: "${ROLLY_STT_DEVICE:-auto}"
+      compute_type: "${ROLLY_STT_COMPUTE:-default}"
+      num_workers: ${ROLLY_STT_WORKERS:-1}
+    llm:
+      base_url: "${ROLLY_HYBRID_LLM_BASE_URL:-}"
+      model: "${ROLLY_HYBRID_LLM_MODEL:-}"
+      api_key_env: ROLLY_HYBRID_LLM_API_KEY
+      max_tokens: 120
+    tts:
+      default: en
+      en:
+        engine: sherpa
+        kind: "${ROLLY_TTS_EN_KIND:-kokoro}"
+        model_dir: "${ROLLY_TTS_EN_DIR:-models/kokoro-multi-lang-v1_0}"
+        model_file: "${ROLLY_TTS_EN_FILE:-}"
+        speaker_id: ${ROLLY_TTS_EN_SPEAKER:-3}
+        num_threads: ${ROLLY_TTS_THREADS:-2}
+      he:
+        engine: renikud_piper
+        model_dir: "${ROLLY_TTS_HE_DIR:-models/hebrew-tts}"
+        num_threads: ${ROLLY_TTS_THREADS:-2}
+
+  # ---------------------------------------------------------------- Architecture A: commercial realtime
+  openai-realtime:
+    type: openai_realtime
+    architecture: commercial
+    description: OpenAI Realtime API (speech-to-speech), server-side WebSocket bridge
+    requires_env: [OPENAI_API_KEY]
+    model: "${ROLLY_OPENAI_REALTIME_MODEL:-gpt-realtime}"
+    voice: "${ROLLY_OPENAI_REALTIME_VOICE:-marin}"
+    api_key_env: OPENAI_API_KEY
+    turn_detection: "${ROLLY_OPENAI_TURN_DETECTION:-semantic_vad}"
+    transcription_model: "${ROLLY_OPENAI_TRANSCRIBE_MODEL:-gpt-4o-mini-transcribe}"
+
+  gemini-live:
+    type: gemini_live
+    architecture: commercial
+    description: Google Gemini Live API (native audio), server-side WebSocket bridge
+    requires_env: [GEMINI_API_KEY]
+    model: "${ROLLY_GEMINI_LIVE_MODEL:-gemini-2.5-flash-native-audio-preview-09-2025}"
+    voice: "${ROLLY_GEMINI_LIVE_VOICE:-Aoede}"
+    api_key_env: GEMINI_API_KEY

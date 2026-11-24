@@ -1,0 +1,59 @@
+{
+  "_note": "SYNTHETIC profiles created for the POC. They do not describe real people.",
+  "users": [
+    {
+      "user_id": "noa",
+      "name": "נועה",
+      "name_latin": "Noa",
+      "preferred_language": "he",
+      "home_city": "Tel Aviv",
+      "professional_background": "Founder and CEO of a seed-stage B2B SaaS startup (logistics scheduling for small delivery fleets). Previously product lead at a fintech company. Eight people in the team.",
+      "interests": ["behavioural economics", "trail running", "Israeli jazz", "history podcasts"],
+      "current_goals": [
+        "Decide the company's direction for the next 12 months before the board meeting on the 15th",
+        "Run a half marathon in the spring",
+        "Read one non-business book per month"
+      ],
+      "preferences": {
+        "tone": "direct, warm, a little humour",
+        "depth": "prefers being challenged with sharp questions over long explanations",
+        "avoid": "small talk about the weather, long monologues"
+      },
+      "seed_memories": [
+        {"kind": "summary", "days_ago": 1, "content": "Yesterday (evening commute): discussed the future direction of the startup. Three alternatives were identified: (1) go up-market to mid-size logistics companies with a custom-integration offer, (2) stay with small fleets but add a payments module to raise revenue per customer, (3) expand to the German market with the current product. Noa leaned towards option 2 but worried the team lacks fintech compliance experience."},
+        {"kind": "summary", "days_ago": 3, "content": "Three days ago: talked about preparing for the half marathon. Agreed on three runs per week; she skipped the long run last weekend because of a customer incident."},
+        {"kind": "open_topic", "days_ago": 1, "content": "Choosing between the three startup direction alternatives (up-market, payments module, Germany) before the board meeting on the 15th"},
+        {"kind": "open_topic", "days_ago": 3, "content": "How to protect the weekend long run from work emergencies"},
+        {"kind": "action_item", "days_ago": 1, "content": "Ask Yoav (CTO) for a rough estimate of the engineering effort for a payments module"},
+        {"kind": "fact", "days_ago": 5, "content": "Her morning commute from Tel Aviv to the office in Herzliya usually takes about 25 minutes"}
+      ]
+    },
+    {
+      "user_id": "daniel",
+      "name": "Daniel",
+      "name_latin": "Daniel",
+      "preferred_language": "en",
+      "home_city": "Haifa",
+      "professional_background": "Senior product manager at a medical-imaging company, considering leaving to start his own venture in elder-care technology. Background in electrical engineering.",
+      "interests": ["woodworking", "science fiction", "learning Spanish", "cycling"],
+      "current_goals": [
+        "Validate an elder-care startup idea with ten customer interviews this month",
+        "Reach conversational Spanish before a family trip to Madrid in June",
+        "Finish building a walnut bookshelf"
+      ],
+      "preferences": {
+        "tone": "calm, thoughtful, structured",
+        "depth": "likes frameworks and concrete next steps",
+        "avoid": "hype, excessive enthusiasm"
+      },
+      "seed_memories": [
+        {"kind": "summary", "days_ago": 1, "content": "Yesterday: brainstormed the elder-care idea. Narrowed to a fall-detection service for adult children monitoring parents living alone. Open question: sell to families directly or through home-care agencies. Daniel has completed four of ten planned customer interviews."},
+        {"kind": "summary", "days_ago": 2, "content": "Two days ago: fifteen-minute Spanish practice on ordering food and asking for directions. He confuses 'ser' and 'estar'."},
+        {"kind": "open_topic", "days_ago": 1, "content": "Go-to-market choice for the fall-detection idea: direct to families versus through home-care agencies"},
+        {"kind": "open_topic", "days_ago": 2, "content": "Practice the difference between 'ser' and 'estar' in Spanish"},
+        {"kind": "action_item", "days_ago": 1, "content": "Schedule the remaining six customer interviews"},
+        {"kind": "fact", "days_ago": 6, "content": "His commute from Haifa to Yokneam takes about 30 minutes each way"}
+      ]
+    }
+  ]
+}
