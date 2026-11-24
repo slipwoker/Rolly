@@ -31,7 +31,7 @@ uv pip install -q --python .venv/bin/python -r requirements.txt || { echo "pinne
   uv pip install -q --python .venv/bin/python fastapi "uvicorn[standard]" websockets httpx numpy onnxruntime faster-whisper "sherpa-onnx<2" soundfile jiwer psutil pyyaml huggingface_hub scipy soxr; }
 uv pip install -q --python .venv/bin/python nvidia-cublas-cu12 "nvidia-cudnn-cu12>=9,<10"
 # CTranslate2 (faster-whisper) loads cuBLAS/cuDNN from these wheels
-NV_LIBS="$(.venv/bin/python -c 'import nvidia.cublas.lib, nvidia.cudnn.lib, os; print(os.path.dirname(nvidia.cublas.lib.__file__) + ":" + os.path.dirname(nvidia.cudnn.lib.__file__))' 2>/dev/null || true)"
+NV_LIBS="$(.venv/bin/python -c 'import nvidia, os; b = list(nvidia.__path__)[0]; print(":".join(os.path.join(b, d, "lib") for d in ("cublas", "cudnn")))' 2>/dev/null || true)"
 export LD_LIBRARY_PATH="${NV_LIBS}:${LD_LIBRARY_PATH:-}"
 
 step "speech models (about 4 GB)"
