@@ -106,6 +106,32 @@ async def describe(request: Request):
     return state.get("describe") or {}
 
 
+VOICE_DIR = Path(os.environ.get("ROLLY_VOICE_DIR", "/workspace/voices"))
+
+
+@app.put("/v1/voices/{name}")
+async def put_voice(name: str, request: Request):
+    """Store a cloned-voice file (reference codes, .npy) on this host.  Voices are derived from a person's recording:
+    they are uploaded here directly and never go through the public repository."""
+    _auth(request)
+    if not name.replace("_", "").replace("-", "").replace(".", "").isalnum() or not name.endswith(".npy") or ".." in name:
+        raise HTTPException(400, "name must be <letters, digits, - _ .>.npy")
+    data = await request.body()
+    if not (128 <= len(data) <= 2_000_000) or data[:6] != b"\x93NUMPY":
+        raise HTTPException(400, "expected a NumPy .npy file of at most 2 MB")
+    VOICE_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = VOICE_DIR / (name + ".tmp")
+    tmp.write_bytes(data)
+    tmp.replace(VOICE_DIR / name)
+    return {"stored": name, "bytes": len(data)}
+
+
+@app.get("/v1/voices")
+async def list_voices(request: Request):
+    _auth(request)
+    return {"voices": sorted(p.name for p in VOICE_DIR.glob("*.npy"))} if VOICE_DIR.exists() else {"voices": []}
+
+
 @app.websocket("/v1/session")
 async def session(ws: WebSocket):
     """One conversation: the complete pipeline runs here, the caller only relays audio and events."""

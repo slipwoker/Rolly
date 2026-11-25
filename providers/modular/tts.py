@@ -173,6 +173,9 @@ def _build(cfg: dict):
         return OpenAICompatTTS(cfg)
     if engine == "elevenlabs":
         return ElevenLabsTTS(cfg)
+    if engine == "zonos":
+        from .tts_zonos import ZonosTTS
+        return ZonosTTS(cfg)
     if engine == "renikud_piper":
         from .tts_hebrew import RenikudPiperTTS
         return RenikudPiperTTS(cfg)
@@ -232,9 +235,35 @@ class TTSRouter:
             except Exception:
                 pass
 
+    def _fallback_for(self, lang: str):
+        """Optional second voice for a language (`fallback:` in its config), used when the first one fails."""
+        key = lang if lang in self.configs else self.default
+        fb = (self.configs.get(key) or {}).get("fallback")
+        if not isinstance(fb, dict):
+            return None
+        try:
+            return get_tts_engine(fb)
+        except Exception:
+            return None
+
     async def synth(self, text: str, hint: str | None = None):
         """Yield (pcm16_bytes, sample_rate, language, engine_name)."""
         lang = dominant_language(text, default=hint if hint in ("he", "en") else self.default)
         engine = self.engine_for(lang)
-        async for pcm in engine.synth(text, lang):
-            yield pcm, engine.sample_rate, lang, engine.name
+        started = False
+        try:
+            async for pcm in engine.synth(text, lang):
+                started = True
+                yield pcm, engine.sample_rate, lang, engine.name
+        except (asyncio.CancelledError, GeneratorExit):
+            raise
+        except Exception as e:
+            fb = None if started else self._fallback_for(lang)
+            if fb is None:
+                raise
+            now = time.monotonic()
+            if now - getattr(self, "_last_fallback_log", 0.0) > 30:  # do not flood the log while a backend is down
+                self._last_fallback_log = now
+                print(f"[tts] {engine.name} failed ({e!r}); using {fb.name}"[:300], flush=True)
+            async for pcm in fb.synth(text, lang):
+                yield pcm, fb.sample_rate, lang, fb.name

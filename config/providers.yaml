@@ -61,13 +61,27 @@ providers:
         num_threads: ${ROLLY_TTS_THREADS:-2}
         num_instances: ${ROLLY_TTS_INSTANCES:-1}
         provider: "${ROLLY_TTS_PROVIDER:-cpu}"
+      # Hebrew voice.  renikud_piper: small open voice on CPU (judged robotic and accented by listeners).
+      # zonos: ZONOS3-Mini with a cloned voice, served by infrastructure/zonos_setup.sh; if its server or the voice
+      # file is missing the Piper voice below is used instead.
       he:
-        engine: renikud_piper
+        engine: "${ROLLY_TTS_HE_ENGINE:-renikud_piper}"
+        base_url: "${ROLLY_ZONOS_URL:-http://127.0.0.1:1919}"
+        reference_codes: "${ROLLY_ZONOS_VOICE:-/workspace/voices/he_voice.codes.npy}"
+        reference_frames: ${ROLLY_ZONOS_REFERENCE_FRAMES:-0}
+        speaking_rate: ${ROLLY_ZONOS_SPEAKING_RATE:-24}   # UTF-8 bytes per second; 24 measured at about 14.5 characters per second
         model_dir: "${ROLLY_TTS_HE_DIR:-models/hebrew-tts}"
         length_scale: ${ROLLY_TTS_HE_LENGTH_SCALE:-0.85}   # below 1 = faster speech
         num_threads: ${ROLLY_TTS_THREADS:-2}
         num_instances: ${ROLLY_TTS_INSTANCES:-1}
         provider: "${ROLLY_TTS_PROVIDER:-cpu}"
+        fallback:
+          engine: renikud_piper
+          model_dir: "${ROLLY_TTS_HE_DIR:-models/hebrew-tts}"
+          length_scale: ${ROLLY_TTS_HE_LENGTH_SCALE:-0.85}
+          num_threads: ${ROLLY_TTS_THREADS:-2}
+          num_instances: ${ROLLY_TTS_INSTANCES:-1}
+          provider: "${ROLLY_TTS_PROVIDER:-cpu}"
 
   # ---------------------------------------------------------------- Architecture D: hybrid
   hybrid-apillm:
