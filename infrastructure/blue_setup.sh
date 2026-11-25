@@ -36,13 +36,17 @@ PYEOF
 "$PY" -c "import polyg2p" 2>/dev/null || uv pip install -q --python "$PY" --no-index --find-links "$BL/bundle/frontend" polyg2p==0.1.0
 mkdir -p "$BL/voice" && cp "$BL/bundle/voices/$VOICE.json" "$BL/voice/" || { say "voice $VOICE not in the bundle"; state failed; exit 1; }
 
-# GPU provider: onnxruntime-gpu replaces the CPU wheel (both provide the same module).  If its CUDA libraries do not
-# load, ONNX Runtime falls back to CPU by itself and the server log says which provider is in use.
-if [ "${ROLLY_BLUE_BACKEND:-gpu}" = "gpu" ] && ! "$PY" -c "import onnxruntime as o, sys; sys.exit(0 if 'CUDAExecutionProvider' in o.get_available_providers() else 1)" 2>/dev/null; then
-  say "installing the GPU build of ONNX Runtime"
+# GPU provider.  onnxruntime-gpu 1.27-1.29 is built for CUDA 13 + cuDNN 9, this image ships CUDA 12: the matching
+# libraries come as pip wheels (the [cuda,cudnn] extras) and are put on the library path of the server process.
+# onnxruntime-gpu replaces the CPU wheel (both provide the same module).
+SITE="$("$PY" -c "import site; print(site.getsitepackages()[0])")"
+if [ "${ROLLY_BLUE_BACKEND:-gpu}" = "gpu" ] && ! ls "$SITE"/nvidia/*/lib/libcudnn.so* >/dev/null 2>&1; then
+  say "installing the GPU build of ONNX Runtime with its CUDA and cuDNN libraries"
   uv pip uninstall -q --python "$PY" onnxruntime 2>/dev/null
-  uv pip install -q --python "$PY" --reinstall "onnxruntime-gpu>=1.27,<1.30" || { say "GPU build not installable; back to CPU"; uv pip install -q --python "$PY" --reinstall "onnxruntime>=1.27,<1.30"; }
+  uv pip install -q --python "$PY" --reinstall "onnxruntime-gpu[cuda,cudnn]>=1.27,<1.30" \
+    || { say "GPU build not installable; back to CPU"; uv pip install -q --python "$PY" --reinstall "onnxruntime>=1.27,<1.30"; }
 fi
+NVLIBS="$(ls -d "$SITE"/nvidia/*/lib 2>/dev/null | tr '\n' ':')"
 PROVIDERS="CPUExecutionProvider"
 "$PY" -c "import onnxruntime as o, sys; sys.exit(0 if 'CUDAExecutionProvider' in o.get_available_providers() else 1)" 2>/dev/null && [ "${ROLLY_BLUE_BACKEND:-gpu}" = "gpu" ] \
   && PROVIDERS="CUDAExecutionProvider,CPUExecutionProvider"
@@ -50,18 +54,25 @@ PROVIDERS="CPUExecutionProvider"
 say "starting the server (providers requested: $PROVIDERS)"
 pkill -f "examples/openai_server.py" 2>/dev/null || true; sleep 1
 # fp32: the listening samples were made with the float graph; the int8 graph is not quality-gated by its author
-BLUE_ONNX_PRECISION=fp32 POLYG2P_DATA="$BL/bundle/frontend/polyg2p_data" nohup "$PY" "$BL/src/examples/openai_server.py" --bundle "$BL/bundle" \
+LD_LIBRARY_PATH="$NVLIBS${LD_LIBRARY_PATH:-}" BLUE_ONNX_PRECISION=fp32 POLYG2P_DATA="$BL/bundle/frontend/polyg2p_data" nohup "$PY" "$BL/src/examples/openai_server.py" --bundle "$BL/bundle" \
   --voices-dir "$BL/voice" --default-voice "$VOICE" --pcm-sample-rate 0 --host 127.0.0.1 --port 1920 --providers "$PROVIDERS" > "$LOGS/blue_server.log" 2>&1 &
 for i in $(seq 1 90); do curl -fs -m 3 http://127.0.0.1:1920/health >/dev/null 2>&1 && break; sleep 2; done
 curl -fs -m 3 http://127.0.0.1:1920/health >/dev/null 2>&1 || { say "server did not come up:"; tail -15 "$LOGS/blue_server.log"; state failed; exit 1; }
 USED="$(grep -o "Using ONNX Runtime providers.*" "$LOGS/blue_server.log" | head -1)"; say "$USED"
 
 REQ='{"model":"bluev3","input":"נו, מה קרה עם ששת הראיונות שעוד רצית לקבוע למשפחות?","language":"he","speed":1.2,"response_format":"pcm","stream":true}'
-for n in 1 2 3; do
-  curl -fsS -m 60 http://127.0.0.1:1920/v1/audio/speech -H "Content-Type: application/json" -d "$REQ" -o "$BL/warm.pcm" \
-    -w "request $n: first byte %{time_starttransfer} s, total %{time_total} s, %{size_download} bytes (16-bit PCM, 44.1 kHz)\n" || say "warm-up request failed"
+LAST=99
+for n in 1 2 3 4; do
+  LAST="$(curl -fsS -m 60 http://127.0.0.1:1920/v1/audio/speech -H "Content-Type: application/json" -d "$REQ" -o "$BL/warm.pcm" -w "%{time_total}")" || LAST=99
+  say "request $n: $LAST s for one sentence of about 3.8 s"
 done
-grep -i "error\|fail\|warn" "$LOGS/blue_server.log" | grep -vi "consider to run pre-processing" | head -6
+grep -i "Failed to create\|error" "$LOGS/blue_server.log" | cut -c1-260 | sort -u | head -4
 nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader
 tail -c 6000 "$LOGS/blue_server.log" > "$PUB/blue_server.log"
+# Speed gate: a sentence is synthesised as a whole, so this time is the wait before its first sound.
+# Slower than the limit is unusable in conversation (measured on this host's CPU: 3-7 s): leave the pipeline on Piper.
+LIMIT="${ROLLY_BLUE_MAX_SENTENCE_S:-0.45}"
+if ! awk -v t="$LAST" -v l="$LIMIT" 'BEGIN { exit !(t <= l) }'; then
+  say "too slow for conversation ($LAST s > $LIMIT s): not used"; state too_slow; exit 1
+fi
 say "BlueV3 is serving on 127.0.0.1:1920"; state serving
