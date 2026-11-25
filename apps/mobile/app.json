@@ -5,11 +5,13 @@
     "scheme": "rolly",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.zappy.rolly",
       "supportsTablet": false,
+      "icon": { "light": "./assets/icon.png", "dark": "./assets/icon-dark.png" },
       "infoPlist": {
         "NSMicrophoneUsageDescription": "ROLLY מקשיב לך בזמן שיחה קולית. ROLLY listens to you during a voice conversation.",
         "UIBackgroundModes": ["audio"],
