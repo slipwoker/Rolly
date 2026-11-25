@@ -23,6 +23,10 @@ Each item: what, why, setup, cost, time, alternatives, security, whether work co
 - **Security**: Apple credentials stay with EAS/the owner; the app contains no API keys.
 - **Work continues**: yes, but criteria 1, 2 (from the phone), 7 and 8 cannot be demonstrated without it.
 
+## B1b. Enrollment key (owner, once)
+- Generate one random value and set it on Render (`ROLLY_ENROLLMENT_KEY`) and on the build machine / EAS
+  (`EXPO_PUBLIC_ROLLY_ENROLLMENT_KEY`), see `docs/PHASE1_IPHONE_SETUP.md` §2b. Without it the app cannot register itself.
+
 ## B3. Swift module not compiled yet (engineering)
 - No macOS/Xcode in this environment. `expo prebuild` succeeds and autolinks `rolly-audio`; the first EAS build is the first
   compile. Expect a fix-up round.

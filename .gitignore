@@ -14,3 +14,5 @@ apps/api/e2e-out/
 .expo/
 apps/mobile/ios/
 apps/mobile/android/
+.env.local
+.env*.local

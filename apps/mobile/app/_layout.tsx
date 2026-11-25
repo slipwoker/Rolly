@@ -1,23 +1,15 @@
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { isPaired } from "../src/api";
+import { warmUp } from "../src/api";
 import { ensureDirection } from "../src/i18n";
 
 ensureDirection();
 
+/** No sign-in screen: the app opens straight on the conversation; the phone enrolls silently on first launch. */
 export default function Root() {
-  const [paired, setPaired] = useState<boolean | null>(null);
-  const segments = useSegments();
-  const router = useRouter();
-  useEffect(() => { void isPaired().then(setPaired); }, [segments]);
-  useEffect(() => {
-    if (paired === null) return;
-    const onPair = segments[0] === "pair";
-    if (!paired && !onPair) router.replace("/pair");
-    if (paired && onPair) router.replace("/");
-  }, [paired, segments, router]);
+  useEffect(() => { void warmUp().catch(() => { /* retried when a conversation starts; shown there if it fails */ }); }, []);
   return (
     <SafeAreaProvider>
       <StatusBar style="auto" />

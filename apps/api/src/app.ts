@@ -4,7 +4,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { Config } from "./config.ts";
 import { createPool, migrate } from "./db/index.ts";
-import { Auth, adminOk } from "./auth.ts";
+import { Auth, RateLimiter, adminOk, secretOk } from "./auth.ts";
 import { buildContext } from "./persona/promptBuilder.ts";
 import { openAiLlm, type UtilityLlm } from "./memory/llm.ts";
 import { MemoryStore } from "./memory/store.ts";
@@ -89,6 +89,16 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     };
 
     // ---------------------------------------------------------- auth
+    const enrollLimit = new RateLimiter(5, 3600_000);
+    app.post("/v1/auth/enroll", async (req, reply) => {
+      const b = parse(z.object({ enrollment_key: z.string().min(8).max(200), device_name: z.string().max(80).optional() }), req.body, reply); if (!b) return;
+      if (!enrollLimit.allow(req.ip)) return reply.code(429).send({ error: "too many attempts" });
+      if (!secretOk(b.enrollment_key, config.enrollmentKey)) return reply.code(401).send({ error: "enrollment refused" });
+      const r = await auth.enroll(b.device_name ?? null, config.maxUsers);
+      if (r === "full") return reply.code(403).send({ error: "no more users can be enrolled" });
+      app.log.info({ user_id: r.user_id }, "device enrolled");
+      return auth.refresh(r.refresh_token);
+    });
     app.post("/v1/auth/pair", async (req, reply) => {
       const b = parse(z.object({ code: z.string().min(6).max(20), device_name: z.string().max(80).optional() }), req.body, reply); if (!b) return;
       const p = await auth.pair(b.code, b.device_name ?? null);
@@ -172,6 +182,17 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       if (!admin(req, reply)) return;
       const b = parse(z.object({ label: z.string().max(80).optional() }), req.body, reply); if (!b) return;
       return { user_id: await store.createUser(b.label ?? null) };
+    });
+    app.get("/v1/admin/users", async (req, reply) => {
+      if (!admin(req, reply)) return;
+      return { users: (await db.query(`SELECT u.id, u.display_label, u.created_at, count(d.id)::int AS devices,
+        (SELECT count(*)::int FROM sessions s WHERE s.user_id=u.id AND s.user_turns>0) AS sessions
+        FROM users u LEFT JOIN devices d ON d.user_id=u.id AND d.revoked_at IS NULL WHERE u.deleted_at IS NULL GROUP BY u.id ORDER BY u.created_at`)).rows };
+    });
+    app.delete("/v1/admin/users/:id", async (req, reply) => {
+      if (!admin(req, reply)) return;
+      await store.deleteAccount((req.params as { id: string }).id);
+      return { deleted: true };
     });
     app.post("/v1/admin/users/:id/pairing-code", async (req, reply) => {
       if (!admin(req, reply)) return;

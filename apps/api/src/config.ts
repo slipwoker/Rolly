@@ -16,6 +16,10 @@ export interface Config {
   transcriptRetentionDays: number;
   candidateTtlDays: number;
   maxSessionMinutes: number;
+  /** gate for silent device enrollment (the same value is built into the app); null = enrollment closed */
+  enrollmentKey: string | null;
+  /** at most this many (non-deleted) users can exist; enrollment stops there */
+  maxUsers: number;
   /** development only: accept `?dev_user=<id>` on the voice socket without a ticket. Refused when NODE_ENV=production. */
   devAuth: boolean;
   timezone: string;
@@ -34,6 +38,7 @@ export function missingSettings(c: Config): string[] {
   if (!c.databaseUrl && process.env.NODE_ENV === "production") m.push("DATABASE_URL");
   if (!c.openaiApiKey) m.push("OPENAI_API_KEY");
   if (!c.adminToken) m.push("ROLLY_ADMIN_TOKEN");
+  if (!c.enrollmentKey) m.push("ROLLY_ENROLLMENT_KEY");
   return m;
 }
 
@@ -53,6 +58,8 @@ export function loadConfig(env = process.env): Config {
     utilityReasoning: env.ROLLY_UTILITY_LLM_REASONING ?? "none",
     authSecret: env.ROLLY_AUTH_SECRET ?? "", // empty: generated once and kept in the database (app_secrets)
     adminToken: env.ROLLY_ADMIN_TOKEN || null,
+    enrollmentKey: env.ROLLY_ENROLLMENT_KEY || null,
+    maxUsers: Number(env.ROLLY_MAX_USERS ?? 5),
     transcriptRetentionDays: Number(env.ROLLY_TRANSCRIPT_RETENTION_DAYS ?? 30),
     candidateTtlDays: Number(env.ROLLY_CANDIDATE_TTL_DAYS ?? 14),
     maxSessionMinutes: Number(env.ROLLY_MAX_SESSION_MINUTES ?? 90),

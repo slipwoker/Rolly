@@ -1,10 +1,10 @@
 /** Personalisation: what ROLLY remembers (correct / delete / confirm), Hebrew addressing, language, connected services
  *  (placeholders), export and account deletion. */
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { api, signOut } from "../../src/api";
+import { api, forgetDevice } from "../../src/api";
 import { t } from "../../src/i18n";
 import { useTheme } from "../../src/ui/theme";
 
@@ -17,7 +17,6 @@ interface Memory { id: string; kind: string; content: string; status: "active" |
 
 export default function Personalisation() {
   const c = useTheme();
-  const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [mems, setMems] = useState<Memory[]>([]);
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
@@ -113,8 +112,7 @@ export default function Personalisation() {
 
         <View style={s.col}>
           <Btn label={t.exportData} onPress={async () => { const d = await api("/v1/export"); await Share.share({ message: JSON.stringify(d, null, 2) }); }} />
-          <Btn label={t.signOut} onPress={async () => { await signOut(); router.replace("/pair"); }} />
-          <Btn label={t.deleteAccount} danger onPress={() => confirmDanger(t.deleteAccount, async () => { await api("/v1/me", { method: "DELETE" }); await signOut(); router.replace("/pair"); })} />
+          <Btn label={t.deleteAccount} danger onPress={() => confirmDanger(t.deleteAccount, async () => { await api("/v1/me", { method: "DELETE" }); await forgetDevice(); load(); })} />
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -1,7 +1,9 @@
 /**
- * Accounts for a handful of testers (decision P1-D3 in docs/PHASE1_DECISIONS.md):
- *  - the owner creates a user and a one-time PAIRING CODE with the admin token (10 minutes, single use, stored hashed);
- *  - the app exchanges the code for a long-lived, revocable DEVICE REFRESH TOKEN (stored hashed, kept in the iOS Keychain);
+ * Accounts for a handful of testers (decision P1-D3 in docs/PHASE1_DECISIONS.md, revised: no sign-in screen):
+ *  - on first launch the app ENROLLS silently: it presents the build's enrollment key and gets a new user (the primary
+ *    user of that phone) with a long-lived, revocable DEVICE REFRESH TOKEN (stored hashed, kept in the iOS Keychain);
+ *    enrollment is refused beyond ROLLY_MAX_USERS and rate-limited;
+ *  - a one-time PAIRING CODE (admin) can still move an existing account to a new phone;
  *  - the refresh token buys short ACCESS TOKENS (HMAC-signed, 15 minutes) for the HTTP API;
  *  - an access token buys a single-use VOICE TICKET (60 s) to open the voice WebSocket.
  * No third-party identity service, no Apple capability, no email delivery. Pipeline and OpenAI keys never leave the server.
@@ -43,6 +45,29 @@ export class Auth {
     const exp = new Date(Date.now() + Math.min(Math.max(60, ttlS), 86_400) * 1000);
     await this.db.query("INSERT INTO pairing_codes(code_hash, user_id, expires_at) VALUES ($1,$2,$3)", [sha256(normCode(code)), userId, exp]);
     return { code, expires_at: exp.toISOString() };
+  }
+
+  /** Silent first-launch enrollment: a new user bound to this device. */
+  async enroll(deviceName: string | null, maxUsers: number): Promise<{ user_id: string; refresh_token: string } | "full"> {
+    const client = await this.db.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(727002)"); // serialise the user-count check
+      const n = (await client.query<{ n: number }>("SELECT count(*)::int n FROM users WHERE deleted_at IS NULL")).rows[0]!.n;
+      if (n >= maxUsers) { await client.query("ROLLBACK"); return "full"; }
+      const u = await client.query<{ id: string }>("INSERT INTO users(display_label) VALUES ($1) RETURNING id", [`device: ${deviceName?.slice(0, 60) ?? "?"}`]);
+      const uid = u.rows[0]!.id;
+      await client.query("INSERT INTO profiles(user_id) VALUES ($1)", [uid]);
+      const refresh = randomBytes(32).toString("base64url");
+      await client.query("INSERT INTO devices(user_id, name, refresh_hash) VALUES ($1,$2,$3)", [uid, deviceName?.slice(0, 80) ?? null, sha256(refresh)]);
+      await client.query("COMMIT");
+      return { user_id: uid, refresh_token: refresh };
+    } catch (e) {
+      await client.query("ROLLBACK").catch(() => {});
+      throw e;
+    } finally {
+      client.release();
+    }
   }
 
   async pair(code: string, deviceName: string | null): Promise<{ user_id: string; refresh_token: string } | null> {
@@ -99,6 +124,25 @@ export class Auth {
 
   async revokeDevices(userId: string): Promise<void> {
     await this.db.query("UPDATE devices SET revoked_at=now() WHERE user_id=$1 AND revoked_at IS NULL", [userId]);
+  }
+}
+
+export function secretOk(given: string | undefined, expected: string | null): boolean {
+  if (!expected || !given) return false;
+  const a = createHash("sha256").update(given).digest(), b = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(a, b);
+}
+
+/** small in-memory limiter: at most `max` hits per key per window */
+export class RateLimiter {
+  private hits = new Map<string, number[]>();
+  constructor(private readonly max: number, private readonly windowMs: number) {}
+  allow(key: string, now = Date.now()): boolean {
+    const h = (this.hits.get(key) ?? []).filter((t) => now - t < this.windowMs);
+    if (h.length >= this.max) { this.hits.set(key, h); return false; }
+    h.push(now);
+    this.hits.set(key, h);
+    return true;
   }
 }
 

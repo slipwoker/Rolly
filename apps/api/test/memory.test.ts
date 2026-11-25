@@ -12,7 +12,7 @@ import { buildContext } from "../src/persona/promptBuilder.ts";
 import { handleLiveTurn } from "../src/memory/live.ts";
 import type { UtilityLlm } from "../src/memory/llm.ts";
 import type { SessionTurn } from "../src/voice/session.ts";
-import { Auth } from "../src/auth.ts";
+import { Auth, RateLimiter, secretOk } from "../src/auth.ts";
 
 const URL = process.env.TEST_DATABASE_URL ?? "postgres://rolly:rolly@127.0.0.1/rolly_test";
 let db: Db, store: MemoryStore, available = true;
@@ -169,5 +169,23 @@ describe.skipIf(!process.env.CI && false)("memory policy with PostgreSQL", () =>
     const { ticket } = await auth.createTicket(uid);
     expect(await auth.consumeTicket(ticket)).toBe(uid);
     expect(await auth.consumeTicket(ticket)).toBeNull();
+  });
+
+  it("silent enrollment: new user + device token, refused when full; key check and rate limit", async () => {
+    if (!available) return;
+    const auth = new Auth(db, await Auth.loadSecret(db, null));
+    const n = (await db.query("SELECT count(*)::int n FROM users WHERE deleted_at IS NULL")).rows[0].n as number;
+    const r = await auth.enroll("iPhone", n + 1);
+    expect(r).not.toBe("full");
+    const ok = r as { user_id: string; refresh_token: string };
+    const tokens = await auth.refresh(ok.refresh_token);
+    expect(auth.verifyAccess(tokens!.access_token)).toBe(ok.user_id);
+    expect((await store.profile(ok.user_id)).addressing_status).toBe("unknown");
+    expect(await auth.enroll("iPhone 2", n + 1)).toBe("full");
+    expect(secretOk("abc12345", "abc12345")).toBe(true);
+    expect(secretOk("abc12346", "abc12345")).toBe(false);
+    expect(secretOk("abc12345", null)).toBe(false);
+    const rl = new RateLimiter(2, 1000);
+    expect([rl.allow("ip", 0), rl.allow("ip", 1), rl.allow("ip", 2), rl.allow("ip", 1500)]).toEqual([true, true, false, true]);
   });
 });
