@@ -1,14 +1,31 @@
 # Architecture of the test platform
 
 ```
- Browser (frontend/)                         Backend (backend/app)                      Providers (providers/)
-┌──────────────────────────┐   WebSocket   ┌──────────────────────────────┐          ┌───────────────────────────────┐
-│ mic → AudioWorklet       │  PCM16 16 kHz │ VoiceSession                 │  events  │ modular  : VAD→STT→LLM→TTS    │
-│   16 kHz, 20 ms frames   │ ────────────► │  · builds context (memory/)  │ ◄──────► │ hybrid   : same, stages via API│
-│ player AudioWorklet      │ ◄──────────── │  · telemetry (telemetry/)    │          │ commercial: OpenAI Realtime,  │
-│   24 kHz, instant flush  │  PCM16 24 kHz │  · summary + memory write    │          │            Gemini Live bridges │
-│ drive / blind-eval / dash│  + JSON events│  · blind labels, ratings API │          │ mock     : plumbing tests only │
-└──────────────────────────┘               └──────────────────────────────┘          └───────────────────────────────┘
++----------------------------------------------------+
+| BROWSER  (frontend/)                               |
+|   microphone -> 16 kHz audio, 20 ms frames         |
+|   player     <- 24 kHz audio, stops instantly      |
+|   pages: drive, blind evaluation, dashboard        |
++----------------------------------------------------+
+        |  ^
+        |  |   one WebSocket: audio up, audio and
+        v  |   JSON events down
++----------------------------------------------------+
+| BACKEND  (backend/app) - VoiceSession              |
+|   builds the context from memory (memory/)         |
+|   records telemetry (telemetry/)                   |
+|   writes the summary and new memories              |
+|   blind labels and ratings API                     |
++----------------------------------------------------+
+        |  ^
+        v  |   the same events for every provider
++----------------------------------------------------+
+| PROVIDERS  (providers/)                            |
+|   modular    : VAD -> STT -> LLM -> TTS            |
+|   hybrid     : same pipeline, stages through APIs  |
+|   commercial : OpenAI Realtime, Gemini Live        |
+|   mock       : plumbing tests only                 |
++----------------------------------------------------+
 ```
 
 ## One interface for every architecture

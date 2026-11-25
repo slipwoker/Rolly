@@ -157,29 +157,75 @@ it answered in 1.33 s instead of 0.68 s.
 
 ## 4. Recommended production architecture
 
+Five parts. Audio travels from the phone to the conversation server; the conversation server asks the models
+on the GPUs for text and speech and sends the spoken answer back.
+
 ```
- Phone (thin client)                  Edge / media                     Application                         Models (rented GPUs)
-┌───────────────────┐   WebRTC     ┌────────────────┐   audio     ┌───────────────────────────┐      ┌─────────────────────────────┐
-│ mic + speaker     │ ◄─ Opus ───► │ self-hosted    │ ◄────────►  │ Conversation orchestrator │ ───► │ STT : Whisper per language   │
-│ echo cancellation │              │ WebRTC SFU     │             │  · VAD + turn detection   │      │ LLM : Gemma-4 26B on vLLM,   │
-│ journey detection │              │ (LiveKit)      │             │  · speculative turns      │ ───► │       prefix-cached          │
-│ (BT / motion)     │ ─ events ──► │                │             │  · barge-in + truncation  │      │ TTS : CPU or GPU; Hebrew     │
-└───────────────────┘              └────────────────┘             │  · memory + compaction    │ ───► │       voice to be chosen     │
-                                                                  │  · summaries (async)      │      │ fallback: API LLM            │
-                                                                  └───────────┬───────────────┘      └─────────────────────────────┘
-                                                                     Postgres (profiles, memory)      autoscaled, scheduled ahead of peaks
++----------------------------------------------------+
+| 1. PHONE  (thin app)                               |
+|    microphone, speaker, echo cancellation,         |
+|    notices that a journey has started              |
++----------------------------------------------------+
+        |  ^
+        |  |   live audio, both directions
+        v  |   (WebRTC with the Opus codec)
++----------------------------------------------------+
+| 2. MEDIA SERVER  (self-hosted LiveKit)             |
+|    keeps the audio link stable on mobile networks  |
++----------------------------------------------------+
+        |  ^
+        v  |
++----------------------------------------------------+
+| 3. CONVERSATION SERVER  (ordinary CPU machines)    |
+|    decides when the user has finished speaking,    |
+|    handles interruptions, keeps the memory,        |
+|    writes the journey summary                      |
++----------------------------------------------------+
+     |                         |  ^
+     | profiles, memory        |  |  text and audio
+     v                         v  |
++-----------------+   +------------------------------+
+| 4. DATABASE     |   | 5. MODELS  (rented GPUs)     |
+|    Postgres     |   |    speech-to-text  (Whisper) |
++-----------------+   |    language model  (Gemma)   |
+                      |    text-to-speech  (voices)  |
+                      +------------------------------+
 ```
 
+| # | Part | What it does | Runs on | In this POC |
+|---|---|---|---|---|
+| 1 | Phone app | Captures and plays audio, cancels echo, signals journey start | The user's phone | Browser page stood in for the app |
+| 2 | Media server | Carries live audio reliably over mobile networks | Small CPU servers | Not built; the POC used a plain WebSocket |
+| 3 | Conversation server | Turn-taking, interruptions, memory, summaries | CPU servers | Built and measured |
+| 4 | Database | User profiles and conversation memory | Managed Postgres | SQLite file |
+| 5 | Models | Speech-to-text, language model, text-to-speech | Rented GPUs, scaled by the hour | Measured on one L40S GPU |
+
+**What happens in one turn**
+
+1. The user speaks; the phone streams the audio through the media server to the conversation server.
+2. The conversation server detects the pause at the end of the sentence.
+3. It sends the audio to speech-to-text and gets the words back (63 ms measured).
+4. It sends the words, plus the user's memory, to the language model, which starts answering (56 ms to the first word).
+5. Each sentence of the answer goes to text-to-speech as soon as it is written (119 ms).
+6. The audio is streamed back to the phone. Measured end to end: 681 ms median from the user's last word to the first sound.
+7. If the user starts talking while the agent is speaking, playback stops and the agent listens.
+
+**Design decisions behind it**
+
 1. **Self-orchestrated modular pipeline** with every stage replaceable; the POC's provider interface already works this way.
-2. **Speech recognition and the language model on the same GPU pool**; one L40S-class card holds both with room to spare (36 of 46 GB).
-3. **Speculative processing during the end-of-turn wait** (worth about 300 ms, measured) and a 544 ms wait until a Hebrew-capable
-   learned turn detector exists.
-4. **Conversation history compacted in blocks with a running synopsis**, never trimmed turn by turn (measured: trimming destroyed the
-   prompt cache and made first-token time 25 times slower after 40 turns).
+2. **Speech recognition and the language model on the same GPU pool**; one L40S-class card holds both with room to spare
+   (36 of 46 GB).
+3. **Speculative processing during the end-of-turn wait** (worth about 300 ms, measured) and a 544 ms wait until a
+   Hebrew-capable learned turn detector exists.
+4. **Conversation history compacted in blocks with a running synopsis**, never trimmed turn by turn (measured: trimming
+   destroyed the prompt cache and made first-token time 25 times slower after 40 turns).
 5. **WebRTC with Opus** to the phone (self-hosted LiveKit), not raw audio over WebSocket.
-6. **Hourly-autoscaled rented GPUs** in a region near Israel, scaled on a schedule; at least two providers, given the stock risk.
-7. **Text normalisation before speech synthesis** (numbers, dates, English terms in Hebrew), which also removes the number-word defect.
-8. **Privacy by default**: no audio retention, short transcript retention, explicit memory consent, erasure by voice and in-app.
+6. **Hourly-autoscaled rented GPUs** in a region near Israel, scaled on a schedule; at least two providers, given the
+   stock risk. An API language model stays configured as a fallback.
+7. **Text normalisation before speech synthesis** (numbers, dates, English terms in Hebrew), which also removes the
+   number-word defect.
+8. **Privacy by default**: no audio retention, short transcript retention, explicit memory consent, erasure by voice and
+   in-app.
 
 ---
 
