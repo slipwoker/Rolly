@@ -1,5 +1,6 @@
 import { Rubik_400Regular, Rubik_500Medium, Rubik_600SemiBold, Rubik_700Bold, useFonts } from "@expo-google-fonts/rubik";
 import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -10,13 +11,17 @@ import { useTheme } from "../src/ui/theme";
 import { VoiceProvider } from "../src/voice/VoiceProvider";
 
 ensureDirection();
+// keep the native splash (the orb) up until the fonts are ready, so the first frame is already styled
+void SplashScreen.preventAutoHideAsync().catch(() => {});
 
 /** No sign-in screen: the app opens straight on Home; the phone enrolls silently on first launch. */
 export default function Root() {
   const c = useTheme();
   const [fontsReady, fontError] = useFonts({ Rubik_400Regular, Rubik_500Medium, Rubik_600SemiBold, Rubik_700Bold });
   useEffect(() => { void warmUp().catch(() => { /* retried when a conversation starts; shown there if it fails */ }); }, []);
-  if (!fontsReady && !fontError) return null; // the native splash stays up meanwhile
+  const ready = fontsReady || !!fontError;
+  useEffect(() => { if (ready) void SplashScreen.hideAsync().catch(() => {}); }, [ready]);
+  if (!ready) return null; // the native splash stays up meanwhile
   return (
     <SafeAreaProvider>
       <VoiceProvider>

@@ -24,7 +24,11 @@
       "expo-router",
       "expo-secure-store",
       ["expo-localization", { "supportsRTL": true }],
-      "expo-font"
+      "expo-font",
+      ["expo-splash-screen", {
+        "image": "./assets/splash-orb.png", "imageWidth": 180, "resizeMode": "contain", "backgroundColor": "#F7F6FA",
+        "dark": { "image": "./assets/splash-orb.png", "backgroundColor": "#0D0B13" }
+      }]
     ],
     "extra": {
       "apiUrl": "https://rolly-api.onrender.com",

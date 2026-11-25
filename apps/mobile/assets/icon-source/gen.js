@@ -1,8 +1,9 @@
 // Generates the ROLLY app icon (light + dark) from the same petals as src/ui/Orb.tsx.
-// Run from this folder: node gen.js  (needs Playwright + Chromium); then copy icon-*.png to ../
+// Run from this folder: node gen.js  (needs Playwright + Chromium); then copy icon-light.png → ../icon.png, icon-dark.png → ../icon-dark.png, icon-splash.png → ../splash-orb.png
 
 const { chromium } = require('playwright');
-const S = 1024, C = S / 2, R = S * 0.3; // orb radius
+const S = 1024, C = S / 2;
+let R = S * 0.3; // orb radius
 const orb = { violet: "#6D28D9", indigo: "#5B21F5", purple: "#9333EA", magenta: "#C026D3", pink: "#DB2777", blush: "#F5C2E7", mist: "#FCE7F3" };
 // same petals as src/ui/Orb.tsx, frozen at a pleasing frame (angle + squash)
 const P = [
@@ -26,7 +27,7 @@ function svg(mode) {
       <stop offset="0" stop-color="${p.from}" stop-opacity="${p.o}"/><stop offset="0.5" stop-color="${p.mid}" stop-opacity="${p.o * 0.75}"/><stop offset="1" stop-color="${p.to}" stop-opacity="${p.o * 0.2}"/>
     </linearGradient>`).join('');
   const shapes = P.map((p, i) => `<g transform="translate(${C + p.dx * d} ${C + p.dy * d}) rotate(${p.a}) scale(${p.sx} 1)"><ellipse cx="0" cy="0" rx="${d * p.rx - 3}" ry="${d * p.ry - 3}" fill="url(#p${i})" stroke="#FFFFFF" stroke-opacity="${mode === 'light' ? 0.35 : 0.22}" stroke-width="3"/></g>`).join('');
-  const ground = mode === 'light'
+  const ground = mode !== 'dark'
     ? `<ellipse cx="${C}" cy="${C + R * 1.12}" rx="${R * 0.8}" ry="${R * 0.12}" fill="url(#shadow)"/>` : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}">
   <defs>${bg}${petals}
@@ -34,9 +35,9 @@ function svg(mode) {
     <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5"><stop offset="0.55" stop-color="#A855F7" stop-opacity="${mode === 'light' ? 0.22 : 0.35}"/><stop offset="1" stop-color="#A855F7" stop-opacity="0"/></radialGradient>
     <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#6D28D9" stop-opacity="0.18"/><stop offset="1" stop-color="#6D28D9" stop-opacity="0"/></radialGradient>
   </defs>
-  <rect width="${S}" height="${S}" fill="url(#bg)"/><rect width="${S}" height="${S}" fill="url(#gl1)"/><rect width="${S}" height="${S}" fill="url(#gl2)"/>
+  ${mode === 'splash' ? '' : `<rect width="${S}" height="${S}" fill="url(#bg)"/><rect width="${S}" height="${S}" fill="url(#gl1)"/><rect width="${S}" height="${S}" fill="url(#gl2)"/>`}
   ${ground}
-  <circle cx="${C}" cy="${C}" r="${R * 1.45}" fill="url(#halo)"/>
+  <circle cx="${C}" cy="${C}" r="${Math.min(R * 1.45, S * 0.49)}" fill="url(#halo)"/>
   <circle cx="${C}" cy="${C}" r="${R}" fill="url(#core)"/>
   ${shapes}
 </svg>`;
@@ -44,11 +45,13 @@ function svg(mode) {
 (async () => {
   const fs = require('fs');
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: S, height: S }, deviceScaleFactor: 1 });
-  for (const mode of ['light', 'dark']) {
+  for (const mode of ['light', 'dark', 'splash']) {
+    R = S * (mode === 'splash' ? 0.38 : 0.3);
     const s = svg(mode); fs.writeFileSync(`icon-${mode}.svg`, s);
-    await p.setContent(`<html><body style="margin:0">${s}</body></html>`);
-    await p.screenshot({ path: `icon-${mode}.png`, omitBackground: false });
+    await p.setContent(`<html><body style="margin:0;background:transparent">${s}</body></html>`);
+    await p.screenshot({ path: `icon-${mode}.png`, omitBackground: mode === 'splash' });
   }
+  R = S * 0.3;
   // preview: rounded like on a home screen, at several sizes
   const L = fs.readFileSync('icon-light.png').toString('base64'), D = fs.readFileSync('icon-dark.png').toString('base64');
   await p.setViewportSize({ width: 900, height: 420 });
