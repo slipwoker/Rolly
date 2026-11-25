@@ -19,7 +19,7 @@ from typing import AsyncIterator, Optional
 
 import numpy as np
 
-from .text import dominant_language
+from .text import dominant_language, he_pronounce
 
 
 def _to_pcm16(samples) -> bytes:
@@ -266,6 +266,8 @@ class TTSRouter:
         """Yield (pcm16_bytes, sample_rate, language, engine_name)."""
         lang = dominant_language(text, default=hint if hint in ("he", "en") else self.default)
         engine = self.engine_for(lang)
+        if lang == "he":
+            text = he_pronounce(text)  # e.g. זאפי -> זַאפִּי ("zappy", not "zaffy"); only the audio changes
         started = False
         try:
             async for pcm in engine.synth(text, lang):

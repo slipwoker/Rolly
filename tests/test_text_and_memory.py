@@ -102,3 +102,29 @@ def test_cost_model_arithmetic_matches_the_brief():
     assert m["B:l40s_runpod:base"]["fleet"]["realised_utilisation"] > 0.5
     # commercial realtime is at least an order of magnitude above self-hosted variable cost
     assert m["A:openai_gpt_realtime_2_1_mini"]["usd_per_min_variable"] > 10 * m["B:l40s_runpod:base"]["usd_per_min_variable"]
+
+
+def test_question_guard_only_after_a_question():
+    from providers.modular.text import QUESTION_GUARD_NOTE, ends_with_question, question_guard_note
+    assert ends_with_question("וואלה, פקקים זה הכי מעצבן. היה משהו ספציפי?")
+    assert ends_with_question("so what happened with the meeting? ")
+    assert ends_with_question('he said "really?"')
+    assert not ends_with_question("סבבה, נשמור על שקט.")
+    assert not ends_with_question("רגע, זה אליי? כי נשמע לי שזה היה לנוסע.")  # question in the middle, statement at the end
+    assert not ends_with_question("מה דעתך על —")  # cut off before the question mark
+    q = {"role": "assistant", "content": "יש משהו מעניין שקרה היום?"}
+    s = {"role": "assistant", "content": "האמת, לדעתי פקקים זה הזמן הכי טוב לפודקאסט."}
+    u = {"role": "user", "content": "לא"}
+    assert question_guard_note([]) is None  # the opener
+    assert question_guard_note([q, u]) == QUESTION_GUARD_NOTE
+    assert question_guard_note([s, u]) is None
+    assert question_guard_note([q, u, s, u]) is None  # only the most recent reply counts
+
+
+def test_hebrew_pronunciation_fixes_zappy_only_as_a_word():
+    from providers.modular.text import he_pronounce
+    assert he_pronounce("עובדים על זאפי") == "עובדים על זַאפִּי"
+    assert he_pronounce("בזאפי, ולזאפי.") == "בזַאפִּי, ולזַאפִּי."
+    assert he_pronounce("זאפי?") == "זַאפִּי?"
+    assert he_pronounce("זאפיות") == "זאפיות"  # a longer word is left alone
+    assert he_pronounce("Zappy is fine") == "Zappy is fine"
