@@ -16,6 +16,13 @@ projects:
             branch: claude/adoring-goodall-es5zzm
             healthCheckPath: /healthz
             autoDeploy: true
+            buildFilter:   # documentation and result files do not restart the app (a deploy drops live conversations)
+              ignoredPaths:
+                - "**/*.md"
+                - "docs/**"
+                - "benchmarks/results/**"
+                - "reports/**"
+                - "tests/**"
             disk:
               name: rolly-data
               mountPath: /var/data

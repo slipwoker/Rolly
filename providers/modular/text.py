@@ -99,3 +99,42 @@ class SentenceChunker:
         chunk = clean_for_speech(self._buf)
         self._buf = ""
         return [chunk] if chunk else []
+
+
+
+# -- telling the agent's own voice and stray sounds from a real interruption ----------------------
+# Words that always count as an interruption, however short or unclear the recognition was.
+STOP_WORDS = {"רגע", "עצור", "עצרי", "די", "שנייה", "שניה", "חכה", "חכי", "סטופ", "שקט", "stop", "wait", "hold", "pause", "enough", "quiet"}
+_WORD = re.compile(r"[\w\u0590-\u05ff']+")
+_NIQQUD = re.compile(r"[\u0591-\u05c7]")
+
+
+def _tokens(text: str) -> list[str]:
+    return _WORD.findall(_NIQQUD.sub("", (text or "").replace("\u2019", "'").replace("\u05f3", "'")).lower())
+
+
+def has_stop_word(text: str) -> bool:
+    return any(t in STOP_WORDS for t in _tokens(text))
+
+
+def echo_like(heard: str, agent_text: str) -> bool:
+    """True if `heard` is (mostly) made of words the agent was just saying.
+
+    Used only for sound that started while the agent was audible: without headphones the microphone
+    picks up the loudspeaker, and what comes back is recognised as "user speech"."""
+    import difflib
+
+    h, a = _tokens(heard), _tokens(agent_text)
+    if not h or not a or (len(h) == 1 and h[0] in STOP_WORDS):
+        return False
+    def same(w: str, x: str) -> bool:
+        if w == x:
+            return True
+        if len(w) < 3:
+            return False
+        # an echo that was cut short gives the beginning of a word ("more" for "morning")
+        return x.startswith(w[:3]) and (x.startswith(w) or w.startswith(x) or difflib.SequenceMatcher(None, w, x).ratio() >= 0.5) \
+            or difflib.SequenceMatcher(None, w, x).ratio() >= 0.8
+
+    hits = sum(1 for w in h if any(same(w, x) for x in a))
+    return hits / len(h) >= 0.7

@@ -364,7 +364,8 @@ async def _run_selftest(job: dict, url: str, scenarios: list[dict], repeat: int)
         for rep in range(repeat):
             for sc in scenarios:
                 try:
-                    r = await asyncio.wait_for(run_scenario(url, job["provider"], sc, job["tag"], 60, 60), timeout=300)
+                    r = await asyncio.wait_for(run_scenario(url, job["provider"], sc, job["tag"], 60, 60, job.get("options"),
+                                                            float(job.get("echo_gain") or 0)), timeout=300)
                 except asyncio.TimeoutError:
                     r = {"id": sc["id"], "title": sc["title"], "language": sc.get("language", "en"), "snr_db": sc.get("snr_db"),
                          "turns": [], "checks": [], "interruptions": [], "error": "scenario exceeded 300 s"}
@@ -399,7 +400,8 @@ async def selftest_start(request: Request, token: str | None = None):
     from urllib.parse import quote
     url = f"ws://127.0.0.1:{port}/ws?token={quote(st.settings.admin_token, safe='')}"
     job = {"id": uuid.uuid4().hex[:10], "provider": pid, "status": "running", "started": time.time(), "results": [],
-           "tag": str(body.get("tag") or "selftest")[:40], "scenarios": [s["id"] for s in scenarios]}
+           "tag": str(body.get("tag") or "selftest")[:40], "scenarios": [s["id"] for s in scenarios],
+           "echo_gain": min(1.0, max(0.0, float(body.get("echo_gain") or 0))), "options": body.get("options") or None}
     jobs[job["id"]] = job
     job["_task"] = asyncio.create_task(_run_selftest(job, url, scenarios, max(1, min(int(body.get("repeat", 1)), 5))))
     return {k: v for k, v in job.items() if not k.startswith("_")}

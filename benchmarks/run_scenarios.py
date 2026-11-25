@@ -40,7 +40,7 @@ def _has_any(text: str, keys: list[str]) -> bool:
 
 
 async def run_scenario(url: str, provider: str, sc: dict, tag: str, turn_timeout: float, opener_timeout: float,
-                       options: dict | None = None) -> dict:
+                       options: dict | None = None, echo_gain: float = 0.0) -> dict:
     lang = sc.get("language", "en")
     speech_lang = lambda text: "he" if any("֐" <= c <= "׿" for c in text) else "en"  # noqa: E731
     noise, gain = None, 0.0
@@ -49,7 +49,7 @@ async def run_scenario(url: str, provider: str, sc: dict, tag: str, turn_timeout
         ref = await user_speech(next(s["say"] for s in sc["steps"] if "say" in s), speech_lang(next(s["say"] for s in sc["steps"] if "say" in s)))
         gain = gain_for_snr(ref, float(sc["snr_db"]))
     c = SimClient(url, {"provider": provider, "user_id": sc["user"], "language": lang, "tag": tag, "ephemeral": True,
-                        "journey": {"duration_min": 25}, "options": options or {}}, noise=noise, noise_gain=gain)
+                        "journey": {"duration_min": 25}, "options": options or {}}, noise=noise, noise_gain=gain, echo_gain=echo_gain)
     res: dict = {"id": sc["id"], "title": sc["title"], "language": lang, "snr_db": sc.get("snr_db"), "turns": [], "checks": [],
                  "interruptions": [], "error": None}
     t_begin = time.monotonic()
@@ -194,14 +194,14 @@ async def main_async(a) -> None:
     scenarios = [s for s in spec["scenarios"] if a.only is None or any(s["id"].startswith(o) for o in a.only)]
     out = {"benchmark": "scenarios", "provider": a.provider, "url": a.url, "tag": a.tag, "hardware_note": a.hardware,
            "host": platform.platform(), "started": time.strftime("%Y-%m-%dT%H:%M:%S"), "repeat": a.repeat,
-           "session_options": json.loads(a.options) if a.options else {}, "results": []}
+           "session_options": json.loads(a.options) if a.options else {}, "echo_gain": a.echo_gain, "results": []}
     path = RESULTS / f"scenarios_{a.provider}_{out['started'].replace(':', '').replace('-', '')}.json"
     RESULTS.mkdir(parents=True, exist_ok=True)
     for rep in range(a.repeat):
         for sc in scenarios:
             try:  # a scenario may never block the whole run
                 r = await asyncio.wait_for(run_scenario(a.url, a.provider, sc, a.tag, a.turn_timeout, a.opener_timeout,
-                                                        json.loads(a.options) if a.options else None), timeout=a.scenario_timeout)
+                                                        json.loads(a.options) if a.options else None, a.echo_gain), timeout=a.scenario_timeout)
             except asyncio.TimeoutError:
                 r = {"id": sc["id"], "title": sc["title"], "language": sc.get("language", "en"), "snr_db": sc.get("snr_db"), "turns": [],
                      "checks": [], "interruptions": [], "error": f"scenario exceeded {a.scenario_timeout:.0f} s and was abandoned"}
@@ -227,4 +227,6 @@ if __name__ == "__main__":
     ap.add_argument("--hardware", default="unspecified", help="free-text description of the server hardware, stored with the results")
     ap.add_argument("--options", default="", help='JSON session options, e.g. {"endpoint_silence_ms": 320, "eager_silence_ms": 160}')
     ap.add_argument("--scenario-timeout", type=float, default=480)
+    ap.add_argument("--echo-gain", type=float, default=0.0,
+                    help="mix the agent's own voice back into the microphone at this linear gain (0.3 = loudspeaker, no echo cancellation)")
     asyncio.run(main_async(ap.parse_args()))

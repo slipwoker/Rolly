@@ -36,3 +36,30 @@ def test_silence_and_road_noise_do_not_trigger(models_available):
     ep = Endpointer(SileroVAD("models/silero_vad.onnx"), VadConfig())
     assert _feed(ep, np.zeros(16000 * 5, np.float32)) == []
     assert [k for k, _, _ in _feed(ep, road_noise(10.0) * 0.05, agent_audible=True)] == []
+
+
+def test_quiet_speech_cannot_interrupt_the_agent_but_loud_speech_can(models_available):
+    """Echo of the agent and background voices are speech to the detector; only loudness tells them from the user."""
+    from benchmarks.synth import user_speech_sync
+
+    speech = user_speech_sync("Wait, stop, I have a different question.", "en")
+    audio = np.concatenate([np.zeros(8000, np.float32), speech, np.zeros(16000, np.float32)])
+
+    quiet = Endpointer(SileroVAD("models/silero_vad.onnx"), VadConfig())
+    quiet.gate_db = -30.0
+    assert not _feed(quiet, audio * 0.05, agent_audible=True), "speech 26 dB down must not cut the agent off"
+    assert quiet.suppressed_ms > 0 and quiet.suppressed_peak_db < -30.0
+
+    loud = Endpointer(SileroVAD("models/silero_vad.onnx"), VadConfig())
+    loud.gate_db = -30.0
+    ev = _feed(loud, audio, agent_audible=True)
+    assert ev and ev[0][0] == "start" and ev[0][2] - 500 <= 450, "the user's own voice must still interrupt quickly"
+
+
+def test_echo_of_the_agent_is_recognised_by_its_words():
+    from providers.modular.text import echo_like
+
+    said = "Morning, Daniel. We’ve got about twenty-five minutes. Want to pick up the agencies question?"
+    assert echo_like("We've got.", said) and echo_like("More.", said) and echo_like("Morning!", said)
+    assert not echo_like("Wait, I have a question", said) and not echo_like("What about pricing?", said)
+    assert echo_like("סליחה", "סליחה, לא ממש הבנתי את מה שאמרת.") and not echo_like("רגע", "רגע, תן לי לחשוב")

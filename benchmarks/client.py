@@ -64,7 +64,12 @@ class AgentTurn:
 
 class SimClient:
     def __init__(self, url: str, start: dict, noise: Optional[np.ndarray] = None, noise_gain: float = 0.0,
-                 keep_audio: bool = False):
+                 keep_audio: bool = False, echo_gain: float = 0.0, echo_delay_ms: float = 120.0):
+        # echo_gain > 0 simulates a loudspeaker without (or with imperfect) echo cancellation: the agent's
+        # own voice is mixed back into the microphone at that linear gain, in real time, after echo_delay_ms.
+        self.echo_gain = echo_gain
+        self._echo = np.zeros(int(SR_IN * echo_delay_ms / 1000), dtype=np.float32) if echo_gain > 0 else np.zeros(0, dtype=np.float32)
+        self._echo_delay = len(self._echo)
         self.url = url
         self.start = {"type": "session.start", **start}
         self.noise = noise  # float32 16 kHz noise bed, looped
@@ -133,6 +138,10 @@ class SimClient:
                     current["pos"] = 0
                     current["t_start"] = time.monotonic()
                 frame = self._noise_frame()
+                if self.echo_gain > 0 and len(self._echo):
+                    seg = self._echo[:FRAME_SAMPLES]
+                    self._echo = self._echo[FRAME_SAMPLES:]
+                    frame[: len(seg)] += seg * self.echo_gain
                 if current is not None:
                     x = current["audio"]
                     seg = x[current["pos"]: current["pos"] + FRAME_SAMPLES]
@@ -186,6 +195,12 @@ class SimClient:
                     seq = struct.unpack("<I", msg[:4])[0]
                     turn = self._turn(seq)
                     turn.add_audio(now, len(msg) - 4)
+                    if self.echo_gain > 0:
+                        import soxr
+                        y = soxr.resample(np.frombuffer(msg[4:], dtype="<i2").astype(np.float32) / 32768.0, SR_OUT, SR_IN)
+                        if not len(self._echo):  # playback restarts: the acoustic delay applies again
+                            self._echo = np.zeros(self._echo_delay, dtype=np.float32)
+                        self._echo = np.concatenate([self._echo, y.astype(np.float32)])
                     if self.keep_audio:
                         self.audio_out.setdefault(seq, bytearray()).extend(msg[4:])
                 else:
@@ -207,6 +222,7 @@ class SimClient:
                         turn.text = ev.get("text") or turn.text
                     elif t == "agent.interrupted":
                         self._turn(ev["seq"]).t_interrupted = now
+                        self._echo = np.zeros(0, dtype=np.float32)  # the client flushes its playback buffer
                     elif t == "turn.latency":
                         self._turn(ev["seq"]).server_latency = {k: v for k, v in ev.items() if k.endswith("_ms")}
                     elif t == "user.transcript" and ev.get("final"):

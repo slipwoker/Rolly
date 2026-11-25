@@ -50,9 +50,12 @@ providers:
     requires_files: ["${ROLLY_VAD_MODEL:-models/silero_vad.onnx}", "models/hebrew-tts/he_IL-noa-medium.onnx"]
     vad_model: "${ROLLY_VAD_MODEL:-models/silero_vad.onnx}"
     max_history_turns: ${ROLLY_MAX_HISTORY_TURNS:-24}
+    level_gate_db: ${ROLLY_LEVEL_GATE_DB:-0}   # ignore voices this many dB quieter than the user's own (0 = off)
     vad:
       endpoint_silence_ms: ${ROLLY_ENDPOINT_SILENCE_MS:-544}
       eager_silence_ms: ${ROLLY_EAGER_SILENCE_MS:-256}
+      bargein_margin_db: ${ROLLY_BARGEIN_MARGIN_DB:-10}   # how close to the user's own loudness a sound must be to interrupt (0 = off)
+      bargein_floor_db: ${ROLLY_BARGEIN_FLOOR_DB:--38}
     stt:
       engine: openai_compat
       base_url: https://api.openai.com/v1
