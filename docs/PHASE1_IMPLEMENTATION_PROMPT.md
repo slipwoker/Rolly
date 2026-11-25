@@ -16,8 +16,8 @@ it into a product slice, reusing what works. **Phase 1 only. Stop when Phase 1 i
    - The research branch `claude/adoring-goodall-es5zzm` is **production**: Render's `rolly-voice` auto-deploys from it and
      the GPU pod pulls it every 30 s (and re-runs `infrastructure/pod_job.sh` when that file changes). **Never push to it**
      unless the owner explicitly approves a specific change.
-   - Work on `rolly-phase1` (cut from tag `research-baseline-2026-11-25`), or on a branch cut from it. If your environment
-     assigns you a different branch name, create it from `rolly-phase1` and say so.
+   - Work on `rolly-phase1` (it starts at the research baseline), or on a branch cut from it. If your environment assigns
+     you a different branch name, create it from `origin/rolly-phase1` and say so.
 4. Run the existing tests (`.venv/bin/python -m pytest -q tests`; create the venv from `requirements.txt` if missing) and
    confirm `https://rolly-voice.onrender.com/healthz` answers. Record the baseline in your first report.
 5. Write a short plan (`docs/PHASE1_PLAN.md`) covering the decisions in §3 and §5 below, then start building the vertical

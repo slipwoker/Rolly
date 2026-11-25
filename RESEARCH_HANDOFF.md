@@ -16,8 +16,8 @@ Companion documents in this repository (read in this order): `FINAL_REPORT.md` (
 |---|---|
 | Repository | `slipwoker/Rolly` (GitHub, **public**) |
 | Research branch | `claude/adoring-goodall-es5zzm` — **production follows this branch** (Render auto-deploys from it; the GPU pod `git pull`s it) |
-| Baseline tag | `research-baseline-2026-11-25` (the commit that adds this file) |
-| Product branch | `rolly-phase1`, created from the baseline tag. All Phase 1 work happens there or on branches cut from it |
+| Baseline | the commit where `rolly-phase1` starts (`git merge-base origin/rolly-phase1 origin/claude/adoring-goodall-es5zzm`). A tag `research-baseline-2026-11-25` could not be pushed from the research session (the session's git proxy refuses tag pushes); the owner can create it on GitHub |
+| Product branch | `rolly-phase1`, created at the baseline. All Phase 1 work happens there or on branches cut from it |
 
 Consequence: anything pushed to the research branch can restart the live voice tester (Render) or change the GPU pod
 (`infrastructure/pod_job.sh` is re-run by the pod whenever its content changes on that branch). Product work must not be
