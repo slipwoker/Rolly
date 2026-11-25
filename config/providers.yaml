@@ -61,11 +61,15 @@ providers:
         num_threads: ${ROLLY_TTS_THREADS:-2}
         num_instances: ${ROLLY_TTS_INSTANCES:-1}
         provider: "${ROLLY_TTS_PROVIDER:-cpu}"
-      # Hebrew voice.  renikud_piper: small open voice on CPU (judged robotic and accented by listeners).
-      # zonos: ZONOS3-Mini with a cloned voice, served by infrastructure/zonos_setup.sh; if its server or the voice
-      # file is missing the Piper voice below is used instead.
+      # Hebrew voice (ROLLY_TTS_HE_ENGINE):
+      #   blue          BlueV3, built-in voice, served by infrastructure/blue_setup.sh - chosen from listening samples
+      #   zonos         ZONOS3-Mini with a cloned voice (infrastructure/zonos_setup.sh) - withdrawn: cut sentence endings
+      #   renikud_piper small open voice on CPU - judged robotic and accented; also the fallback when a server is down
       he:
         engine: "${ROLLY_TTS_HE_ENGINE:-renikud_piper}"
+        blue_url: "${ROLLY_BLUE_URL:-http://127.0.0.1:1920/v1}"
+        blue_voice: "${ROLLY_BLUE_VOICE:-daniel}"
+        blue_speed: ${ROLLY_BLUE_SPEED:-1.2}
         base_url: "${ROLLY_ZONOS_URL:-http://127.0.0.1:1919}"
         reference_codes: "${ROLLY_ZONOS_VOICE:-/workspace/voices/he_voice.codes.npy}"
         reference_frames: ${ROLLY_ZONOS_REFERENCE_FRAMES:-0}

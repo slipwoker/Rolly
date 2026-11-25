@@ -130,6 +130,20 @@ class OpenAICompatTTS:
                     yield chunk
 
 
+class BlueTTS(OpenAICompatTTS):
+    """BlueV3 (Hebrew-first open model, MIT) through the OpenAI-compatible server that ships with BlueTTS,
+    started next to the pipeline by infrastructure/blue_setup.sh.  The server returns the model's own 44.1 kHz PCM.
+
+    Chosen for Hebrew on 2026-11-25: in the sentence-ending test all 12 utterances ended cleanly with the last word
+    recognised (ZONOS3-Mini: 5 of 12), and the product owner picked this voice and speed from listening samples."""
+
+    def __init__(self, cfg: dict):
+        super().__init__({"base_url": cfg.get("blue_url", "http://127.0.0.1:1920/v1"), "model": "bluev3",
+                          "voice": cfg.get("blue_voice", "daniel"), "sample_rate": int(cfg.get("blue_sample_rate", 44100)),
+                          "extra_body": {"speed": float(cfg.get("blue_speed", 1.2)), "language": cfg.get("blue_language", "he"), "stream": True}})
+        self.name = f"bluev3:{self.voice}:speed{self.extra['speed']:g}@{self.base_url}"
+
+
 class ElevenLabsTTS:
     def __init__(self, cfg: dict):
         import httpx
@@ -173,6 +187,8 @@ def _build(cfg: dict):
         return OpenAICompatTTS(cfg)
     if engine == "elevenlabs":
         return ElevenLabsTTS(cfg)
+    if engine == "blue":
+        return BlueTTS(cfg)
     if engine == "zonos":
         from .tts_zonos import ZonosTTS
         return ZonosTTS(cfg)
