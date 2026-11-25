@@ -177,7 +177,8 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       if (!admin(req, reply)) return;
       const uid = (req.params as { id: string }).id;
       if (!(await store.userExists(uid))) return reply.code(404).send({ error: "no such user" });
-      return auth.createPairingCode(uid);
+      const b = parse(z.object({ ttl_minutes: z.number().int().min(1).max(1440).optional() }), req.body, reply); if (!b) return;
+      return auth.createPairingCode(uid, (b.ttl_minutes ?? 10) * 60);
     });
     app.get("/v1/admin/users/:id/state", async (req, reply) => {
       if (!admin(req, reply)) return;

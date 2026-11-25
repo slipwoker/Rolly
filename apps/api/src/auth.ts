@@ -37,9 +37,10 @@ export class Auth {
     return (await db.query<{ value: string }>("SELECT value FROM app_secrets WHERE name='auth_hmac'")).rows[0]!.value;
   }
 
-  async createPairingCode(userId: string): Promise<{ code: string; expires_at: string }> {
+  /** ttlS: default 10 minutes, at most 24 hours (the owner may hand a code over before the app is installed) */
+  async createPairingCode(userId: string, ttlS = PAIRING_TTL_S): Promise<{ code: string; expires_at: string }> {
     const code = newPairingCode();
-    const exp = new Date(Date.now() + PAIRING_TTL_S * 1000);
+    const exp = new Date(Date.now() + Math.min(Math.max(60, ttlS), 86_400) * 1000);
     await this.db.query("INSERT INTO pairing_codes(code_hash, user_id, expires_at) VALUES ($1,$2,$3)", [sha256(normCode(code)), userId, exp]);
     return { code, expires_at: exp.toISOString() };
   }
