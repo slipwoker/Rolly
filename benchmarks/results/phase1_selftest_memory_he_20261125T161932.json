@@ -1,0 +1,676 @@
+{
+    "id": "cd3e316c-5cd7-406e-b2d9-d296f98532f9",
+    "scenario": "memory",
+    "lang": "he",
+    "status": "done",
+    "started": "2026-11-25T16:17:51.741Z",
+    "results": [
+        {
+            "label": "s1_onboarding",
+            "ok": true,
+            "lang": "he",
+            "turns": [
+                {
+                    "label": "opener",
+                    "seq": 1,
+                    "text": "ערב טוב. מה השם, ואיך הכיוון להיום?",
+                    "audio_s": 3.65,
+                    "interrupted": false,
+                    "proactive": true
+                },
+                {
+                    "label": "reply1",
+                    "seq": 3,
+                    "text": "נעים מאוד, נועה. אז מה הכיוון להיום, סתם להעביר את הזמן או יש משהו שרוצים לחשוב עליו?",
+                    "audio_s": 6.06,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 189,
+                    "user_said": "היי! קוראים לי נועה."
+                },
+                {
+                    "label": "reply2",
+                    "seq": 4,
+                    "text": "וואלה, ספרדית זה אחלה רעיון. יש כבר משהו שמתכננים ללמוד או שזה רק רעיון שעלה עכשיו?",
+                    "audio_s": 5.99,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 462,
+                    "user_said": "בנסיעות אני הכי רוצה ללמוד משהו חדש, אולי ספרדית."
+                },
+                {
+                    "label": "reply3",
+                    "seq": 5,
+                    "text": "זה נשמע ממש שימושי. זה משהו שבאמת נחוץ ביומיום בעבודה או שזה יותר בשביל הבונוס?",
+                    "audio_s": 5.78,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 426,
+                    "user_said": "אני חושבת שזה יעזור לי בעבודה, אני עובדת עם לקוחות מדרום אמריקה."
+                },
+                {
+                    "label": "reply4",
+                    "seq": 6,
+                    "text": "אוי, אז אולי עדיף פשוט לשחרר קצת ולא לדחוף למידה עכשיו?",
+                    "audio_s": 3.76,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 387,
+                    "user_said": "אני די עייפה היום, אבל זה בסדר."
+                },
+                {
+                    "label": "reply5",
+                    "seq": 7,
+                    "text": "וואלה, ממש מרשים. אז מה הכיוון להמשך הערב, פשוט לנוח?",
+                    "audio_s": 4.67,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 453,
+                    "user_said": "אני מהנדס תוכנה בגוגל ואני נשוי."
+                },
+                {
+                    "label": "reply6",
+                    "seq": 8,
+                    "text": "סגור, תנוחי טוב. ביי.",
+                    "audio_s": 2.79,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 388,
+                    "user_said": "טוב, נמשיך בפעם הבאה, ביי."
+                }
+            ],
+            "transcripts": [
+                {
+                    "text": "היי",
+                    "language": "he"
+                },
+                {
+                    "text": "קוראים לי נועה.",
+                    "language": "he"
+                },
+                {
+                    "text": "בנסיעות אני הכי רוצה ללמוד משהו חדש, אולי ספרדית.",
+                    "language": "he"
+                },
+                {
+                    "text": "אני חושבת שזה יעזור לי בעבודה, אני עובדת עם לקוחות מדרום אמריקה.",
+                    "language": "he"
+                },
+                {
+                    "text": "אני די עייפה היום אבל זה בסדר.",
+                    "language": "he"
+                },
+                {
+                    "text": "אני מהנדס תוכנה בגוגל ואני נשוי",
+                    "language": "he"
+                },
+                {
+                    "text": "טוב, נמשיך בפעם הבאה, ביי.",
+                    "language": "he"
+                }
+            ],
+            "events": [
+                {
+                    "t": 219,
+                    "type": "session.created"
+                },
+                {
+                    "t": 219,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 552,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 779,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 4678,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 5439,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 5439,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 5439,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 5500,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 5614,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 5800,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 5800,
+                    "type": "agent.interrupted"
+                },
+                {
+                    "t": 6918,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 6920,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 6920,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 6933,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 7314,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 13437,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 16899,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 16899,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 16899,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 17095,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 17424,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 23419,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 27622,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 27622,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 27622,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 27771,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 28093,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 33865,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 36201,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 36201,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 36202,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 36459,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 36477,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 40742,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 43098,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 43100,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 43100,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 43196,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 43373,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 48218,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 50698,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 50698,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 50698,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 50771,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 50878,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 57719,
+                    "type": "session.summary"
+                },
+                {
+                    "t": 57719,
+                    "type": "session.closed"
+                }
+            ],
+            "session_id": "f8602b4b-ce79-475d-98cb-c9d1f4e19632",
+            "summary": {
+                "type": "session.summary",
+                "session_id": "f8602b4b-ce79-475d-98cb-c9d1f4e19632",
+                "summary": {
+                    "summary": "נועה אמרה שהיא רוצה לנצל נסיעות כדי ללמוד משהו חדש, אולי ספרדית, שלדעתה תעזור לה בעבודה עם לקוחות מדרום אמריקה. היא הייתה עייפה ובחרה להמשיך את השיחה בפעם הבאה.",
+                    "progress": [
+                        "זוהתה ספרדית כאפשרות ללמידה בנסיעות וכמיומנות שעשויה להועיל בעבודה."
+                    ],
+                    "method": "llm"
+                },
+                "stats": {
+                    "end_reason": "client_end",
+                    "duration_s": 54,
+                    "turns_user": 7,
+                    "turns_agent": 8,
+                    "interruptions": 1,
+                    "errors": 0,
+                    "audio_in_s": 53.5,
+                    "audio_out_s": 35.7,
+                    "server_reply_ms": [
+                        58,
+                        15,
+                        194,
+                        149,
+                        242,
+                        97,
+                        72
+                    ],
+                    "server_reply_ms_median": 97,
+                    "client_first_audio_ms": [],
+                    "client_first_audio_ms_median": null,
+                    "client_flush_ms": [],
+                    "audio_events": [],
+                    "pod_metrics_median": {
+                        "tts_ttfa_ms": 116.88778607640415,
+                        "pipeline_ms": 368.78654593601823,
+                        "llm_ttft_ms": 61.43769295886159,
+                        "llm_total_ms": 308.8065970223397,
+                        "stt_ms": 101.06540098786354,
+                        "stt_queue_ms": 0.14315894804894924,
+                        "llm_first_chunk_ms": 142.34968193341047,
+                        "bargein_suppressed_ms": 96,
+                        "bargein_suppressed_peak_db": -31.97012381470403
+                    },
+                    "summary_ms": 4097
+                }
+            }
+        },
+        {
+            "label": "s2_continuity_and_correction",
+            "ok": true,
+            "lang": "he",
+            "turns": [
+                {
+                    "label": "opener",
+                    "seq": 1,
+                    "text": "היי, מה קורה? אז החלטת על משהו לגבי הספרדית או שזה עדיין סתם רעיון?",
+                    "audio_s": 5.02,
+                    "interrupted": false,
+                    "proactive": true
+                },
+                {
+                    "label": "reply1",
+                    "seq": 2,
+                    "text": "אה, אוקיי, סגור, תיקנתי. אז למה דווקא איטלקית?",
+                    "audio_s": 3.9,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 508,
+                    "user_said": "כן, האמת שזה לא נכון שאני רוצה ללמוד ספרדית, אני רוצה ללמוד איטלקית."
+                },
+                {
+                    "label": "reply2",
+                    "seq": 3,
+                    "text": "סגור, תיקנתי. אז מה הקשר לאיטלקית?",
+                    "audio_s": 3.34,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 452,
+                    "user_said": "דרך אגב, תדבר אליי בלשון נקבה."
+                },
+                {
+                    "label": "reply3",
+                    "seq": 4,
+                    "text": "בסדר גמור, נדבר על האיטלקית בפעם הבאה. ביי!",
+                    "audio_s": 4.32,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 632,
+                    "user_said": "יאללה, סיימנו להיום, ביי."
+                }
+            ],
+            "transcripts": [
+                {
+                    "text": "כן, האמת שזה לא נכון שאני רוצה ללמוד ספרדית, אני רוצה ללמוד איטלקית.",
+                    "language": "he"
+                },
+                {
+                    "text": "דרך אגב, תדבר אליי בלשון נקבה.",
+                    "language": "he"
+                },
+                {
+                    "text": "יאללה, סיימנו להיום. ביי.",
+                    "language": "he"
+                }
+            ],
+            "events": [
+                {
+                    "t": 216,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 216,
+                    "type": "session.created"
+                },
+                {
+                    "t": 509,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 856,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 6007,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 10522,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 10522,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 10522,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 10774,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 10897,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 15015,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 17761,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 17761,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 17761,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 17846,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 17964,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 21499,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 23837,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 23837,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 23837,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 24062,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 24161,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 39468,
+                    "type": "session.summary"
+                },
+                {
+                    "t": 39468,
+                    "type": "session.closed"
+                }
+            ],
+            "session_id": "4f143e59-dc9c-4a4d-8a6a-f405388fb0cc",
+            "summary": {
+                "type": "session.summary",
+                "session_id": "4f143e59-dc9c-4a4d-8a6a-f405388fb0cc",
+                "summary": {
+                    "summary": "המשתמשת תיקנה שהיא רוצה ללמוד איטלקית ולא ספרדית, וביקשה שיפנו אליה בלשון נקבה. השיחה הסתיימה לפני שנדונו הסיבות או הדרך להתחיל ללמוד.",
+                    "progress": [
+                        "הובהר שהשפה שהיא רוצה ללמוד היא איטלקית, לא ספרדית.",
+                        "הובהרה העדפת הפנייה שלה בלשון נקבה."
+                    ],
+                    "method": "llm"
+                },
+                "stats": {
+                    "end_reason": "client_end",
+                    "duration_s": 28,
+                    "turns_user": 3,
+                    "turns_agent": 4,
+                    "interruptions": 0,
+                    "errors": 0,
+                    "audio_in_s": 28.4,
+                    "audio_out_s": 16.6,
+                    "server_reply_ms": [
+                        253,
+                        85,
+                        217
+                    ],
+                    "server_reply_ms_median": 217,
+                    "client_first_audio_ms": [],
+                    "client_first_audio_ms_median": null,
+                    "client_flush_ms": [],
+                    "audio_events": [],
+                    "pod_metrics_median": {
+                        "llm_first_chunk_ms": 174.6216219617054,
+                        "tts_ttfa_ms": 126.85890309512615,
+                        "pipeline_ms": 365.1158700231463,
+                        "llm_ttft_ms": 70.84284804295748,
+                        "llm_total_ms": 334.6734580118209,
+                        "stt_ms": 120.39120495319366,
+                        "stt_queue_ms": 0.14221901074051857
+                    },
+                    "summary_ms": 10972
+                }
+            }
+        }
+    ],
+    "user_id": "64e5262a-b352-440b-8b45-ce754fd55f3f",
+    "error": null,
+    "state": {
+        "profile": {
+            "preferred_name": null,
+            "preferred_language": "he",
+            "addressing": {
+                "value": "feminine",
+                "status": "confirmed",
+                "evidence": {
+                    "examples": [
+                        {
+                            "at": "2026-11-25T16:18:21.135Z",
+                            "form": "feminine",
+                            "quote": "אני חושבת",
+                            "session_id": "f8602b4b-ce79-475d-98cb-c9d1f4e19632"
+                        },
+                        {
+                            "at": "2026-11-25T16:18:21.135Z",
+                            "form": "feminine",
+                            "quote": "אני עובדת",
+                            "session_id": "f8602b4b-ce79-475d-98cb-c9d1f4e19632"
+                        },
+                        {
+                            "at": "2026-11-25T16:18:29.714Z",
+                            "form": "feminine",
+                            "quote": "אני די עייפה",
+                            "session_id": "f8602b4b-ce79-475d-98cb-c9d1f4e19632"
+                        },
+                        {
+                            "at": "2026-11-25T16:19:10.001Z",
+                            "form": "feminine",
+                            "quote": "דרך אגב, תדבר אליי בלשון נקבה.",
+                            "session_id": "4f143e59-dc9c-4a4d-8a6a-f405388fb0cc"
+                        },
+                        {
+                            "at": "2026-11-25T16:19:09.999Z",
+                            "form": "feminine",
+                            "quote": "דרך אגב, תדבר אליי בלשון נקבה.",
+                            "session_id": "4f143e59-dc9c-4a4d-8a6a-f405388fb0cc"
+                        }
+                    ],
+                    "feminine": 3,
+                    "masculine": 0,
+                    "ignored_uncertain": 2
+                }
+            }
+        },
+        "memories": [
+            {
+                "kind": "preference",
+                "status": "active",
+                "content": "היא מעדיפה שיפנו אליה בלשון נקבה.",
+                "confidence": 1,
+                "reason": "first_person_one_to_one",
+                "attribution": "primary"
+            },
+            {
+                "kind": "goal",
+                "status": "active",
+                "content": "ללמוד איטלקית",
+                "confidence": 0.99,
+                "reason": "first_person_one_to_one",
+                "attribution": "primary"
+            },
+            {
+                "kind": "open_topic",
+                "status": "active",
+                "content": "למה היא רוצה ללמוד איטלקית ואיך להתחיל",
+                "confidence": null
+            },
+            {
+                "kind": "summary",
+                "status": "active",
+                "content": "המשתמשת תיקנה שהיא רוצה ללמוד איטלקית ולא ספרדית, וביקשה שיפנו אליה בלשון נקבה. השיחה הסתיימה לפני שנדונו הסיבות או הדרך להתחיל ללמוד.",
+                "confidence": null
+            },
+            {
+                "kind": "name",
+                "status": "candidate",
+                "content": "נועה",
+                "confidence": 0.98,
+                "reason": "other_speakers_suspected",
+                "attribution": "primary"
+            },
+            {
+                "kind": "fact",
+                "status": "candidate",
+                "content": "עובדת עם לקוחות מדרום אמריקה",
+                "confidence": 0.94,
+                "reason": "other_speakers_suspected",
+                "attribution": "primary"
+            },
+            {
+                "kind": "travel_goal",
+                "status": "candidate",
+                "content": "ללמוד משהו חדש בנסיעות, אולי ספרדית",
+                "confidence": 0.98,
+                "reason": "other_speakers_suspected",
+                "attribution": "primary"
+            },
+            {
+                "kind": "summary",
+                "status": "active",
+                "content": "נועה אמרה שהיא רוצה לנצל נסיעות כדי ללמוד משהו חדש, אולי ספרדית, שלדעתה תעזור לה בעבודה עם לקוחות מדרום אמריקה. היא הייתה עייפה ובחרה להמשיך את השיחה בפעם הבאה.",
+                "confidence": null
+            }
+        ],
+        "progress": [
+            "הובהרה העדפת הפנייה שלה בלשון נקבה.",
+            "הובהר שהשפה שהיא רוצה ללמוד היא איטלקית, לא ספרדית.",
+            "זוהתה ספרדית כאפשרות ללמידה בנסיעות וכמיומנות שעשויה להועיל בעבודה."
+        ],
+        "next_opener_instruction": "[journey_start event - this is not something the user said] The user has just started a journey. Open the conversation yourself, right now, the way a friend does when you get in the car: a casual hello for the evening, then one specific question about the single most relevant unresolved thing from your memory (name what was actually discussed, as in 'so, what happened with ...?'). Two short sentences, under twenty-five words in total. Do not mention how long the journey is, do not list options, and do not announce what you are going to talk about.",
+        "addressing_section_in_next_prompt": "How to address the user in Hebrew:\n- Address the user in feminine (נקבה) second-person forms: את, לך (lakh), רוצה, תגידי, עשית, בטוחה. The user told you this themself. Because the text is read aloud without vowels, prefer spellings that make the feminine reading unambiguous where possible (\"תגידי\", \"בטוחה\", \"איתך\" is ambiguous, rephrase if it matters).\n- If the user refers to themself differently or corrects you (\"תדבר אליי בלשון נקבה/זכר\"), switch immediately and keep the new form for the rest of the conversation, acknowledging it in a word or two at most.\n- Never comment on the user's gender and never ask about it."
+    }
+}

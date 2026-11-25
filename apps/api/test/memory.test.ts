@@ -113,6 +113,14 @@ describe.skipIf(!process.env.CI && false)("memory policy with PostgreSQL", () =>
     expect((await store.getMemory(uid, bank.id))!.content).toBe(""); // content wiped
     expect((await store.memories(uid, { kinds: ["fact"] })).map((m) => m.content)).toContain("עובד בחברת ביטוח");
 
+    // a correction can also replace an unconfirmed candidate
+    const cand2 = await store.addMemory(uid, { kind: "travel_goal", content: "אולי ללמוד ספרדית", status: "candidate", provenance: { source: "test" } });
+    expect((await store.memoryView(uid)).knownIds.map((k) => k.id)).toContain(cand2);
+    const llm2: UtilityLlm = { name: "fake", json: async () => ({ obj: { actions: [{ memory_id: cand2, action: "replace", new_content: "ללמוד איטלקית" }] }, ms: 1 }) };
+    const t2 = u("זה לא נכון, אני רוצה ללמוד איטלקית ולא ספרדית");
+    expect(await handleLiveTurn(store, llm2, { userId: uid, sessionId: sid2, turn: t2, recent: [t2] })).toEqual([`correct:${cand2}`]);
+    expect((await store.getMemory(uid, cand2))!.status).toBe("deleted");
+
     // the same correction from an uncertain speaker does nothing
     const uncertain = { ...u("זה לא נכון, הוא עובד בבנק", "uncertain") };
     expect(await handleLiveTurn(store, fakeLlm, { userId: uid, sessionId: sid2, turn: uncertain, recent: [uncertain] })).toEqual([]);
@@ -121,6 +129,8 @@ describe.skipIf(!process.env.CI && false)("memory policy with PostgreSQL", () =>
     const t = u("תדבר אליי בלשון רבים");
     await handleLiveTurn(store, null, { userId: uid, sessionId: sid2, turn: t, recent: [t] });
     expect(await store.addressing(uid)).toMatchObject({ value: "plural", status: "confirmed" });
+    await store.learnAddressing(uid, sid2, [t]); // applied again after the session: not counted twice
+    expect((await store.addressing(uid)).evidence.examples.filter((e) => e.quote === t.text)).toHaveLength(1);
 
     // deletion in the app
     const goal = (await store.memories(uid, { kinds: ["travel_goal"] }))[0]!;

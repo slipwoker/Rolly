@@ -164,7 +164,12 @@ export class MemoryStore {
     const sc = await this.db.query<{ n: string }>("SELECT count(*) n FROM sessions WHERE user_id=$1 AND user_turns > 0", [userId]);
     const prefs = { ...(p.preferences ?? {}) };
     of("preference", 6).forEach((m, i) => { prefs[`noted ${i + 1}`] = m.content; });
-    const known = active.filter((m) => PERSONAL_KINDS.includes(m.kind)).slice(0, 40).map((m) => ({ id: m.id, content: `[${m.kind}] ${m.content}` }));
+    // what a correction or "forget that" can refer to: active personal memories AND unconfirmed candidates
+    const allCandidates = await this.memories(userId, { status: ["candidate"], kinds: PERSONAL_KINDS, limit: 20 });
+    const known = [
+      ...active.filter((m) => PERSONAL_KINDS.includes(m.kind)).slice(0, 40).map((m) => ({ id: m.id, content: `[${m.kind}] ${m.content}` })),
+      ...allCandidates.map((m) => ({ id: m.id, content: `[${m.kind}, not confirmed] ${m.content}` })),
+    ];
     return {
       profile: {
         preferredName: p.preferred_name, preferredLanguage: p.preferred_language, professionalBackground: p.professional_background,

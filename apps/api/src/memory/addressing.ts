@@ -119,6 +119,8 @@ export function applyObservations(rec: AddressingRecord, obs: Observation[], att
   let value = rec.value, status = rec.status;
   const at = (meta.at ?? new Date()).toISOString();
   for (const o of obs) {
+    // the same utterance can be applied live and again after the session: count it once
+    if (ev.examples.some((e) => e.quote === o.quote && e.session_id === meta.session_id && e.form === o.form)) continue;
     ev.examples.push({ quote: o.quote, form: o.form, session_id: meta.session_id, at });
     if (o.kind === "explicit") { value = o.form; status = "confirmed"; continue; }
     if (o.form === "plural") continue;
