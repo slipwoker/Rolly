@@ -215,6 +215,30 @@ Not shown by these numbers, and still open:
 - Median reply time in this run (1.08-1.11 s over 8 replies each) is higher than the 926 ms of section 0.8 (18 replies); the
   runs are too small to say whether that is a real change.
 
+### 0.10 Hebrew voice: ZONOS3-Mini with a cloned voice (replaces Piper for Hebrew on the self-hosted agent)
+
+Listeners called the Piper Hebrew voice robotic, flat and heavily accented. Of the samples they were given (Piper, ZONOS3-Mini
+with speaker-embedding cloning, ZONOS3-Mini with raw-reference cloning, all from a 23-second recording by a team member) they
+preferred raw-reference cloning. An OpenAI voice tried on the hybrid agent the same day was withdrawn: 8-12 characters per
+second in Hebrew, no working speed control, 0.65-1.3 s to start.
+
+| Measured | Piper (before) | ZONOS3-Mini on the pod's CPU | **ZONOS3-Mini on the L40S** |
+|---|---:|---:|---:|
+| Voice starts after (median per conversation) | about 200 ms | 1,262-1,308 ms | **180-254 ms** |
+| Hebrew reply latency, hosted, median | 1.0-1.2 s | 2.1-2.5 s | **929 ms** (10 replies) |
+| Gaps in playback | 0 | 2-3 per reply | 0 |
+| Speaking rate | 13.4 characters/s | – | 13.8-15.1 characters/s |
+| Self-test checks | 7 / 7 | 2 / 4 | 18 / 18 (Hebrew, Hebrew with road noise, English, interruption) |
+
+- Intelligibility, checked with speech recognition on the development machine: 0 % word errors on full sentences.
+  Two- and three-word sentences lost their last word when a speaking-rate condition or the default silence prefill was
+  applied (4 of 4 phrases correct without them), so the rate is only set for texts of 30 characters or more.
+- One of three random seeds read "בוקר" as "אוקיי": sampling makes occasional misreadings possible. Not quantified.
+- GPU memory: 37.6 of 46 GB with the language model, both Whisper models and ZONOS3-Mini loaded.
+- Not measured: several conversations at once on the voice server, Hebrew numbers and dates, mixed Hebrew-English sentences.
+- Whether it sounds natural is a listening judgement; only the sample comparison above has been made so far.
+- Result file: `benchmarks/results/hosted_selftest_zonos_hebrew_voice_20261125.json`.
+
 ## 1. Speech recognition accuracy
 
 FLEURS test split (real human read speech, CC BY), faster-whisper, greedy decoding, language forced. Road noise is synthetic
