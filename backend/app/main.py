@@ -110,7 +110,13 @@ def S(request: Request):
     return request.app.state.rolly
 
 
+def _norm(token: str | None) -> str | None:
+    """A '+' in a token pasted into a URL is decoded as a space; tokens never contain spaces."""
+    return token.replace(" ", "+") if token else token
+
+
 def _check_access(state, token: str | None) -> None:
+    token = _norm(token)
     need = state.settings.access_token
     if need and token != need and token != state.settings.admin_token:
         raise HTTPException(401, "access token required")
@@ -118,7 +124,7 @@ def _check_access(state, token: str | None) -> None:
 
 def _is_admin(state, token: str | None) -> bool:
     adm = state.settings.admin_token
-    return bool(adm) and token == adm
+    return bool(adm) and _norm(token) == adm
 
 
 # -- health / info ---------------------------------------------------------------
@@ -310,6 +316,7 @@ async def ratings_export(request: Request, token: str | None = None, fmt: str = 
 async def ws_endpoint(ws: WebSocket, ticket: str | None = None, token: str | None = None):
     st = ws.app.state.rolly
     await ws.accept()
+    token = _norm(token)
     need = st.settings.access_token
     if need and token not in (need, st.settings.admin_token):
         await ws.send_text(json.dumps({"type": "error", "message": "access token required", "fatal": True}))

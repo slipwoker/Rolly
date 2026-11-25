@@ -2,7 +2,8 @@
 // WebSocket protocol shared by every provider.  No provider-specific code lives here.
 
 export const qs = new URLSearchParams(location.search);
-export const TOKEN = qs.get('token') || '';
+// A '+' in a pasted token arrives as a space (form decoding of the query string); tokens never contain spaces.
+export const TOKEN = (qs.get('token') || '').replace(/ /g, '+');
 const withToken = (path) => TOKEN ? `${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(TOKEN)}` : path;
 
 export async function api(path, opts = {}) {
