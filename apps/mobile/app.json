@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "ROLLY",
+    "slug": "rolly",
+    "scheme": "rolly",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "com.zappy.rolly",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "ROLLY מקשיב לך בזמן שיחה קולית. ROLLY listens to you during a voice conversation.",
+        "UIBackgroundModes": ["audio"],
+        "CFBundleDevelopmentRegion": "he",
+        "CFBundleLocalizations": ["he", "en"],
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      ["expo-localization", { "supportsRTL": true }]
+    ],
+    "extra": {
+      "apiUrl": "https://rolly-api.onrender.com",
+      "supportsRTL": true
+    },
+    "experiments": { "typedRoutes": false }
+  }
+}

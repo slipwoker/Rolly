@@ -27,11 +27,19 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
   void purge();
   setInterval(purge, 3600_000).unref();
 
+  // sessions being finalized (summary + memory update), so a resumed session can wait for its predecessor
+  const finalizing = new Map<string, Promise<unknown>>();
   const hooks: SessionHooks = {
     async prepare(userId, sessionId, start) {
+      let resume: { role: "user" | "agent"; text: string }[] | undefined;
+      if (start.resume_of && /^[0-9a-f-]{36}$/.test(start.resume_of)) {
+        const pending = finalizing.get(start.resume_of);
+        if (pending) await Promise.race([pending, new Promise((r) => setTimeout(r, 10_000))]);
+        resume = await store.lastTurns(userId, start.resume_of, 8);
+      }
       const view = await store.memoryView(userId);
       const proactive = start.proactive ?? true;
-      const built = buildContext(view, { language: start.language ?? null, journey: { ...start.journey, proactive }, timeZone: config.timezone });
+      const built = buildContext(view, { language: start.language ?? null, journey: { ...start.journey, proactive }, timeZone: config.timezone, resume });
       await store.startSession(sessionId, userId, built.language, built.onboarding, new Date());
       return {
         onboarding: built.onboarding,
@@ -40,7 +48,13 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       };
     },
     async onUserTurn(args) { await handleLiveTurn(store, llm, args); },
-    async finalize({ userId, sessionId, turns, stats, endReason, describe }) {
+    async finalize(args) {
+      const p = finalizeSession(args);
+      finalizing.set(args.sessionId, p);
+      try { return await p; } finally { setTimeout(() => finalizing.delete(args.sessionId), 60_000); }
+    },
+  };
+  async function finalizeSession({ userId, sessionId, turns, stats, endReason, describe }: Parameters<SessionHooks["finalize"]>[0]) {
       const visible = turns.filter((t) => !t.text.startsWith("["));
       let summary = null;
       let policy: unknown = null;
@@ -54,8 +68,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       }
       await store.finishSession({ sessionId, userId, turns: visible, summary: summary ? { ...summary, policy } as never : null, stats, endReason, describe });
       return summary ? { summary: summary.summary, progress: summary.progress, method: summary.method } : null;
-    },
-  };
+  }
 
   const routes = async (app: FastifyInstance) => {
     const user = (req: FastifyRequest, reply: FastifyReply): string | null => {

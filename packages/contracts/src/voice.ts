@@ -32,6 +32,8 @@ export interface ClientSessionStart {
   /** Debug captions in the app; the server always sends transcripts, this only marks the session. */
   captions?: boolean;
   client?: { platform?: string; app_version?: string; audio_route?: string };
+  /** reconnect after a dropped connection: id of the session that was cut off; ROLLY picks the conversation up */
+  resume_of?: string;
 }
 
 export interface ClientPlayback {

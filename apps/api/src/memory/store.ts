@@ -276,6 +276,14 @@ export class MemoryStore {
     return { decisions, applied };
   }
 
+  /** last turns of one of the user's sessions (for resuming after a dropped connection) */
+  async lastTurns(userId: string, sessionId: string, n: number): Promise<{ role: "user" | "agent"; text: string }[]> {
+    const r = await this.db.query<{ role: "user" | "agent"; text: string }>(
+      `SELECT t.role, t.text FROM turns t JOIN sessions s ON s.id=t.session_id WHERE s.user_id=$1 AND s.id=$2 ORDER BY t.idx DESC LIMIT $3`,
+      [userId, sessionId, n]);
+    return r.rows.reverse();
+  }
+
   // ------------------------------------------------------------ progress, export, deletion, retention
   async progress(userId: string, limit = 50) {
     const r = await this.db.query(

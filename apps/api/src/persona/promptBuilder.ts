@@ -57,7 +57,9 @@ export interface BuiltContext {
   profile: Record<string, unknown>;
 }
 
-export function buildContext(mem: MemoryView, opts: { language?: Lang | null; journey?: Journey; now?: Date; timeZone?: string }): BuiltContext {
+export function buildContext(mem: MemoryView, opts: { language?: Lang | null; journey?: Journey; now?: Date; timeZone?: string;
+  /** the connection dropped mid-conversation: the last turns of the cut-off session */
+  resume?: { role: "user" | "agent"; text: string }[] }): BuiltContext {
   const p = mem.profile;
   let language: Lang = opts.language ?? p.preferredLanguage ?? "auto";
   if (!(language in LANG)) language = "auto";
@@ -65,7 +67,7 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
   const now = opts.now ?? new Date();
   const tz = opts.timeZone ?? "Asia/Jerusalem";
   const [langName, langRules] = LANG[language];
-  const onboarding = mem.sessionCount === 0;
+  const onboarding = mem.sessionCount === 0 && !opts.resume?.length;
 
   let style = VOICE_STYLE;
   for (const [k, v] of [["{language_name}", langName], ["{language_rules}", langRules], ["{end_marker}", END_MARKER]] as const) {
@@ -117,13 +119,22 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
   if (journey.origin || journey.destination) lines.push(`Route: ${journey.origin ?? "?"} to ${journey.destination ?? "?"}.`);
   if (journey.mode) lines.push(`Travel mode: ${journey.mode}.`);
 
+  if (opts.resume?.length) {
+    lines.push("", "## The conversation so far (the connection dropped a moment ago)");
+    lines.push(...opts.resume.map((t) => `${t.role === "user" ? "USER" : "YOU"}: ${t.text}`));
+  }
+
   const system_prompt = style.trimEnd() + "\n\n" + sections.join("\n\n") + "\n" + lines.join("\n") + "\n";
 
   let opener: string | null = null;
   if (journey.proactive ?? true) {
     const hasName = Boolean(p.preferredName);
     const tag = "[journey_start event - this is not something the user said] ";
-    if (onboarding) {
+    if (opts.resume?.length) {
+      opener = tag + "The connection dropped a moment ago in the middle of the conversation shown above and is back now. "
+        + "Pick it up in one short sentence, the way a friend would after a call drops (\"sorry, lost you for a second — you were saying?\" "
+        + "or continue the last point). Do not greet again and do not explain what happened.";
+    } else if (onboarding) {
       opener = tag + "This is your very first conversation with this user and you know nothing about them yet. "
         + `Open it yourself, right now, like a friendly person meeting someone for the first ride together: a casual hello for the ${partOfDay}, `
         + "and one light, specific question that starts getting to know them (for example what they usually do with their time on the road, or simply their name). "
