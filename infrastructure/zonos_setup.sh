@@ -5,6 +5,7 @@
 # Everything lives under $ROLLY_WORKSPACE/zonos (persistent volume), so a restart only starts the server.
 # Idempotent.  Output: $ROLLY_WORKSPACE/logs/zonos.log (published by pod_autorun.sh).
 set -uo pipefail
+SELF="$(readlink -f "$0")"
 WS="${ROLLY_WORKSPACE:-/workspace}"; Z="$WS/zonos"; LOGS="$WS/logs"; PUB="$WS/public"; mkdir -p "$Z" "$LOGS" "$PUB"
 COMMIT="${ROLLY_ZONOS_COMMIT:-a50e141}"
 say() { echo "[$(date -u +%T)] $*"; }
@@ -59,13 +60,16 @@ for f in backbone-ptq.gguf zac-keep2.gguf; do
 done
 
 say "starting the server ($BACKEND)"
+# ggml's "programmatic dependent launch" probe aborts on GPUs older than Hopper ("no kernel image is available",
+# seen on an L40S); the feature only exists on Hopper and newer, so it is switched off.
+export GGML_CUDA_PDL=0
 pkill -f "zonos3-server" 2>/dev/null || true; sleep 1
 mkdir -p "$Z/novoices"
 nohup "$BIN" "$Z/gguf/backbone-ptq.gguf" $FLAG --host 127.0.0.1 --port 1919 --batch "${ROLLY_ZONOS_BATCH:-8}" --tts-default-voices-dir "$Z/novoices" > "$LOGS/zonos_server.log" 2>&1 &
 for i in $(seq 1 90); do curl -fs -m 3 http://127.0.0.1:1919/v2/capabilities >/dev/null 2>&1 && break; sleep 2; done
 if ! curl -fs -m 3 http://127.0.0.1:1919/v2/capabilities >/dev/null 2>&1; then
   say "server did not come up:"; tail -15 "$LOGS/zonos_server.log"
-  if [ "$BACKEND" = gpu ] && [ "${ROLLY_ZONOS_BACKEND:-auto}" = auto ]; then say "retrying on CPU"; ROLLY_ZONOS_BACKEND=cpu exec bash "$0"; fi
+  if [ "$BACKEND" = gpu ] && [ "${ROLLY_ZONOS_BACKEND:-auto}" = auto ]; then say "retrying on CPU"; ROLLY_ZONOS_BACKEND=cpu exec bash "$SELF"; fi
   state failed; exit 1
 fi
 
