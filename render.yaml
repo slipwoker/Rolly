@@ -13,7 +13,7 @@ projects:
             dockerContext: .
             plan: standard
             region: frankfurt
-            branch: claude/adoring-goodall-es5zzm
+            branch: main   # was claude/adoring-goodall-es5zzm (research); moved to main by the owner on 2026-11-25
             healthCheckPath: /healthz
             autoDeploy: true
             buildFilter:   # documentation and result files do not restart the app (a deploy drops live conversations)
@@ -24,6 +24,12 @@ projects:
                 - "reports/**"
                 - "tests/**"
                 - "infrastructure/**"
+                - "apps/**"            # Phase 1 TypeScript apps (rolly-api, mobile) do not restart the tester
+                - "packages/**"
+                - "package.json"
+                - "package-lock.json"
+                - "render.api.yaml"
+                - ".easignore"
             disk:
               name: rolly-data
               mountPath: /var/data
