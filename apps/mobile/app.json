@@ -5,11 +5,13 @@
     "scheme": "rolly",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.zappy.rolly",
       "supportsTablet": false,
+      "icon": { "light": "./assets/icon.png", "dark": "./assets/icon-dark.png" },
       "infoPlist": {
         "NSMicrophoneUsageDescription": "ROLLY מקשיב לך בזמן שיחה קולית. ROLLY listens to you during a voice conversation.",
         "UIBackgroundModes": ["audio"],
@@ -21,7 +23,12 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      ["expo-localization", { "supportsRTL": true }]
+      ["expo-localization", { "supportsRTL": true }],
+      "expo-font",
+      ["expo-splash-screen", {
+        "image": "./assets/splash-orb.png", "imageWidth": 180, "resizeMode": "contain", "backgroundColor": "#F7F6FA",
+        "dark": { "image": "./assets/splash-orb.png", "backgroundColor": "#0D0B13" }
+      }]
     ],
     "extra": {
       "apiUrl": "https://rolly-api.onrender.com",
