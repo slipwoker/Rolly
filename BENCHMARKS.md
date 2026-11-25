@@ -148,6 +148,33 @@ a text normaliser before speech synthesis) and a check whether the FP8 quantisat
 - First start failed because the slim CUDA image has no C compiler, which vLLM needs at start-up; fixed in `pod_setup.sh`.
 - 27 GB of model weights downloaded in under three minutes in that data centre.
 
+### 0.8 Hosted deployment: app on Render (Frankfurt), models on a RunPod L40S (Iceland)
+
+Measured on 2026-11-25 on the deployed service. Latency is the server-side figure used everywhere in this document (last
+speech sample to first agent audio leaving the app).
+
+| Layout of the self-hosted agent | Source | Replies | Median | P95 | Range |
+|---|---|---:|---:|---:|---|
+| Everything on one machine (section 0.1, for reference) | benchmark | 56 | 681 ms | 1,072 ms | |
+| Turn-taking on Render; speech-to-text, language model and voice called separately on the pod | three real browser conversations | 3 | 1,410 ms | – | 1,289–1,459 ms |
+| **Whole pipeline on the pod, Render relays audio over one WebSocket** | server self-test, 6 scripted conversations | 18 | **926 ms** | 1,221 ms | 598–1,304 ms |
+
+- In the split layout each model call paid the network: speech-to-text took 289–695 ms (63 ms on one machine), first word from
+  the language model 238–364 ms (56 ms), first audio from the voice 271–439 ms (about 119 ms).
+- The relay removed two of the three hops. The remaining gap to the one-machine figure, about 250 ms, is attributed to the
+  network path between the two data centres through RunPod's HTTP proxy; it was **not measured separately**.
+- The self-test passed 14 of 14 checks (memory-based opener, replies, interruption). Interruption was detected in 209–216 ms
+  server-side (2 samples) and no agent audio arrived after it.
+- The two rows are not a controlled comparison: three replies from a person on a real microphone against 18 replies from
+  synthetic speech. The split layout was not re-measured with the self-test before it was replaced.
+- The self-test user runs next to the app, so a real user's mobile network and audio device are not included.
+- Result file: `benchmarks/results/hosted_selftest_selfhosted-gpu_relay_20261125.json`.
+
+In the first browser sessions a 1.7 s noise burst was transcribed as one Hebrew letter repeated more than a hundred times, and
+a 1 s burst as "תודה."; the agent answered both. Transcripts of that kind are now discarded for every speech-to-text engine
+(`discard_reason` in `providers/modular/stt.py`). The same sessions showed that speaking Hebrew to a traveller whose session
+language is English produces nonsense text, because the language is fixed per session unless "mixed" is chosen.
+
 ## 1. Speech recognition accuracy
 
 FLEURS test split (real human read speech, CC BY), faster-whisper, greedy decoding, language forced. Road noise is synthetic

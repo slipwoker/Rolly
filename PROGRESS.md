@@ -63,8 +63,10 @@ emulators or on CPU only.
 ## Hosted deployment (2026-11-25)
 
 Deployed to Render (project Rolly, service `rolly-voice`) with a RunPod L40S as the model backend; see README.
-Component checks passed; a browser conversation against the hosted address has not been run yet, and two secrets
-(`OPENAI_API_KEY`, `ROLLY_GPU_API_KEY`) are entered by the owner in the Render dashboard.
+The owner ran the first browser conversations the same day. They showed that calling the three models separately from
+Render made replies about twice as slow as on one machine, so the pipeline was moved to the pod and Render now relays audio:
+926 ms median over 18 self-test replies (BENCHMARKS.md section 0.8). Noise transcripts are discarded, and the server can
+test itself (`POST /api/selftest`). Still open: a longer real-user session on the hosted address, with headphones.
 
 ## Next actions (in order of value)
 
