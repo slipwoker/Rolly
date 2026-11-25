@@ -53,7 +53,9 @@ export class Auth {
     try {
       await client.query("BEGIN");
       await client.query("SELECT pg_advisory_xact_lock(727002)"); // serialise the user-count check
-      const n = (await client.query<{ n: number }>("SELECT count(*)::int n FROM users WHERE deleted_at IS NULL")).rows[0]!.n;
+      // only users with a phone count (server-side self-test users have none)
+      const n = (await client.query<{ n: number }>(
+        "SELECT count(DISTINCT d.user_id)::int n FROM devices d JOIN users u ON u.id=d.user_id WHERE u.deleted_at IS NULL AND d.revoked_at IS NULL")).rows[0]!.n;
       if (n >= maxUsers) { await client.query("ROLLBACK"); return "full"; }
       const u = await client.query<{ id: string }>("INSERT INTO users(display_label) VALUES ($1) RETURNING id", [`device: ${deviceName?.slice(0, 60) ?? "?"}`]);
       const uid = u.rows[0]!.id;

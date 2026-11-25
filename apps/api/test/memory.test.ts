@@ -174,7 +174,7 @@ describe.skipIf(!process.env.CI && false)("memory policy with PostgreSQL", () =>
   it("silent enrollment: new user + device token, refused when full; key check and rate limit", async () => {
     if (!available) return;
     const auth = new Auth(db, await Auth.loadSecret(db, null));
-    const n = (await db.query("SELECT count(*)::int n FROM users WHERE deleted_at IS NULL")).rows[0].n as number;
+    const n = (await db.query("SELECT count(DISTINCT user_id)::int n FROM devices WHERE revoked_at IS NULL")).rows[0].n as number;
     const r = await auth.enroll("iPhone", n + 1);
     expect(r).not.toBe("full");
     const ok = r as { user_id: string; refresh_token: string };
