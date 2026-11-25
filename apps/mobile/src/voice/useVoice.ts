@@ -39,14 +39,15 @@ export function useVoice() {
 
   useEffect(() => () => { void ctl.current?.stop(); }, []);
 
-  const start = async (language: "he" | "en" | "auto", withCaptions: boolean) => {
+  /** Transcripts always arrive from the server; `withCaptions` only marks the session as a debug-captions session. */
+  const start = async (language: "he" | "en" | "auto", withCaptions = false) => {
     setCaptions([]);
     setLastReplyMs(null);
     const c = new VoiceController({
       audio: native, openSocket: (url) => new WebSocket(url) as never, getTicket: voiceTicket, wsBase: WS_URL, b64,
       onState: (s, d) => { setState(s); setDetail(d); },
       onMeasure: (m) => { if (m.kind === "reply_ms") setLastReplyMs(m.value); },
-      onCaption: withCaptions ? (cap) => setCaptions((prev) => {
+      onCaption: (cap) => setCaptions((prev) => {
         const next = [...prev];
         const last = next[next.length - 1];
         if (cap.role === "agent" && last?.role === "agent" && last.seq === cap.seq) {
@@ -56,8 +57,8 @@ export function useVoice() {
         } else {
           next.push({ role: cap.role, text: cap.text, seq: cap.seq });
         }
-        return next.slice(-12);
-      }) : undefined,
+        return next.slice(-60);
+      }),
     });
     ctl.current = c;
     await c.start({ language, captions: withCaptions });
