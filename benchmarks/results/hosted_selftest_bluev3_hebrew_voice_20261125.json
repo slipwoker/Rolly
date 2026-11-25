@@ -1,0 +1,2073 @@
+{
+ "benchmark": "hosted self-test with the BlueV3 Hebrew voice (built-in voice 'daniel', speed 1.2) on the L40S, 2026-11-25",
+ "note": "Simulated user next to the app. English still uses the Piper voice.",
+ "run": {
+  "id": "d2d2f0d9b4",
+  "provider": "selfhosted-gpu",
+  "status": "done",
+  "started": 1795617476.6330967,
+  "results": [
+   {
+    "id": "s01_he_brainstorm",
+    "title": "Hebrew entrepreneurial brainstorming",
+    "language": "he",
+    "snr_db": null,
+    "turns": [
+     {
+      "said": "כן, בואי נמשיך עם זה. אני נוטה לאפשרות של מודול התשלומים.",
+      "speech_s": 4.35,
+      "heard": "כן, בואי נמשיך עם זה, אני נוטה לאפשרות של מודול התשלומים.",
+      "wer": 0.0,
+      "latency_ms": 1168,
+      "server_latency_ms": 1146.2,
+      "agent": "וואלה? למה דווקא זה? זה נראה לך הכי בטוח או הכי רווחי?",
+      "agent_audio_s": 4.89,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     },
+     {
+      "said": "מה שמדאיג אותי זה שאין לנו בצוות ניסיון ברגולציה של פינטק.",
+      "speech_s": 4.2,
+      "heard": "מה שמדאיג אותי זה שאין לנו בצוות ניסיון ברגולציה של פינטק.",
+      "wer": 0.0,
+      "latency_ms": 833,
+      "server_latency_ms": 811.5,
+      "agent": "זה באמת יכול להיות כאב ראש רציני. את חושבת שזה משהו שאפשר להסתדר איתו או שצריך לגייס מישהו专门 בשביל זה?",
+      "agent_audio_s": 7.0,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     },
+     {
+      "said": "אז מה לדעתך הצעד הראשון שהכי כדאי לעשות השבוע?",
+      "speech_s": 3.71,
+      "heard": "אז מה לדעתך הצעד הראשון שהכי כדאי לעשות השבוע?",
+      "wer": 0.0,
+      "latency_ms": 949,
+      "server_latency_ms": 923.2,
+      "agent": "תכלס, הייתי בודקת כמה זמן זה באמת ייקח ליואב לתת לך הערכה ריאלית. בלי זה את בכלל לא יודעת אם זה בכלל אפשרי.",
+      "agent_audio_s": 7.65,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     }
+    ],
+    "checks": [
+     {
+      "check": "proactive_opener_spoken",
+      "pass": true
+     },
+     {
+      "check": "opener_references_memory",
+      "pass": true,
+      "text": "היי נועה, מה קורה? יואב שלח לך משהו לגבי האומדן של המודול של התשלומים?"
+     }
+    ],
+    "interruptions": [],
+    "error": null,
+    "opener": {
+     "first_audio_ms": 870,
+     "text": "היי נועה, מה קורה? יואב שלח לך משהו לגבי האומדן של המודול של התשלומים?",
+     "audio_s": 5.12,
+     "underruns": 0,
+     "gap_ms": 0
+    },
+    "summary": {
+     "summary": "She said she is leaning toward adding a payments module as the startup direction, but is concerned that the team lacks fintech regulatory experience. The companion suggested first finding out how long Yoav needs to provide a realistic estimate; she did not confirm that she would take this step.",
+     "topics": [
+      "Startup direction",
+      "Payments module",
+      "Fintech regulatory expertise",
+      "Yoav's estimate"
+     ],
+     "decisions": [
+      "She is leaning toward the payments module."
+     ],
+     "action_items": [],
+     "unresolved_topics": [
+      "Whether to pursue the payments module given the team's lack of fintech regulatory experience",
+      "Getting a realistic timeline and estimate from Yoav",
+      "Choosing a startup direction before the board meeting on the 15th"
+     ],
+     "resolved_topics": [],
+     "new_user_facts": [],
+     "suggested_next_opener": "Have you found out how long Yoav needs to prepare a realistic estimate for the payments module?",
+     "method": "llm",
+     "llm": "utility:gpt-6-luna",
+     "usage": {
+      "prompt_tokens": 541,
+      "completion_tokens": 199,
+      "ms": 2851.0923609137535
+     }
+    },
+    "stats": {
+     "duration_s": 43.34,
+     "turns_user": 3,
+     "turns_agent": 4,
+     "interruptions": 0,
+     "errors": 0,
+     "response_latency_ms": {
+      "n": 3,
+      "median": 923.2,
+      "mean": 960.3,
+      "p90": 1101.6,
+      "p95": 1123.9,
+      "min": 811.5,
+      "max": 1146.2
+     },
+     "endpoint_delay_ms": {
+      "n": 3,
+      "median": 599.3,
+      "mean": 603.9,
+      "p90": 612.2,
+      "p95": 613.8,
+      "min": 597.0,
+      "max": 615.4
+     },
+     "interrupt_detect_ms": {
+      "n": 0
+     },
+     "client_latency_ms": {
+      "n": 0
+     },
+     "client_stop_ms": {
+      "n": 0
+     },
+     "proactive_first_audio_ms": 571.6,
+     "stages": {
+      "provider_start_ms": {
+       "n": 1,
+       "median": 240.3,
+       "mean": 240.3,
+       "p90": 240.3,
+       "p95": 240.3,
+       "min": 240.3,
+       "max": 240.3
+      },
+      "llm_first_chunk_ms": {
+       "n": 4,
+       "median": 165.7,
+       "mean": 204.0,
+       "p90": 278.4,
+       "p95": 302.6,
+       "min": 157.9,
+       "max": 326.7
+      },
+      "tts_ttfa_ms": {
+       "n": 4,
+       "median": 123.8,
+       "mean": 126.4,
+       "p90": 132.9,
+       "p95": 134.6,
+       "min": 121.6,
+       "max": 136.3
+      },
+      "pipeline_ms": {
+       "n": 4,
+       "median": 549.2,
+       "mean": 557.7,
+       "p90": 761.4,
+       "p95": 795.5,
+       "min": 302.9,
+       "max": 829.5
+      },
+      "llm_ttft_ms": {
+       "n": 4,
+       "median": 64.3,
+       "mean": 69.1,
+       "p90": 81.0,
+       "p95": 84.0,
+       "min": 60.9,
+       "max": 87.0
+      },
+      "llm_total_ms": {
+       "n": 4,
+       "median": 442.2,
+       "mean": 443.2,
+       "p90": 500.2,
+       "p95": 506.8,
+       "min": 375.0,
+       "max": 513.3
+      },
+      "stt_ms": {
+       "n": 3,
+       "median": 204.5,
+       "mean": 296.6,
+       "p90": 471.2,
+       "p95": 504.5,
+       "min": 147.5,
+       "max": 537.8
+      },
+      "stt_queue_ms": {
+       "n": 3,
+       "median": 0.1,
+       "mean": 0.2,
+       "p90": 0.4,
+       "p95": 0.4,
+       "min": 0.1,
+       "max": 0.4
+      },
+      "summary_ms": {
+       "n": 1,
+       "median": 2851.3,
+       "mean": 2851.3,
+       "p90": 2851.3,
+       "p95": 2851.3,
+       "min": 2851.3,
+       "max": 2851.3
+      }
+     },
+     "audio_in_s": 40.74,
+     "audio_out_s": 24.67,
+     "bytes_up": 1303680,
+     "bytes_down": 1184080,
+     "kbps_up_raw": 240.6,
+     "kbps_down_raw": 218.6,
+     "usage": {
+      "llm": {
+       "prompt_tokens": 6490,
+       "completion_tokens": 149,
+       "model": "local@http://127.0.0.1:8081/v1"
+      },
+      "tts": {
+       "chars": 329,
+       "audio_s": 24.759591836734707,
+       "engine": "en=sherpa-vits:vits-piper-en_US-lessac-medium:sid0:cpu | he=bluev3:daniel:speed1.2@http://127.0.0.1:1920/v1"
+      },
+      "stt": {
+       "audio_s": 13.952,
+       "engine": "routed[he=faster-whisper:ivrit-ai/whisper-large-v3-turbo-ct2:cuda:float16, en=faster-whisper:deepdml/faster-whisper-large-v3-turbo-ct2:cuda:float16; mixed->he]"
+      }
+     },
+     "end_reason": "client_end"
+    },
+    "errors": [],
+    "late_mic_frames": 0,
+    "wall_s": 43.7,
+    "repeat": 0
+   },
+   {
+    "id": "s02_en_brainstorm",
+    "title": "English entrepreneurial brainstorming",
+    "language": "en",
+    "snr_db": null,
+    "turns": [
+     {
+      "said": "Yes, let's continue with that. I think selling through home care agencies is faster.",
+      "speech_s": 4.41,
+      "heard": "Yes, let's continue with that, I think selling through home care agencies is faster.",
+      "wer": 0.0,
+      "latency_ms": 838,
+      "server_latency_ms": 794.2,
+      "agent": "Hmm, that makes sense. Do you think the agencies would actually be the ones making the buying decisions, though?",
+      "agent_audio_s": 6.06,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     },
+     {
+      "said": "The risk is that agencies will want a revenue share, and that hurts my margins.",
+      "speech_s": 3.88,
+      "heard": "The risk is that agencies will want a revenue share and that hurts my margins.",
+      "wer": 0.0,
+      "latency_ms": 893,
+      "server_latency_ms": 848.5,
+      "agent": "Yeah, that could definitely bite you. Have you looked into what a typical cut looks like for those agencies?",
+      "agent_audio_s": 5.69,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     },
+     {
+      "said": "Okay. I will email three agencies by Friday to test their interest.",
+      "speech_s": 4.02,
+      "heard": "Okay, I will email three agencies by Friday to test their interest.",
+      "wer": 0.0,
+      "latency_ms": 855,
+      "server_latency_ms": 790.0,
+      "agent": "That sounds like a solid plan. Are you planning to pitch the whole product or just the fall detection part first?",
+      "agent_audio_s": 6.17,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     }
+    ],
+    "checks": [
+     {
+      "check": "proactive_opener_spoken",
+      "pass": true
+     },
+     {
+      "check": "opener_references_memory",
+      "pass": true,
+      "text": "Hey Daniel. So, did you manage to get any more traction with those families for the interviews?"
+     },
+     {
+      "check": "summary_action_items",
+      "pass": true,
+      "text": "[\"Email three home-care agencies by Friday to test their interest.\"]",
+      "summary_method": "llm"
+     }
+    ],
+    "interruptions": [],
+    "error": null,
+    "opener": {
+     "first_audio_ms": 1242,
+     "text": "Hey Daniel. So, did you manage to get any more traction with those families for the interviews?",
+     "audio_s": 4.98,
+     "underruns": 0,
+     "gap_ms": 0
+    },
+    "summary": {
+     "summary": "Daniel discussed whether to sell the fall-detection service through home-care agencies or directly to families. He thinks agencies may offer a faster route, but is concerned that their revenue share could reduce his margins; he decided to test agency interest by emailing three agencies by Friday.",
+     "topics": [
+      "Fall-detection service sales channel",
+      "Home-care agency revenue share"
+     ],
+     "decisions": [
+      "Test interest in selling through home-care agencies before deciding on the sales channel."
+     ],
+     "action_items": [
+      "Email three home-care agencies by Friday to test their interest."
+     ],
+     "unresolved_topics": [
+      "Whether agencies make the buying decisions and what revenue share they would expect",
+      "Whether to pitch the full product or only fall detection first",
+      "Plan the remaining six interviews",
+      "Clarify what makes families reluctant to discuss the topic and what is not working in their current arrangements",
+      "Clarify whether families rely on relatives or paid caregivers and what is not working in their current arrangements"
+     ],
+     "resolved_topics": [],
+     "new_user_facts": [],
+     "suggested_next_opener": "Did you hear back from any of the three agencies, and what did they say about their interest and expected revenue share?",
+     "method": "llm",
+     "llm": "utility:gpt-6-luna",
+     "usage": {
+      "prompt_tokens": 575,
+      "completion_tokens": 253,
+      "ms": 2447.6987831294537
+     }
+    },
+    "stats": {
+     "duration_s": 41.56,
+     "turns_user": 3,
+     "turns_agent": 4,
+     "interruptions": 0,
+     "errors": 0,
+     "response_latency_ms": {
+      "n": 3,
+      "median": 794.2,
+      "mean": 810.9,
+      "p90": 837.7,
+      "p95": 843.1,
+      "min": 790.0,
+      "max": 848.5
+     },
+     "endpoint_delay_ms": {
+      "n": 3,
+      "median": 593.2,
+      "mean": 596.5,
+      "p90": 601.5,
+      "p95": 602.6,
+      "min": 592.8,
+      "max": 603.6
+     },
+     "interrupt_detect_ms": {
+      "n": 0
+     },
+     "client_latency_ms": {
+      "n": 0
+     },
+     "client_stop_ms": {
+      "n": 0
+     },
+     "proactive_first_audio_ms": 1238.4,
+     "stages": {
+      "provider_start_ms": {
+       "n": 1,
+       "median": 444.8,
+       "mean": 444.8,
+       "p90": 444.8,
+       "p95": 444.8,
+       "min": 444.8,
+       "max": 444.8
+      },
+      "tts_ttfa_ms": {
+       "n": 4,
+       "median": 196.1,
+       "mean": 259.5,
+       "p90": 394.5,
+       "p95": 434.2,
+       "min": 171.8,
+       "max": 473.9
+      },
+      "pipeline_ms": {
+       "n": 4,
+       "median": 484.6,
+       "mean": 540.3,
+       "p90": 669.0,
+       "p95": 702.5,
+       "min": 456.1,
+       "max": 735.9
+      },
+      "llm_ttft_ms": {
+       "n": 4,
+       "median": 59.9,
+       "mean": 64.0,
+       "p90": 73.0,
+       "p95": 75.6,
+       "min": 58.0,
+       "max": 78.2
+      },
+      "llm_total_ms": {
+       "n": 4,
+       "median": 265.6,
+       "mean": 265.8,
+       "p90": 272.1,
+       "p95": 272.6,
+       "min": 258.9,
+       "max": 273.2
+      },
+      "stt_ms": {
+       "n": 3,
+       "median": 166.9,
+       "mean": 138.5,
+       "p90": 170.5,
+       "p95": 171.0,
+       "min": 77.3,
+       "max": 171.4
+      },
+      "stt_queue_ms": {
+       "n": 3,
+       "median": 0.2,
+       "mean": 0.4,
+       "p90": 0.7,
+       "p95": 0.8,
+       "min": 0.2,
+       "max": 0.9
+      },
+      "llm_first_chunk_ms": {
+       "n": 3,
+       "median": 122.9,
+       "mean": 121.4,
+       "p90": 126.9,
+       "p95": 127.4,
+       "min": 113.5,
+       "max": 127.9
+      },
+      "summary_ms": {
+       "n": 1,
+       "median": 2447.8,
+       "mean": 2447.8,
+       "p90": 2447.8,
+       "p95": 2447.8,
+       "min": 2447.8,
+       "max": 2447.8
+      }
+     },
+     "audio_in_s": 39.06,
+     "audio_out_s": 22.91,
+     "bytes_up": 1249920,
+     "bytes_down": 1099554,
+     "kbps_up_raw": 240.6,
+     "kbps_down_raw": 211.6,
+     "usage": {
+      "llm": {
+       "prompt_tokens": 5295,
+       "completion_tokens": 92,
+       "model": "local@http://127.0.0.1:8081/v1"
+      },
+      "tts": {
+       "chars": 425,
+       "audio_s": 22.98471655328798,
+       "engine": "en=sherpa-vits:vits-piper-en_US-lessac-medium:sid0:cpu | he=bluev3:daniel:speed1.2@http://127.0.0.1:1920/v1"
+      },
+      "stt": {
+       "audio_s": 14.112000000000002,
+       "engine": "routed[he=faster-whisper:ivrit-ai/whisper-large-v3-turbo-ct2:cuda:float16, en=faster-whisper:deepdml/faster-whisper-large-v3-turbo-ct2:cuda:float16; mixed->he]"
+      }
+     },
+     "end_reason": "client_end"
+    },
+    "errors": [],
+    "late_mic_frames": 0,
+    "wall_s": 41.6,
+    "repeat": 0
+   },
+   {
+    "id": "s07_interrupt",
+    "title": "Interrupting the agent mid-sentence",
+    "language": "en",
+    "snr_db": null,
+    "turns": [
+     {
+      "said": "Tell me in detail about the pros and cons of selling directly to families.",
+      "speech_s": 3.84,
+      "heard": "Tell me in detail about the pros and cons of selling directly to families.",
+      "wer": 0.0,
+      "latency_ms": 1021,
+      "server_latency_ms": 971.1,
+      "agent": "Honestly, that's a huge pivot from what we were talking about. Do you mean you're thinking about skipping the agencies entirely?",
+      "agent_audio_s": 3.2,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     },
+     {
+      "said": "How many interviews do I still have to schedule?",
+      "speech_s": 2.26,
+      "heard": "How many interviews do I still have to schedule?",
+      "wer": 0.0,
+      "latency_ms": 802,
+      "server_latency_ms": 777.5,
+      "agent": "You said you still had six left to do.",
+      "agent_audio_s": 2.01,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     }
+    ],
+    "checks": [
+     {
+      "check": "proactive_opener_spoken",
+      "pass": true
+     },
+     {
+      "check": "reply_contains_expected",
+      "expected_any": [
+       "six",
+       "6"
+      ],
+      "pass": true,
+      "text": "You said you still had six left to do."
+     }
+    ],
+    "interruptions": [
+     {
+      "agent_was_audible": true,
+      "interrupted": true,
+      "onset_to_interrupt_ms": 234,
+      "audio_after_interrupt_ms": 0,
+      "server_interrupt_detect_ms": 232.9
+     }
+    ],
+    "error": null,
+    "opener": {
+     "first_audio_ms": 837,
+     "text": "Hey Daniel. So, did you have any luck getting those families to agree to the interviews?",
+     "audio_s": 4.28,
+     "underruns": 0,
+     "gap_ms": 0
+    },
+    "summary": {
+     "summary": "Daniel asked for the pros and cons of selling the fall-detection service directly to families, but did not discuss or decide on a sales channel. He then asked how many interviews remained to schedule and was told that six were still left.",
+     "topics": [
+      "Direct-to-family sales",
+      "Interview planning"
+     ],
+     "decisions": [],
+     "action_items": [],
+     "unresolved_topics": [
+      "Whether to sell the fall-detection service directly to families or through home-care agencies",
+      "Plan the remaining six interviews"
+     ],
+     "resolved_topics": [],
+     "new_user_facts": [],
+     "suggested_next_opener": "Would you like to compare direct-to-family sales with selling through home-care agencies, or focus on planning the six remaining interviews?",
+     "method": "llm",
+     "llm": "utility:gpt-6-luna",
+     "usage": {
+      "prompt_tokens": 550,
+      "completion_tokens": 142,
+      "ms": 1813.8877041637897
+     }
+    },
+    "stats": {
+     "duration_s": 22.43,
+     "turns_user": 3,
+     "turns_agent": 5,
+     "interruptions": 1,
+     "errors": 0,
+     "response_latency_ms": {
+      "n": 3,
+      "median": 777.5,
+      "mean": 811.3,
+      "p90": 932.4,
+      "p95": 951.7,
+      "min": 685.2,
+      "max": 971.1
+     },
+     "endpoint_delay_ms": {
+      "n": 3,
+      "median": 594.8,
+      "mean": 593.7,
+      "p90": 595.1,
+      "p95": 595.1,
+      "min": 591.2,
+      "max": 595.2
+     },
+     "interrupt_detect_ms": {
+      "n": 1,
+      "median": 232.9,
+      "mean": 232.9,
+      "p90": 232.9,
+      "p95": 232.9,
+      "min": 232.9,
+      "max": 232.9
+     },
+     "client_latency_ms": {
+      "n": 0
+     },
+     "client_stop_ms": {
+      "n": 0
+     },
+     "proactive_first_audio_ms": 601.8,
+     "stages": {
+      "provider_start_ms": {
+       "n": 1,
+       "median": 209.1,
+       "mean": 209.1,
+       "p90": 209.1,
+       "p95": 209.1,
+       "min": 209.1,
+       "max": 209.1
+      },
+      "tts_ttfa_ms": {
+       "n": 4,
+       "median": 151.3,
+       "mean": 162.4,
+       "p90": 231.2,
+       "p95": 242.1,
+       "min": 94.2,
+       "max": 253.0
+      },
+      "pipeline_ms": {
+       "n": 4,
+       "median": 408.0,
+       "mean": 443.3,
+       "p90": 563.9,
+       "p95": 590.9,
+       "min": 339.4,
+       "max": 617.8
+      },
+      "llm_ttft_ms": {
+       "n": 4,
+       "median": 110.7,
+       "mean": 106.0,
+       "p90": 125.0,
+       "p95": 127.8,
+       "min": 72.0,
+       "max": 130.5
+      },
+      "llm_total_ms": {
+       "n": 4,
+       "median": 221.4,
+       "mean": 253.0,
+       "p90": 343.0,
+       "p95": 364.1,
+       "min": 184.0,
+       "max": 385.2
+      },
+      "stt_ms": {
+       "n": 3,
+       "median": 70.6,
+       "mean": 75.5,
+       "p90": 92.7,
+       "p95": 95.5,
+       "min": 57.7,
+       "max": 98.3
+      },
+      "stt_queue_ms": {
+       "n": 3,
+       "median": 0.1,
+       "mean": 0.1,
+       "p90": 0.2,
+       "p95": 0.2,
+       "min": 0.1,
+       "max": 0.2
+      },
+      "llm_first_chunk_ms": {
+       "n": 1,
+       "median": 264.0,
+       "mean": 264.0,
+       "p90": 264.0,
+       "p95": 264.0,
+       "min": 264.0,
+       "max": 264.0
+      },
+      "summary_ms": {
+       "n": 1,
+       "median": 1814.0,
+       "mean": 1814.0,
+       "p90": 1814.0,
+       "p95": 1814.0,
+       "min": 1814.0,
+       "max": 1814.0
+      }
+     },
+     "audio_in_s": 20.8,
+     "audio_out_s": 14.02,
+     "bytes_up": 665600,
+     "bytes_down": 672928,
+     "kbps_up_raw": 237.4,
+     "kbps_down_raw": 240.0,
+     "usage": {
+      "llm": {
+       "prompt_tokens": 5236,
+       "completion_tokens": 69,
+       "model": "local@http://127.0.0.1:8081/v1"
+      },
+      "tts": {
+       "chars": 273,
+       "audio_s": 14.142630385487529,
+       "engine": "en=sherpa-vits:vits-piper-en_US-lessac-medium:sid0:cpu | he=bluev3:daniel:speed1.2@http://127.0.0.1:1920/v1"
+      },
+      "stt": {
+       "audio_s": 10.176,
+       "engine": "routed[he=faster-whisper:ivrit-ai/whisper-large-v3-turbo-ct2:cuda:float16, en=faster-whisper:deepdml/faster-whisper-large-v3-turbo-ct2:cuda:float16; mixed->he]"
+      }
+     },
+     "end_reason": "client_end"
+    },
+    "errors": [],
+    "late_mic_frames": 0,
+    "wall_s": 22.7,
+    "repeat": 0
+   },
+   {
+    "id": "s10b_road_noise_he",
+    "title": "Conversation with simulated road noise (Hebrew, 5 dB SNR)",
+    "language": "he",
+    "snr_db": 5,
+    "turns": [
+     {
+      "said": "כן, בואי נמשיך עם זה. אני נוטה לאפשרות של מודול התשלומים.",
+      "speech_s": 4.35,
+      "heard": "כן, בואי נמשיך עם זה, אני נוטה לאפשרות של מודו לתשלומים.",
+      "wer": 0.182,
+      "latency_ms": 823,
+      "server_latency_ms": 801.2,
+      "agent": "וואלה? למה דווקא את זה? זה מרגיש לך הכי בטוח או שפשוט הכי קל ליישום עכשיו?",
+      "agent_audio_s": 6.01,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     },
+     {
+      "said": "תזכירי לי, מה הייתה האפשרות השלישית שדיברנו עליה?",
+      "speech_s": 3.67,
+      "heard": "תזכירי לי, מה הייתה האפשרות השלישית שדיברנו עליה?",
+      "wer": 0.0,
+      "latency_ms": 873,
+      "server_latency_ms": 851.3,
+      "agent": "אממ, דיברנו על להיכנס לגרמניה. מה נסגר עם זה, זה בכלל רלוונטי כרגע?",
+      "agent_audio_s": 5.4,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     }
+    ],
+    "checks": [
+     {
+      "check": "proactive_opener_spoken",
+      "pass": true
+     },
+     {
+      "check": "reply_contains_expected",
+      "expected_any": [
+       "גרמני"
+      ],
+      "pass": true,
+      "text": "אממ, דיברנו על להיכנס לגרמניה. מה נסגר עם זה, זה בכלל רלוונטי כרגע?"
+     }
+    ],
+    "interruptions": [],
+    "error": null,
+    "opener": {
+     "first_audio_ms": 488,
+     "text": "היי נועה, מה קורה? מה נסגר עם יואב, הוא שלח לך כבר הערכה על המודול של התשלומים?",
+     "audio_s": 5.77,
+     "underruns": 0,
+     "gap_ms": 0
+    },
+    "summary": {
+     "summary": "She said she was leaning toward adding a payments module and asked what the third startup option had been. The companion reminded her that it was entering Germany, but she did not make a final choice.",
+     "topics": [
+      "Startup strategy",
+      "Payments module",
+      "Entering Germany"
+     ],
+     "decisions": [],
+     "action_items": [],
+     "unresolved_topics": [
+      "Choosing among moving up-market, adding a payments module, and entering Germany before the board meeting on the 15th"
+     ],
+     "resolved_topics": [],
+     "new_user_facts": [],
+     "suggested_next_opener": "Would you like to compare the payments module and entering Germany before deciding on the startup direction?",
+     "method": "llm",
+     "llm": "utility:gpt-6-luna",
+     "usage": {
+      "prompt_tokens": 489,
+      "completion_tokens": 129,
+      "ms": 1814.356654882431
+     }
+    },
+    "stats": {
+     "duration_s": 29.26,
+     "turns_user": 2,
+     "turns_agent": 3,
+     "interruptions": 0,
+     "errors": 0,
+     "response_latency_ms": {
+      "n": 2,
+      "median": 826.3,
+      "mean": 826.3,
+      "p90": 846.3,
+      "p95": 848.8,
+      "min": 801.2,
+      "max": 851.3
+     },
+     "endpoint_delay_ms": {
+      "n": 2,
+      "median": 591.6,
+      "mean": 591.6,
+      "p90": 591.8,
+      "p95": 591.8,
+      "min": 591.3,
+      "max": 591.8
+     },
+     "interrupt_detect_ms": {
+      "n": 0
+     },
+     "client_latency_ms": {
+      "n": 0
+     },
+     "client_stop_ms": {
+      "n": 0
+     },
+     "proactive_first_audio_ms": 485.0,
+     "stages": {
+      "provider_start_ms": {
+       "n": 1,
+       "median": 195.1,
+       "mean": 195.1,
+       "p90": 195.1,
+       "p95": 195.1,
+       "min": 195.1,
+       "max": 195.1
+      },
+      "llm_first_chunk_ms": {
+       "n": 3,
+       "median": 172.3,
+       "mean": 172.5,
+       "p90": 190.0,
+       "p95": 192.2,
+       "min": 150.8,
+       "max": 194.4
+      },
+      "tts_ttfa_ms": {
+       "n": 3,
+       "median": 137.5,
+       "mean": 133.2,
+       "p90": 148.4,
+       "p95": 149.8,
+       "min": 111.0,
+       "max": 151.1
+      },
+      "pipeline_ms": {
+       "n": 3,
+       "median": 490.1,
+       "mean": 440.0,
+       "p90": 530.5,
+       "p95": 535.6,
+       "min": 289.2,
+       "max": 540.6
+      },
+      "llm_ttft_ms": {
+       "n": 3,
+       "median": 66.6,
+       "mean": 66.1,
+       "p90": 71.4,
+       "p95": 72.0,
+       "min": 59.1,
+       "max": 72.6
+      },
+      "llm_total_ms": {
+       "n": 3,
+       "median": 419.5,
+       "mean": 431.2,
+       "p90": 461.5,
+       "p95": 466.7,
+       "min": 402.2,
+       "max": 472.0
+      },
+      "stt_ms": {
+       "n": 2,
+       "median": 198.1,
+       "mean": 198.1,
+       "p90": 202.6,
+       "p95": 203.1,
+       "min": 192.5,
+       "max": 203.7
+      },
+      "stt_queue_ms": {
+       "n": 2,
+       "median": 0.1,
+       "mean": 0.1,
+       "p90": 0.1,
+       "p95": 0.1,
+       "min": 0.1,
+       "max": 0.1
+      },
+      "summary_ms": {
+       "n": 1,
+       "median": 1814.4,
+       "mean": 1814.4,
+       "p90": 1814.4,
+       "p95": 1814.4,
+       "min": 1814.4,
+       "max": 1814.4
+      }
+     },
+     "audio_in_s": 27.4,
+     "audio_out_s": 17.19,
+     "bytes_up": 876800,
+     "bytes_down": 824920,
+     "kbps_up_raw": 239.7,
+     "kbps_down_raw": 225.6,
+     "usage": {
+      "llm": {
+       "prompt_tokens": 4774,
+       "completion_tokens": 107,
+       "model": "local@http://127.0.0.1:8081/v1"
+      },
+      "tts": {
+       "chars": 217,
+       "audio_s": 17.236326530612253,
+       "engine": "en=sherpa-vits:vits-piper-en_US-lessac-medium:sid0:cpu | he=bluev3:daniel:speed1.2@http://127.0.0.1:1920/v1"
+      },
+      "stt": {
+       "audio_s": 9.120000000000001,
+       "engine": "routed[he=faster-whisper:ivrit-ai/whisper-large-v3-turbo-ct2:cuda:float16, en=faster-whisper:deepdml/faster-whisper-large-v3-turbo-ct2:cuda:float16; mixed->he]"
+      }
+     },
+     "end_reason": "client_end"
+    },
+    "errors": [],
+    "late_mic_frames": 0,
+    "wall_s": 29.3,
+    "repeat": 0
+   },
+   {
+    "id": "s01_he_brainstorm",
+    "title": "Hebrew entrepreneurial brainstorming",
+    "language": "he",
+    "snr_db": null,
+    "turns": [
+     {
+      "said": "כן, בואי נמשיך עם זה. אני נוטה לאפשרות של מודול התשלומים.",
+      "speech_s": 4.35,
+      "heard": "כן, בואי נמשיך עם זה, אני נוטה לאפשרות של מודו לתשלומים.",
+      "wer": 0.182,
+      "latency_ms": 778,
+      "server_latency_ms": 777.3,
+      "agent": "וואלה, באמת? למה דווקא זה, זה לא מרגיש לך קצת מסוכן עכשיו?",
+      "agent_audio_s": 4.58,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     },
+     {
+      "said": "מה שמדאיג אותי זה שאין לנו בצוות ניסיון ברגולציה של פינטק.",
+      "speech_s": 4.2,
+      "heard": "מה שמדאיג אותי זה שאין לנו בצוות ניסיון ברגולציה של פינטק.",
+      "wer": 0.0,
+      "latency_ms": 778,
+      "server_latency_ms": 776.7,
+      "agent": "זה נשמע כמו כאב ראש רציני. את חושבת שצריך לגייס מישהו שמתמחה בזה כבר עכשיו?",
+      "agent_audio_s": 5.71,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     },
+     {
+      "said": "אז מה לדעתך הצעד הראשון שהכי כדאי לעשות השבוע?",
+      "speech_s": 3.71,
+      "heard": "אז מה לדעתך הצעד הראשון שהכי כדאי לעשות השבוע?",
+      "wer": 0.0,
+      "latency_ms": 843,
+      "server_latency_ms": 802.1,
+      "agent": "תכלס, הייתי הולך ישר ליואב. הוא יכול לתת לך הערכה אם זה בכלל אפשרי טכנית בלו\"ז הנוכחי.",
+      "agent_audio_s": 6.46,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     }
+    ],
+    "checks": [
+     {
+      "check": "proactive_opener_spoken",
+      "pass": true
+     },
+     {
+      "check": "opener_references_memory",
+      "pass": true,
+      "text": "היי נועה, מה קורה? יואב שלח לך משהו לגבי האומדן של המודול של התשלומים?"
+     }
+    ],
+    "interruptions": [],
+    "error": null,
+    "opener": {
+     "first_audio_ms": 593,
+     "text": "היי נועה, מה קורה? יואב שלח לך משהו לגבי האומדן של המודול של התשלומים?",
+     "audio_s": 5.12,
+     "underruns": 0,
+     "gap_ms": 0
+    },
+    "summary": {
+     "summary": "She said she is leaning toward adding a payments module as the startup direction. Her main concern is that the team lacks fintech regulatory experience, and the conversation suggested asking Yoav to assess whether the module is technically feasible within the current timeline.",
+     "topics": [
+      "Startup direction",
+      "Payments module",
+      "Fintech regulatory experience",
+      "Technical feasibility"
+     ],
+     "decisions": [
+      "She is leaning toward the payments-module option."
+     ],
+     "action_items": [],
+     "unresolved_topics": [
+      "Whether the payments module is feasible within the current timeline",
+      "How to address the team's lack of fintech regulatory experience"
+     ],
+     "resolved_topics": [],
+     "new_user_facts": [],
+     "suggested_next_opener": "Did you get a chance to ask Yoav whether the payments module is technically feasible on the current timeline?",
+     "method": "llm",
+     "llm": "utility:gpt-6-luna",
+     "usage": {
+      "prompt_tokens": 526,
+      "completion_tokens": 175,
+      "ms": 2041.8151877820492
+     }
+    },
+    "stats": {
+     "duration_s": 39.2,
+     "turns_user": 3,
+     "turns_agent": 4,
+     "interruptions": 0,
+     "errors": 0,
+     "response_latency_ms": {
+      "n": 3,
+      "median": 777.3,
+      "mean": 785.4,
+      "p90": 797.1,
+      "p95": 799.6,
+      "min": 776.7,
+      "max": 802.1
+     },
+     "endpoint_delay_ms": {
+      "n": 3,
+      "median": 597.0,
+      "mean": 601.8,
+      "p90": 610.0,
+      "p95": 611.6,
+      "min": 595.2,
+      "max": 613.2
+     },
+     "interrupt_detect_ms": {
+      "n": 0
+     },
+     "client_latency_ms": {
+      "n": 0
+     },
+     "client_stop_ms": {
+      "n": 0
+     },
+     "proactive_first_audio_ms": 592.0,
+     "stages": {
+      "provider_start_ms": {
+       "n": 1,
+       "median": 322.2,
+       "mean": 322.2,
+       "p90": 322.2,
+       "p95": 322.2,
+       "min": 322.2,
+       "max": 322.2
+      },
+      "llm_first_chunk_ms": {
+       "n": 4,
+       "median": 158.7,
+       "mean": 160.4,
+       "p90": 191.4,
+       "p95": 196.3,
+       "min": 123.2,
+       "max": 201.2
+      },
+      "tts_ttfa_ms": {
+       "n": 4,
+       "median": 134.9,
+       "mean": 132.1,
+       "p90": 139.9,
+       "p95": 140.3,
+       "min": 117.6,
+       "max": 140.8
+      },
+      "pipeline_ms": {
+       "n": 4,
+       "median": 461.2,
+       "mean": 419.3,
+       "p90": 479.8,
+       "p95": 483.7,
+       "min": 267.3,
+       "max": 487.6
+      },
+      "llm_ttft_ms": {
+       "n": 4,
+       "median": 64.7,
+       "mean": 65.4,
+       "p90": 69.6,
+       "p95": 70.3,
+       "min": 61.4,
+       "max": 71.1
+      },
+      "llm_total_ms": {
+       "n": 4,
+       "median": 402.9,
+       "mean": 410.0,
+       "p90": 451.2,
+       "p95": 460.4,
+       "min": 364.9,
+       "max": 469.5
+      },
+      "stt_ms": {
+       "n": 3,
+       "median": 158.4,
+       "mean": 166.7,
+       "p90": 190.1,
+       "p95": 194.1,
+       "min": 143.5,
+       "max": 198.1
+      },
+      "stt_queue_ms": {
+       "n": 3,
+       "median": 0.1,
+       "mean": 0.1,
+       "p90": 0.2,
+       "p95": 0.2,
+       "min": 0.1,
+       "max": 0.2
+      },
+      "summary_ms": {
+       "n": 1,
+       "median": 2041.9,
+       "mean": 2041.9,
+       "p90": 2041.9,
+       "p95": 2041.9,
+       "min": 2041.9,
+       "max": 2041.9
+      }
+     },
+     "audio_in_s": 37.12,
+     "audio_out_s": 21.87,
+     "bytes_up": 1187840,
+     "bytes_down": 1049600,
+     "kbps_up_raw": 242.4,
+     "kbps_down_raw": 214.2,
+     "usage": {
+      "llm": {
+       "prompt_tokens": 6487,
+       "completion_tokens": 139,
+       "model": "local@http://127.0.0.1:8081/v1"
+      },
+      "tts": {
+       "chars": 285,
+       "audio_s": 21.942857142857154,
+       "engine": "en=sherpa-vits:vits-piper-en_US-lessac-medium:sid0:cpu | he=bluev3:daniel:speed1.2@http://127.0.0.1:1920/v1"
+      },
+      "stt": {
+       "audio_s": 13.984,
+       "engine": "routed[he=faster-whisper:ivrit-ai/whisper-large-v3-turbo-ct2:cuda:float16, en=faster-whisper:deepdml/faster-whisper-large-v3-turbo-ct2:cuda:float16; mixed->he]"
+      }
+     },
+     "end_reason": "client_end"
+    },
+    "errors": [],
+    "late_mic_frames": 0,
+    "wall_s": 39.2,
+    "repeat": 1
+   },
+   {
+    "id": "s02_en_brainstorm",
+    "title": "English entrepreneurial brainstorming",
+    "language": "en",
+    "snr_db": null,
+    "turns": [
+     {
+      "said": "Yes, let's continue with that. I think selling through home care agencies is faster.",
+      "speech_s": 4.41,
+      "heard": "Yes, let's continue with that, I think selling through home care agencies is faster.",
+      "wer": 0.0,
+      "latency_ms": 813,
+      "server_latency_ms": 787.7,
+      "agent": "Hmm, that makes sense. Do you think the agencies will be easier to get a meeting with than the families?",
+      "agent_audio_s": 5.09,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     },
+     {
+      "said": "The risk is that agencies will want a revenue share, and that hurts my margins.",
+      "speech_s": 3.88,
+      "heard": "The risk is that agencies will want a revenue share and that hurts my margins.",
+      "wer": 0.0,
+      "latency_ms": 858,
+      "server_latency_ms": 791.2,
+      "agent": "Yeah, that's a real concern. Do you have a specific percentage in mind that would still make it worth it for you?",
+      "agent_audio_s": 5.69,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     },
+     {
+      "said": "Okay. I will email three agencies by Friday to test their interest.",
+      "speech_s": 4.02,
+      "heard": "Okay, I will email three agencies by Friday to test their interest.",
+      "wer": 0.0,
+      "latency_ms": 769,
+      "server_latency_ms": 763.1,
+      "agent": "That sounds like a solid plan. Which three agencies are you thinking of reaching out to first?",
+      "agent_audio_s": 4.69,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     }
+    ],
+    "checks": [
+     {
+      "check": "proactive_opener_spoken",
+      "pass": true
+     },
+     {
+      "check": "opener_references_memory",
+      "pass": true,
+      "text": "Hey Daniel, good afternoon. So, did you manage to make any headway with scheduling those last six interviews?"
+     },
+     {
+      "check": "summary_action_items",
+      "pass": true,
+      "text": "[\"Email three agencies by Friday to gauge their interest.\"]",
+      "summary_method": "llm"
+     }
+    ],
+    "interruptions": [],
+    "error": null,
+    "opener": {
+     "first_audio_ms": 804,
+     "text": "Hey Daniel, good afternoon. So, did you manage to make any headway with scheduling those last six interviews?",
+     "audio_s": 5.73,
+     "underruns": 0,
+     "gap_ms": 0
+    },
+    "summary": {
+     "summary": "Daniel discussed whether to sell the fall-detection service through home-care agencies or directly to families. He thinks agencies may be a faster route, but is concerned that a revenue share could reduce his margins; he decided to test agency interest by emailing three agencies by Friday.",
+     "topics": [
+      "Fall-detection service",
+      "Home-care agencies",
+      "Revenue sharing",
+      "Agency outreach"
+     ],
+     "decisions": [
+      "Test selling through home-care agencies by contacting three agencies."
+     ],
+     "action_items": [
+      "Email three agencies by Friday to gauge their interest."
+     ],
+     "unresolved_topics": [
+      "Whether to sell the fall-detection service directly to families or through home-care agencies",
+      "Plan the remaining six interviews",
+      "Clarify whether families rely on relatives or paid caregivers and what is not working in their current arrangements",
+      "Clarify what makes families reluctant to discuss the topic and what is not working in their current arrangements"
+     ],
+     "resolved_topics": [],
+     "new_user_facts": [],
+     "suggested_next_opener": "Were you able to email the three agencies, and what did you learn about their interest and revenue-share expectations?",
+     "method": "llm",
+     "llm": "utility:gpt-6-luna",
+     "usage": {
+      "prompt_tokens": 577,
+      "completion_tokens": 239,
+      "ms": 2361.9165048003197
+     }
+    },
+    "stats": {
+     "duration_s": 39.01,
+     "turns_user": 3,
+     "turns_agent": 4,
+     "interruptions": 0,
+     "errors": 0,
+     "response_latency_ms": {
+      "n": 3,
+      "median": 787.7,
+      "mean": 780.6,
+      "p90": 790.5,
+      "p95": 790.8,
+      "min": 763.1,
+      "max": 791.2
+     },
+     "endpoint_delay_ms": {
+      "n": 3,
+      "median": 594.7,
+      "mean": 599.5,
+      "p90": 608.7,
+      "p95": 610.4,
+      "min": 591.7,
+      "max": 612.2
+     },
+     "interrupt_detect_ms": {
+      "n": 0
+     },
+     "client_latency_ms": {
+      "n": 0
+     },
+     "client_stop_ms": {
+      "n": 0
+     },
+     "proactive_first_audio_ms": 655.7,
+     "stages": {
+      "provider_start_ms": {
+       "n": 1,
+       "median": 287.5,
+       "mean": 287.5,
+       "p90": 287.5,
+       "p95": 287.5,
+       "min": 287.5,
+       "max": 287.5
+      },
+      "llm_first_chunk_ms": {
+       "n": 4,
+       "median": 131.5,
+       "mean": 143.1,
+       "p90": 173.8,
+       "p95": 181.9,
+       "min": 119.4,
+       "max": 190.0
+      },
+      "tts_ttfa_ms": {
+       "n": 4,
+       "median": 155.5,
+       "mean": 155.4,
+       "p90": 158.2,
+       "p95": 158.8,
+       "min": 151.2,
+       "max": 159.3
+      },
+      "pipeline_ms": {
+       "n": 4,
+       "median": 445.1,
+       "mean": 409.5,
+       "p90": 460.8,
+       "p95": 460.9,
+       "min": 286.9,
+       "max": 461.0
+      },
+      "llm_ttft_ms": {
+       "n": 4,
+       "median": 72.4,
+       "mean": 82.0,
+       "p90": 112.3,
+       "p95": 120.0,
+       "min": 55.3,
+       "max": 127.8
+      },
+      "llm_total_ms": {
+       "n": 4,
+       "median": 291.8,
+       "mean": 290.8,
+       "p90": 303.8,
+       "p95": 304.1,
+       "min": 275.1,
+       "max": 304.4
+      },
+      "stt_ms": {
+       "n": 3,
+       "median": 164.6,
+       "mean": 143.5,
+       "p90": 180.8,
+       "p95": 182.8,
+       "min": 80.9,
+       "max": 184.8
+      },
+      "stt_queue_ms": {
+       "n": 3,
+       "median": 0.2,
+       "mean": 0.3,
+       "p90": 0.4,
+       "p95": 0.4,
+       "min": 0.1,
+       "max": 0.4
+      },
+      "summary_ms": {
+       "n": 1,
+       "median": 2362.0,
+       "mean": 2362.0,
+       "p90": 2362.0,
+       "p95": 2362.0,
+       "min": 2362.0,
+       "max": 2362.0
+      }
+     },
+     "audio_in_s": 36.74,
+     "audio_out_s": 21.2,
+     "bytes_up": 1175680,
+     "bytes_down": 1017442,
+     "kbps_up_raw": 241.1,
+     "kbps_down_raw": 208.7,
+     "usage": {
+      "llm": {
+       "prompt_tokens": 5306,
+       "completion_tokens": 95,
+       "model": "local@http://127.0.0.1:8081/v1"
+      },
+      "tts": {
+       "chars": 416,
+       "audio_s": 21.260544217687077,
+       "engine": "en=sherpa-vits:vits-piper-en_US-lessac-medium:sid0:cpu | he=bluev3:daniel:speed1.2@http://127.0.0.1:1920/v1"
+      },
+      "stt": {
+       "audio_s": 14.079999999999998,
+       "engine": "routed[he=faster-whisper:ivrit-ai/whisper-large-v3-turbo-ct2:cuda:float16, en=faster-whisper:deepdml/faster-whisper-large-v3-turbo-ct2:cuda:float16; mixed->he]"
+      }
+     },
+     "end_reason": "client_end"
+    },
+    "errors": [],
+    "late_mic_frames": 0,
+    "wall_s": 39.2,
+    "repeat": 1
+   },
+   {
+    "id": "s07_interrupt",
+    "title": "Interrupting the agent mid-sentence",
+    "language": "en",
+    "snr_db": null,
+    "turns": [
+     {
+      "said": "Tell me in detail about the pros and cons of selling directly to families.",
+      "speech_s": 3.84,
+      "heard": "Tell me in detail about the pros and cons of selling directly to families.",
+      "wer": 0.0,
+      "latency_ms": 1001,
+      "server_latency_ms": 933.7,
+      "agent": "Hmm, that's a big shift from what we were just talking about. Honestly, selling to families is a lot harder because you're dealing with raw emotions and individual budgets.",
+      "agent_audio_s": 3.12,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     },
+     {
+      "said": "How many interviews do I still have to schedule?",
+      "speech_s": 2.26,
+      "heard": "How many interviews do I still have to schedule?",
+      "wer": 0.0,
+      "latency_ms": 775,
+      "server_latency_ms": 748.9,
+      "agent": "You said you still had six left to do.",
+      "agent_audio_s": 2.08,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     }
+    ],
+    "checks": [
+     {
+      "check": "proactive_opener_spoken",
+      "pass": true
+     },
+     {
+      "check": "reply_contains_expected",
+      "expected_any": [
+       "six",
+       "6"
+      ],
+      "pass": true,
+      "text": "You said you still had six left to do."
+     }
+    ],
+    "interruptions": [
+     {
+      "agent_was_audible": true,
+      "interrupted": true,
+      "onset_to_interrupt_ms": 233,
+      "audio_after_interrupt_ms": 0,
+      "server_interrupt_detect_ms": 232.4
+     }
+    ],
+    "error": null,
+    "opener": {
+     "first_audio_ms": 645,
+     "text": "Hey Daniel, good afternoon. So, did you have any luck getting those families to actually sit down for interviews?",
+     "audio_s": 5.76,
+     "underruns": 0,
+     "gap_ms": 0
+    },
+    "summary": {
+     "summary": "Daniel asked about the pros and cons of selling the fall-detection service directly to families, but the discussion did not develop beyond the agent noting that this approach can be harder because of emotional concerns and individual budgets. He then asked how many interviews remained to schedule and was told that six were still outstanding.",
+     "topics": [
+      "Direct-to-family sales",
+      "Interview scheduling"
+     ],
+     "decisions": [],
+     "action_items": [],
+     "unresolved_topics": [
+      "Whether to sell the fall-detection service directly to families or through home-care agencies",
+      "Plan the remaining six interviews"
+     ],
+     "resolved_topics": [],
+     "new_user_facts": [],
+     "suggested_next_opener": "Would you like to compare direct-to-family sales with selling through home-care agencies, or focus on scheduling the six remaining interviews?",
+     "method": "llm",
+     "llm": "utility:gpt-6-luna",
+     "usage": {
+      "prompt_tokens": 566,
+      "completion_tokens": 155,
+      "ms": 2034.551803022623
+     }
+    },
+    "stats": {
+     "duration_s": 24.78,
+     "turns_user": 3,
+     "turns_agent": 5,
+     "interruptions": 1,
+     "errors": 0,
+     "response_latency_ms": {
+      "n": 3,
+      "median": 748.9,
+      "mean": 770.0,
+      "p90": 896.7,
+      "p95": 915.2,
+      "min": 627.5,
+      "max": 933.7
+     },
+     "endpoint_delay_ms": {
+      "n": 3,
+      "median": 591.2,
+      "mean": 592.3,
+      "p90": 594.4,
+      "p95": 594.8,
+      "min": 590.5,
+      "max": 595.2
+     },
+     "interrupt_detect_ms": {
+      "n": 1,
+      "median": 232.4,
+      "mean": 232.4,
+      "p90": 232.4,
+      "p95": 232.4,
+      "min": 232.4,
+      "max": 232.4
+     },
+     "client_latency_ms": {
+      "n": 0
+     },
+     "client_stop_ms": {
+      "n": 0
+     },
+     "proactive_first_audio_ms": 639.7,
+     "stages": {
+      "provider_start_ms": {
+       "n": 1,
+       "median": 288.8,
+       "mean": 288.8,
+       "p90": 288.8,
+       "p95": 288.8,
+       "min": 288.8,
+       "max": 288.8
+      },
+      "llm_first_chunk_ms": {
+       "n": 2,
+       "median": 160.1,
+       "mean": 160.1,
+       "p90": 195.7,
+       "p95": 200.1,
+       "min": 115.5,
+       "max": 204.6
+      },
+      "tts_ttfa_ms": {
+       "n": 4,
+       "median": 155.4,
+       "mean": 160.0,
+       "p90": 228.9,
+       "p95": 244.3,
+       "min": 69.4,
+       "max": 259.7
+      },
+      "pipeline_ms": {
+       "n": 4,
+       "median": 370.7,
+       "mean": 404.7,
+       "p90": 549.3,
+       "p95": 578.2,
+       "min": 270.2,
+       "max": 607.0
+      },
+      "llm_ttft_ms": {
+       "n": 4,
+       "median": 63.7,
+       "mean": 70.4,
+       "p90": 89.7,
+       "p95": 95.2,
+       "min": 53.5,
+       "max": 100.7
+      },
+      "llm_total_ms": {
+       "n": 4,
+       "median": 236.5,
+       "mean": 253.9,
+       "p90": 363.2,
+       "p95": 380.9,
+       "min": 143.8,
+       "max": 398.6
+      },
+      "stt_ms": {
+       "n": 3,
+       "median": 112.7,
+       "mean": 104.9,
+       "p90": 132.9,
+       "p95": 135.4,
+       "min": 63.9,
+       "max": 138.0
+      },
+      "stt_queue_ms": {
+       "n": 3,
+       "median": 0.1,
+       "mean": 0.2,
+       "p90": 0.2,
+       "p95": 0.2,
+       "min": 0.1,
+       "max": 0.2
+      },
+      "summary_ms": {
+       "n": 1,
+       "median": 2034.6,
+       "mean": 2034.6,
+       "p90": 2034.6,
+       "p95": 2034.6,
+       "min": 2034.6,
+       "max": 2034.6
+      }
+     },
+     "audio_in_s": 22.7,
+     "audio_out_s": 18.41,
+     "bytes_up": 726400,
+     "bytes_down": 883562,
+     "kbps_up_raw": 234.5,
+     "kbps_down_raw": 285.2,
+     "usage": {
+      "llm": {
+       "prompt_tokens": 5252,
+       "completion_tokens": 84,
+       "model": "local@http://127.0.0.1:8081/v1"
+      },
+      "tts": {
+       "chars": 353,
+       "audio_s": 18.4875283446712,
+       "engine": "en=sherpa-vits:vits-piper-en_US-lessac-medium:sid0:cpu | he=bluev3:daniel:speed1.2@http://127.0.0.1:1920/v1"
+      },
+      "stt": {
+       "audio_s": 10.176,
+       "engine": "routed[he=faster-whisper:ivrit-ai/whisper-large-v3-turbo-ct2:cuda:float16, en=faster-whisper:deepdml/faster-whisper-large-v3-turbo-ct2:cuda:float16; mixed->he]"
+      }
+     },
+     "end_reason": "client_end"
+    },
+    "errors": [],
+    "late_mic_frames": 0,
+    "wall_s": 24.8,
+    "repeat": 1
+   },
+   {
+    "id": "s10b_road_noise_he",
+    "title": "Conversation with simulated road noise (Hebrew, 5 dB SNR)",
+    "language": "he",
+    "snr_db": 5,
+    "turns": [
+     {
+      "said": "כן, בואי נמשיך עם זה. אני נוטה לאפשרות של מודול התשלומים.",
+      "speech_s": 4.35,
+      "heard": "כן, בואי נמשיך עם זה, אני נוטה לאפשרות של מודול התשלומים.",
+      "wer": 0.0,
+      "latency_ms": 812,
+      "server_latency_ms": 809.4,
+      "agent": "וואלה? למה דווקא זה? זה נראה לך הכי בטוח או הכי רווחי?",
+      "agent_audio_s": 4.89,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     },
+     {
+      "said": "תזכירי לי, מה הייתה האפשרות השלישית שדיברנו עליה?",
+      "speech_s": 3.67,
+      "heard": "תזכירי לי, מה הייתה האפשרות השלישית שדיברנו עליה?",
+      "wer": 0.0,
+      "latency_ms": 754,
+      "server_latency_ms": 748.9,
+      "agent": "דיברנו על להיכנס לגרמניה. נראה לך שזה בכלל רלוונטי עכשיו?",
+      "agent_audio_s": 4.71,
+      "underruns": 0,
+      "gap_ms": 0,
+      "overlong": false
+     }
+    ],
+    "checks": [
+     {
+      "check": "proactive_opener_spoken",
+      "pass": true
+     },
+     {
+      "check": "reply_contains_expected",
+      "expected_any": [
+       "גרמני"
+      ],
+      "pass": true,
+      "text": "דיברנו על להיכנס לגרמניה. נראה לך שזה בכלל רלוונטי עכשיו?"
+     }
+    ],
+    "interruptions": [],
+    "error": null,
+    "opener": {
+     "first_audio_ms": 910,
+     "text": "היי נועה, מה קורה? יואב שלח לך משהו לגבי האומדן של המודול של התשלומים?",
+     "audio_s": 5.12,
+     "underruns": 0,
+     "gap_ms": 0
+    },
+    "summary": {
+     "summary": "She said Yoav had sent her something about the payments-module estimate and that she was leaning toward adding the payments module. When asked why, she requested a reminder of the third startup option; the agent reminded her it was entering Germany, and the conversation ended without a final choice.",
+     "topics": [
+      "Startup strategy",
+      "Payments module estimate",
+      "Entering Germany"
+     ],
+     "decisions": [],
+     "action_items": [],
+     "unresolved_topics": [
+      "Choosing between the three startup directions before the board meeting on the 15th"
+     ],
+     "resolved_topics": [],
+     "new_user_facts": [],
+     "suggested_next_opener": "Would you like to compare the payments module with entering Germany and moving up-market before the board meeting?",
+     "method": "llm",
+     "llm": "utility:gpt-6-luna",
+     "usage": {
+      "prompt_tokens": 471,
+      "completion_tokens": 141,
+      "ms": 2391.9067829847336
+     }
+    },
+    "stats": {
+     "duration_s": 27.42,
+     "turns_user": 2,
+     "turns_agent": 3,
+     "interruptions": 0,
+     "errors": 0,
+     "response_latency_ms": {
+      "n": 2,
+      "median": 779.2,
+      "mean": 779.2,
+      "p90": 803.4,
+      "p95": 806.4,
+      "min": 748.9,
+      "max": 809.4
+     },
+     "endpoint_delay_ms": {
+      "n": 2,
+      "median": 616.6,
+      "mean": 616.6,
+      "p90": 617.6,
+      "p95": 617.7,
+      "min": 615.2,
+      "max": 617.9
+     },
+     "interrupt_detect_ms": {
+      "n": 0
+     },
+     "client_latency_ms": {
+      "n": 0
+     },
+     "client_stop_ms": {
+      "n": 0
+     },
+     "proactive_first_audio_ms": 650.8,
+     "stages": {
+      "provider_start_ms": {
+       "n": 1,
+       "median": 350.0,
+       "mean": 350.0,
+       "p90": 350.0,
+       "p95": 350.0,
+       "min": 350.0,
+       "max": 350.0
+      },
+      "llm_first_chunk_ms": {
+       "n": 3,
+       "median": 157.2,
+       "mean": 160.1,
+       "p90": 168.4,
+       "p95": 169.8,
+       "min": 151.7,
+       "max": 171.2
+      },
+      "tts_ttfa_ms": {
+       "n": 3,
+       "median": 129.0,
+       "mean": 136.5,
+       "p90": 156.8,
+       "p95": 160.3,
+       "min": 116.6,
+       "max": 163.7
+      },
+      "pipeline_ms": {
+       "n": 3,
+       "median": 445.4,
+       "mean": 405.3,
+       "p90": 480.3,
+       "p95": 484.7,
+       "min": 281.4,
+       "max": 489.1
+      },
+      "llm_ttft_ms": {
+       "n": 3,
+       "median": 73.3,
+       "mean": 69.6,
+       "p90": 74.6,
+       "p95": 74.8,
+       "min": 60.5,
+       "max": 75.0
+      },
+      "llm_total_ms": {
+       "n": 3,
+       "median": 367.1,
+       "mean": 366.8,
+       "p90": 394.3,
+       "p95": 397.7,
+       "min": 332.3,
+       "max": 401.1
+      },
+      "stt_ms": {
+       "n": 2,
+       "median": 160.9,
+       "mean": 160.9,
+       "p90": 167.9,
+       "p95": 168.7,
+       "min": 152.2,
+       "max": 169.6
+      },
+      "stt_queue_ms": {
+       "n": 2,
+       "median": 0.3,
+       "mean": 0.3,
+       "p90": 0.3,
+       "p95": 0.4,
+       "min": 0.1,
+       "max": 0.4
+      },
+      "summary_ms": {
+       "n": 1,
+       "median": 2392.0,
+       "mean": 2392.0,
+       "p90": 2392.0,
+       "p95": 2392.0,
+       "min": 2392.0,
+       "max": 2392.0
+      }
+     },
+     "audio_in_s": 25.22,
+     "audio_out_s": 14.73,
+     "bytes_up": 807040,
+     "bytes_down": 706840,
+     "kbps_up_raw": 235.4,
+     "kbps_down_raw": 206.2,
+     "usage": {
+      "llm": {
+       "prompt_tokens": 4760,
+       "completion_tokens": 88,
+       "model": "local@http://127.0.0.1:8081/v1"
+      },
+      "tts": {
+       "chars": 178,
+       "audio_s": 14.798231292517013,
+       "engine": "en=sherpa-vits:vits-piper-en_US-lessac-medium:sid0:cpu | he=bluev3:daniel:speed1.2@http://127.0.0.1:1920/v1"
+      },
+      "stt": {
+       "audio_s": 9.056000000000001,
+       "engine": "routed[he=faster-whisper:ivrit-ai/whisper-large-v3-turbo-ct2:cuda:float16, en=faster-whisper:deepdml/faster-whisper-large-v3-turbo-ct2:cuda:float16; mixed->he]"
+      }
+     },
+     "end_reason": "client_end"
+    },
+    "errors": [],
+    "late_mic_frames": 0,
+    "wall_s": 27.7,
+    "repeat": 1
+   }
+  ],
+  "tag": "blue-gpu",
+  "scenarios": [
+   "s01_he_brainstorm",
+   "s02_en_brainstorm",
+   "s07_interrupt",
+   "s10b_road_noise_he"
+  ],
+  "echo_gain": 0.0,
+  "options": null,
+  "aggregate": {
+   "scenarios": 8,
+   "scenarios_failed": 0,
+   "turns": 20,
+   "turns_without_response": 0,
+   "response_latency_ms": {
+    "n": 20,
+    "median": 835.5,
+    "mean": 861.8,
+    "p90": 1003.0,
+    "p95": 1028.4,
+    "min": 754,
+    "max": 1168
+   },
+   "wer_synthetic_speech": {
+    "he": {
+     "n": 10,
+     "wer_all": 0.04,
+     "wer_clean": 0.0323
+    },
+    "en": {
+     "n": 10,
+     "wer_all": 0.0,
+     "wer_clean": 0.0
+    }
+   },
+   "checks_passed": 18,
+   "checks_total": 18,
+   "checks_failed": [],
+   "interruptions": {
+    "attempted": 2,
+    "detected": 2,
+    "onset_to_interrupt_ms": {
+     "n": 2,
+     "median": 233.5,
+     "mean": 233.5,
+     "p90": 233.9,
+     "p95": 233.9,
+     "min": 233,
+     "max": 234
+    },
+    "audio_after_interrupt_ms": {
+     "n": 2,
+     "median": 0.0,
+     "mean": 0.0,
+     "p90": 0.0,
+     "p95": 0.0,
+     "min": 0,
+     "max": 0
+    }
+   },
+   "playout_underruns_per_turn": 0.0,
+   "stage_medians_ms": {
+    "provider_start_ms": {
+     "n": 8,
+     "median": 288.1,
+     "mean": 292.2,
+     "p90": 378.4,
+     "p95": 411.6,
+     "min": 195.1,
+     "max": 444.8
+    },
+    "llm_first_chunk_ms": {
+     "n": 8,
+     "median": 159.4,
+     "mean": 166.6,
+     "p90": 199.8,
+     "p95": 231.9,
+     "min": 122.9,
+     "max": 264.0
+    },
+    "tts_ttfa_ms": {
+     "n": 8,
+     "median": 144.4,
+     "mean": 147.9,
+     "p90": 167.7,
+     "p95": 181.9,
+     "min": 123.8,
+     "max": 196.1
+    },
+    "pipeline_ms": {
+     "n": 8,
+     "median": 453.3,
+     "mean": 456.8,
+     "p90": 507.8,
+     "p95": 528.5,
+     "min": 370.7,
+     "max": 549.2
+    },
+    "llm_ttft_ms": {
+     "n": 8,
+     "median": 65.7,
+     "mean": 72.0,
+     "p90": 84.5,
+     "p95": 97.6,
+     "min": 59.9,
+     "max": 110.7
+    },
+    "llm_total_ms": {
+     "n": 8,
+     "median": 329.5,
+     "mean": 330.9,
+     "p90": 426.3,
+     "p95": 434.3,
+     "min": 221.4,
+     "max": 442.2
+    },
+    "stt_ms": {
+     "n": 8,
+     "median": 162.8,
+     "mean": 154.6,
+     "p90": 200.0,
+     "p95": 202.3,
+     "min": 70.6,
+     "max": 204.5
+    },
+    "stt_queue_ms": {
+     "n": 8,
+     "median": 0.1,
+     "mean": 0.1,
+     "p90": 0.2,
+     "p95": 0.3,
+     "min": 0.1,
+     "max": 0.3
+    },
+    "summary_ms": {
+     "n": 8,
+     "median": 2201.9,
+     "mean": 2219.8,
+     "p90": 2568.8,
+     "p95": 2710.1,
+     "min": 1814.0,
+     "max": 2851.3
+    }
+   },
+   "opener_first_audio_ms": {
+    "n": 8,
+    "median": 820.5,
+    "mean": 798.6,
+    "p90": 1009.6,
+    "p95": 1125.8,
+    "min": 488,
+    "max": 1242
+   }
+  },
+  "finished": 1795617755.798688
+ }
+}

@@ -126,3 +126,20 @@ self-hosted one answered in 0.68 s, so the choice below break-even is latency ag
 
 Not modelled: a commercial Hebrew voice if the open one fails the listening test (adds about $0.002–$0.004 per minute), customer
 support, mobile app development, retrieval infrastructure for large memories, TURN relay traffic, taxes, and price changes.
+
+### Commercial Hebrew voice as a fallback (Inworld prices read on 2026-11-25)
+
+10,000 daily users x 30 minutes x 30 days = 9 million conversation minutes. Assuming the agent speaks 40 % of the time at
+750 characters per spoken minute: 2.7 billion characters per month.
+
+| Model | Plan | Price per million characters | Voice only, per month |
+|---|---|---:|---:|
+| TTS-2 Flash | on demand | $15 | $40,500 |
+| TTS-2 Flash | Growth ($1,500/month) | $7 | $18,900 |
+| TTS-2 Flash | Enterprise | "sub-$5" | up to $13,500 |
+| TTS-2 | on demand | $25 | $67,500 |
+| TTS-2 | Growth | $12.50 | $33,750 |
+| TTS-2 | Enterprise | "as low as $5" | from $13,500 |
+
+Added to the fully self-hosted figure above ($37.7k-$42.9k), a commercial voice gives about $51k-$62k per month with
+TTS-2 Flash, or $0.006-$0.0065 per conversation minute, above the $0.005 target. The 40 % speech share is an assumption.

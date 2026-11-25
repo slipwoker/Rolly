@@ -291,6 +291,30 @@ being recognised by the Hebrew speech recogniser, (b) the audio ending in silenc
 - BlueV3 is a single-author release two days old at the time of the test (Hugging Face shows 0 downloads); licence notes in
   `LICENSES.md`.
 
+**BlueV3 in live use (2026-11-25).** The product owner chose BlueV3 with the built-in male voice "daniel" at speed 1.2 from
+the listening reels. It now speaks Hebrew for the self-hosted agent, on the pipeline's GPU.
+
+| Check on the deployed system | Result |
+|---|---|
+| Sentence-ending test through the pod's speech endpoint (12 texts x 2) | last word recognised 24 / 24, ends in silence 24 / 24, word errors 4 / 190 (the same word as offline) |
+| Time to synthesise one 3.8 s sentence on the L40S | 0.08-0.10 s |
+| Voice starts after (hosted self-test, median per conversation) | 124-138 ms |
+| Hebrew reply latency, hosted self-test | 828 ms median, 1,168 ms max (10 replies) |
+| Gaps in playback | 0 |
+| Self-test checks (Hebrew, Hebrew with road noise, English, interruption) | 18 / 18 |
+| GPU memory with everything loaded | 38.7 of 46 GB |
+
+Getting there took three failed starts, each caught before it reached a listener by a speed gate added to the setup script
+(the worker switches voices only if one sentence is synthesised within 0.45 s):
+- the GPU build of ONNX Runtime 1.29 needs CUDA 13 libraries, the image has CUDA 12: 3-7 s per sentence on CPU;
+- with the right libraries, still 6-9 s on GPU and CPU alike: the host shows 128 CPUs, the container's quota is about 13;
+- the real cause was the Hebrew text front end (RenikudPlus, 1.2 GB) running on the CPU: 2.4-2.6 s by itself. On the GPU
+  (`infrastructure/blue_serve.py`) the whole sentence takes under 0.1 s.
+
+Still not known: how it sounds in a real conversation (no listening report yet), behaviour with several conversations at
+once (the stock server synthesises one request at a time), Hebrew numbers and dates, mixed Hebrew-English sentences.
+Result file: `benchmarks/results/hosted_selftest_bluev3_hebrew_voice_20261125.json`.
+
 ## 1. Speech recognition accuracy
 
 FLEURS test split (real human read speech, CC BY), faster-whisper, greedy decoding, language forced. Road noise is synthetic

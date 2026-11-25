@@ -82,7 +82,11 @@ listening reference. After the persona change the hosted self-test measured 808 
 agent, 7 of 7 checks (`benchmarks/results/hosted_selftest_friend_persona_20261125.json`).
 Later the same day the self-hosted agent's Hebrew voice was replaced by ZONOS3-Mini with a cloned voice on the GPU
 (BENCHMARKS.md 0.10, DECISIONS.md): Hebrew replies 929 ms median over 10 self-test replies, 18 of 18 checks.
-Still open: BlueV3 (awaits approval, BLOCKERS B4), English voice, a listening verdict on the new Hebrew voice in conversation.
+ZONOS3-Mini was withdrawn the same day (it cut sentence endings in live conversation). BlueV3 was approved and tested, an
+Inworld key was provided and its Hebrew voices tested; the product owner chose BlueV3, built-in voice "daniel", speed 1.2,
+which is live on the self-hosted agent: 828 ms median over 10 Hebrew self-test replies, 24 of 24 clean sentence endings on
+the deployed path (BENCHMARKS.md 0.11).
+Still open: a listening verdict on BlueV3 in real conversation, the English voice, voice-server concurrency.
 
 ## Next actions (in order of value)
 

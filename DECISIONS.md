@@ -68,3 +68,19 @@ test utterances), ran sentences together and varied its pace from 7.7 to 20.4 ch
 (BENCHMARKS.md section 0.10). No setting tried fixed the endings. Hebrew is back on Piper; the ZONOS3 server stays installed
 for further tests. Lesson: a voice is not accepted on single samples and a latency test; it needs a scripted listening set of
 short and long sentences and an automatic check of sentence endings before it goes live.
+
+## D23. Hebrew voice of the self-hosted agent: BlueV3, built-in voice "daniel", speed 1.2 (2026-11-25)
+
+**Context.** ZONOS3-Mini was withdrawn (D22). BlueV3 and Inworld both passed the sentence-ending test; the product owner
+listened to eleven reels (four BlueV3, seven Inworld) and chose BlueV3 with the built-in male voice at the faster pace.
+
+**Decision.** BlueV3 v3.0.1 (MIT; decoder OpenRAIL-M) through the BlueTTS OpenAI-compatible server, on the pipeline's GPU,
+float32 graphs, all five ONNX models on the GPU. Piper stays the automatic fallback. English is unchanged.
+
+**Rules adopted with it.**
+- A voice goes live only after the 12-sentence ending test on the deployed path, not on single samples.
+- The setup script refuses to switch the worker to a voice that needs more than 0.45 s per sentence.
+
+**Open.** Training-data provenance of BlueV3 (undocumented; ask the author before commercial use); the stock server handles
+one synthesis at a time, so concurrency needs the project's batched engine or several server processes; Inworld remains the
+commercial fallback (about $13.5k-$19k per month for voice at 10,000 daily users, see the cost discussion in COSTS.md).
