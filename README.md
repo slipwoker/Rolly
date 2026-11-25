@@ -84,6 +84,47 @@ PYTHONPATH=. .venv/bin/python -m finops.cost_model
 Each script writes machine-readable JSON to `benchmarks/results/` and prints a summary. The `--hardware` text is stored
 with the results so CPU and GPU runs are never confused.
 
+## Hosted deployment (Render + RunPod)
+
+The platform is deployed at **https://rolly-voice.onrender.com** (Render project *Rolly*, service `rolly-voice`, Frankfurt,
+Standard plan). The page and every API call need the access token: open `https://rolly-voice.onrender.com/?token=<ROLLY_ACCESS_TOKEN>`.
+
+```
++----------------------------------------------------+
+| RENDER  web service  rolly-voice  (CPU only)       |
+|   web pages, WebSocket sessions, turn-taking,      |
+|   memory (SQLite on a 1 GB disk), telemetry        |
++----------------------------------------------------+
+     |                              |
+     | HTTPS + bearer token         | HTTPS + API key
+     v                              v
++---------------------------+  +---------------------+
+| RUNPOD  GPU pod (L40S)    |  | OPENAI API          |
+|  port 8000  speech-to-    |  |  realtime voice,    |
+|             text + voices |  |  transcription,     |
+|  port 8081  language      |  |  language model     |
+|             model (vLLM)  |  +---------------------+
++---------------------------+
+```
+
+| Provider in the app | Needs | Available when |
+|---|---|---|
+| `selfhosted-gpu` | `ROLLY_GPU_WORKER_URL`, `ROLLY_GPU_LLM_URL`, `ROLLY_GPU_API_KEY` | the GPU pod is running and healthy (probed every 15 s) |
+| `openai-realtime` | `OPENAI_API_KEY` | always |
+| `hybrid-api` (OpenAI transcription and language model, voices on the Render CPU) | `OPENAI_API_KEY` | always |
+
+Files: `render.yaml` (Blueprint), `Dockerfile.render`, `config/providers.render.yaml`, `backend/gpu_worker.py`,
+and `ROLLY_POD_MODE=worker` in `infrastructure/pod_setup.sh`. Render redeploys on every push to the deployment branch.
+
+**Cost while it runs:** Render about $25/month plus $0.25/month for the disk; the GPU pod **$1.09 per hour (about $26 per day)
+for as long as it exists** — terminate it in the RunPod console when nobody is testing. The pod's address contains its id, so a
+new pod means updating the three `ROLLY_GPU_*_URL` values in Render.
+
+**Verified:** the app serves pages and enforces the token; the GPU backend answers speech-to-text, text-to-speech and
+language-model calls and rejects calls without its token; the same configuration held full conversations in a local test.
+**Not verified:** a browser conversation against the hosted address (the build environment cannot open WebSockets) and the
+response latency with the app and the GPU in different data centres, which will be higher than the 681 ms measured on one machine.
+
 ## Adding or switching a provider
 
 Edit `config/providers.yaml`. A provider is a `type` (`modular`, `openai_realtime`, `gemini_live`, `mock`) plus settings;

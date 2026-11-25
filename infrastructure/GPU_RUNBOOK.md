@@ -95,3 +95,12 @@ python -m finops.cost_model --capacity-override '{"base": {"stt": <n>, "llm": <n
 
 Copy `benchmarks/results/` and `reports/` off the machine (or commit them), then **terminate** the pod — a stopped pod
 still bills for its volume.
+
+## 7. Pod as a GPU backend for the hosted app
+
+Set `ROLLY_POD_MODE=worker` and `ROLLY_GPU_API_KEY=<long random token>` on the pod and expose ports `8000/http` and `8081/http`.
+`pod_setup.sh` then starts only the models: `backend.gpu_worker` on port 8000 (`/v1/audio/transcriptions`, `/v1/audio/speech`,
+`/healthz`) and vLLM on port 8081, both requiring the token. First start takes about 12 minutes (27 GB model download).
+Point the app at it with `ROLLY_GPU_WORKER_URL=https://<pod>-8000.proxy.runpod.net/v1`,
+`ROLLY_GPU_LLM_URL=https://<pod>-8081.proxy.runpod.net/v1`, `ROLLY_GPU_HEALTH_URL=https://<pod>-8000.proxy.runpod.net/healthz`
+and the same `ROLLY_GPU_API_KEY`. Progress is published on port 8001 (`status.json`, `setup.log`).

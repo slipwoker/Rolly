@@ -60,6 +60,12 @@ emulators or on CPU only.
 | Capacity per GPU assumed at 10–39 | Measured 20–35 within the latency target on one L40S |
 | Commercial realtime cost estimated at $0.03–0.08 | Measured $0.07 (`gpt-realtime-2.1`) and $0.02 (mini) on short sessions |
 
+## Hosted deployment (2026-11-25)
+
+Deployed to Render (project Rolly, service `rolly-voice`) with a RunPod L40S as the model backend; see README.
+Component checks passed; a browser conversation against the hosted address has not been run yet, and two secrets
+(`OPENAI_API_KEY`, `ROLLY_GPU_API_KEY`) are entered by the owner in the Render dashboard.
+
 ## Next actions (in order of value)
 
 1. Blind human evaluation with native Hebrew speakers, including a Hebrew voice bake-off (B3, B4). This is now the main unknown.
