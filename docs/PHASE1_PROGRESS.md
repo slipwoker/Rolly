@@ -31,6 +31,10 @@
   server close).
 - `npx expo prebuild --platform ios`: OK, module autolinked, `UIBackgroundModes=audio`.
 
+- Criterion 13 check: `POST rolly-voice.onrender.com/api/selftest` (selfhosted-gpu, default scenarios, job `b7911013ec`,
+  ~16:01 UTC) → **7/7 checks, 0 scenarios failed**, 8 turns, reply latency median 811 ms (max 1,056), interruption
+  detected 273 ms after onset, 0 playback underruns. The existing tester still works.
+
 **Not yet run (and why)**
 - Real pod end to end through rolly-api: waiting for B1 (the sandbox cannot open WebSockets to the pod, B6).
 - Anything on the iPhone: B2. Swift not compiled: B3.
