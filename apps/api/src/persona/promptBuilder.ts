@@ -75,7 +75,7 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
     style = style.split(k).join(v);
   }
 
-  const sections: string[] = [LEAD];
+  const sections: string[] = [];
   const addr = addressingSection(p.addressing, language);
   if (addr) sections.push(addr);
   sections.push(OTHER_VOICES, MEMORY_CONTROL);
@@ -125,7 +125,8 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
     lines.push(...opts.resume.map((t) => `${t.role === "user" ? "USER" : "YOU"}: ${t.text}`));
   }
 
-  const system_prompt = style.trimEnd() + "\n\n" + sections.join("\n\n") + "\n" + lines.join("\n") + "\n";
+  // LEAD goes last: the conversation model (a small MoE) weighs the end of a long system prompt most (P1-D15, round 2)
+  const system_prompt = style.trimEnd() + "\n\n" + sections.join("\n\n") + "\n" + lines.join("\n") + "\n\n" + LEAD + "\n";
 
   let opener: string | null = null;
   if (journey.proactive ?? true) {
