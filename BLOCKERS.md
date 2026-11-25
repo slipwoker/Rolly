@@ -62,7 +62,7 @@ by a human (10 minutes) or by allowing those hosts. The cost model is one comman
 |---|---|
 | Hugging Face downloads blocked | Resolved 2026-11-24: owner approved adding the Hugging Face hosts to the environment's allowed list |
 
-## B6 — Key for a commercial Hebrew voice (Inworld)  ·  OPEN (requested 2026-11-25)
+## B6 — Key for a commercial Hebrew voice (Inworld)  ·  RESOLVED 2026-11-25 (key saved as a network secret for api.inworld.ai)
 
 - **What:** an Inworld API key (platform.inworld.ai, Manage > API Keys > Create Inworld API key, Standard).
 - **Why:** a Hebrew-native commercial voice as the listening reference; the open voices have not passed a listening test.

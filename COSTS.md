@@ -9,6 +9,7 @@ Two things are tracked here: what the experiment itself cost, and what the produ
 | GPU rental: one RunPod L40S, about 3 h 20 min at $1.09/h, plus volume | **$3.66** | Exact: RunPod balance went from $50.00 to $46.34; the pod is terminated |
 | OpenAI API | **about $3–$4** (estimate) | Realtime runs: $2.36 computed from the token usage in the saved result files, plus one interrupted realtime run of about ten minutes that left no file (about $0.70), plus language-model and transcription calls (under $0.60). List prices are unverified and the account's billing page is the authority |
 | Model downloads, datasets | $0 | Open weights and FLEURS |
+| Inworld speech API (voice test, 2026-11-25) | **a few cents** (estimate) | About 2,600 characters sent; list price $15-$25 per million characters according to the research phase; the account's billing page was not read |
 | Hosted demo (from 2026-11-25): Render Standard about $25/month; RunPod L40S $1.09/h while the pod exists | **running** | Not a one-off: the pod costs about $26 per day until it is terminated. Setup of the pod used about 20 minutes ($0.40) |
 | **Total of the measurements** | **about $7–$8** | of a $300–$700 budget; the hosted demo is on top of this |
 

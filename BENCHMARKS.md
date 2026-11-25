@@ -273,13 +273,21 @@ being recognised by the Hebrew speech recogniser, (b) the audio ending in silenc
 | **BlueV3 v3.0.1, cloned voice, fp32** | **12 / 12** | **12 / 12** | 2 / 95 | 6.4-11.6 chars/s at speed 1.0 | 115 / 397 ms | 0.73 s (x4.0 real time) |
 | BlueV3, built-in voice "noa", fp32 | 12 / 12 | 12 / 12 | 2 / 95 | 6.9-12.1 | 140 / 335 ms | 0.67 s |
 | BlueV3, cloned voice, int8 | 12 / 12 | 12 / 12 | 2 / 95 | 6.4-11.6 | 140 / 447 ms | 0.56 s (x5.0) |
+| Inworld `inworld-tts-2`, voice Noa (commercial API) | 12 / 12 | 12 / 12 | 0 / 95 | 8.5-15.7 | 55 / 375 ms | first audio 151 ms median, 446 ms max (from the development machine) |
+| Inworld `inworld-tts-2-flash`, voice Noa | 12 / 12 | 12 / 12 | 1 / 95 | 7.1-13.8 | 5 / 370 ms | first audio 88 ms median, 181 ms max |
+| Inworld `inworld-tts-2`, voice Amos | 12 / 12 | 12 / 12 | 0 / 95 | 7.4-12.4 | 70 / 412 ms | first audio 136 ms median, 267 ms max |
 
 - Both BlueV3 word errors are the same word in the same sentence ("הראיונות" recognised as "הרעיונות"); whether the model
   mispronounces it or the recogniser mishears it was not determined.
 - BlueV3 synthesises a sentence as a whole, so the time above is also the wait before its first audio. On 4 CPU cores that is
   0.56-0.73 s, too slow for the 800 ms reply target; a GPU run was not made yet.
 - At speed 1.2 the four listening reels (6 replies each) also ended cleanly 6 / 6 with the last word recognised 6 / 6.
-- This test says nothing about naturalness, accent or intonation. Listening samples were sent to the product owner.
+- Inworld (key provided by the product owner on 2026-11-25): five native Hebrew voices (Amos, Eitan, Noa, Yael, Oren); the
+  OpenAI-compatible endpoint streams 24 kHz PCM and works with the existing client unchanged. About 2,600 characters were
+  sent in total for the test set and the listening reels. Its start time was measured from the development machine, not
+  from the deployment.
+- This test says nothing about naturalness, accent or intonation. Listening reels (the same six replies per voice) were
+  sent to the product owner for BlueV3 and Inworld; no voice was put into live use.
 - BlueV3 is a single-author release two days old at the time of the test (Hugging Face shows 0 downloads); licence notes in
   `LICENSES.md`.
 
