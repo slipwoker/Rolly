@@ -26,3 +26,21 @@ Evidence levels: **measured** (run in this POC), **published** (vendor/model-car
 | D19 | 2026-11-24 | **Rent GPUs by the hour and autoscale on a schedule; plan capacity at 20–35 conversations per L40S.** | Measured on one L40S: 35 simultaneous conversations at P95 1.48 s, 50 with no failed turn at P95 1.70 s; cold start about 3 minutes with cached weights. Cost model: a peak-sized fixed fleet is idle about 80 % of the time. The L40S was reported out of stock shortly before we rented one. | measured (one GPU) + assumed demand curve | Fleet-level test; real demand data |
 | D20 | 2026-11-24 | **Speech synthesis stays on CPU for now.** | Piper-class voices run at 12–14 times real time on CPU and produced first audio in about 120 ms on the pod; about 0.16 CPU-cores per conversation. The Hebrew voice decision (open or commercial, CPU or GPU) waits for a listening test. | measured | Voice chosen |
 | D14 | 2026-11-24 | **Did not install `blue-onnx` (BlueV3 Hebrew TTS).** | A safety check declined installing a two-week-old single-author package named by web research. Left as a candidate pending explicit approval. | — | Owner approves (see `BLOCKERS.md`) |
+
+## D21. Who may interrupt the agent is decided by loudness, and a false interruption is repaired (2026-11-25)
+
+**Context.** First tests by people on laptops: both pipeline agents were cut off by their own voice and by other voices in the
+room, on nearly every reply (BENCHMARKS.md section 0.9). The same will happen in a car with a hands-free loudspeaker and passengers.
+
+**Decision.**
+1. A sound can interrupt only if it is loud enough: within 10 dB of this user's own level once that is known, above -38 dBFS
+   before, and above the echo level measured in the session. Rejected: stricter speech-detector thresholds and longer
+   confirmation time (tested, no effect on echo).
+2. The requirement stays in force for 500 ms after the last audio was sent, because the client is still playing it.
+3. A sound that did interrupt is checked after recognition. Words of the agent's own sentence, or a short fragment recognised
+   with low confidence, are discarded, and the agent says the rest of its reply again (at most twice per reply).
+4. Words such as "רגע", "stop", "wait" always count as an interruption.
+5. Interruption needs 192 ms of speech (was 160 ms).
+
+**Cost.** A quiet real interruption is ignored. A false cut still costs about a second before the sentence is repeated.
+**Not solved.** A second person speaking as loudly as the user. Thresholds are first values, to be tuned from logged levels.

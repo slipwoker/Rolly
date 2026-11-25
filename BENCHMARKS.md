@@ -175,6 +175,46 @@ a 1 s burst as "תודה."; the agent answered both. Transcripts of that kind ar
 (`discard_reason` in `providers/modular/stt.py`). The same sessions showed that speaking Hebrew to a traveller whose session
 language is English produces nonsense text, because the language is fixed per session unless "mixed" is chosen.
 
+### 0.9 False interruptions: the agent hearing itself and other voices
+
+**What happened.** In the first team tests on the hosted service (2026-11-25, laptop microphones and loudspeakers, other people
+talking in the room) the self-hosted and hybrid agents were cut off 0.3-0.9 s into almost every reply: 7 of 7 replies in one
+25-second session. The "user" transcripts were fragments of the agent's own sentence or of background speech
+("סליחה" while the agent was saying "סליחה", "שמות", "טוב"), and the agent answered them with apologies.
+
+**Reproduction.** The benchmark client can now feed the agent's voice back into its microphone (`--echo-gain`). A user who only
+listens, hybrid pipeline on the CPU container:
+
+| Echo level in the microphone | Before: replies cut off per conversation | After |
+|---|---:|---:|
+| gain 0.05 (about -45 dBFS; imperfect echo cancellation) | 6 (English), 12 (Hebrew) | 1, 0 |
+| gain 0.1 | not run | 1 (English) |
+| gain 0.3 (about -28 dBFS; loudspeaker with no echo cancellation at all) | 6, 7 | 1 (English) |
+
+Before the fix every simulated conversation looped (cut, apology, cut). After it the single cut is followed by the agent
+saying the rest of its sentence, and the echo level is learned so that it does not happen again.
+
+**What was learned from the simulation.** The speech detector cannot tell echo from the user: it reports probability 0.99 on
+echo at -46 dBFS. Loudness can: the echo arrived 10-30 dB below the user's speech. Raising detector thresholds or requiring
+longer speech did not help; a loudness requirement before the cut did.
+
+**Hosted self-test after the fix** (`benchmarks/results/hosted_selftest_false_interruptions_20261125.json`):
+
+| Agent | Echo | False cut-offs (8 replies) | Real interruption detected after | Audio after it | Checks | Median reply |
+|---|---|---:|---:|---:|---:|---:|
+| Self-hosted (relayed) | gain 0.05 | 0 | 154 ms | 0 ms | 7 / 7 | 1,083 ms |
+| Self-hosted (relayed) | none | 0 | 275 ms | 0 ms | 7 / 7 | 1,110 ms |
+| Hybrid | gain 0.05 | 0 | 82 ms | 0 ms | 7 / 7 | 2,290 ms |
+
+Not shown by these numbers, and still open:
+- This is simulated echo with a synthetic user at a constant level. No person has re-tested since the fix.
+- A real interruption spoken more than 10 dB below the user's usual level is ignored while the agent talks.
+- Another person speaking clearly and as loudly as the user is still treated as the user. Telling voices apart needs speaker
+  verification or a directional microphone; neither was tried.
+- Every utterance now records its level and the decision, so the thresholds can be set from real sessions.
+- Median reply time in this run (1.08-1.11 s over 8 replies each) is higher than the 926 ms of section 0.8 (18 replies); the
+  runs are too small to say whether that is a real change.
+
 ## 1. Speech recognition accuracy
 
 FLEURS test split (real human read speech, CC BY), faster-whisper, greedy decoding, language forced. Road noise is synthetic
