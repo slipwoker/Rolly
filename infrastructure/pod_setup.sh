@@ -42,16 +42,29 @@ PYTHON="$ROOT/.venv/bin/python" bash infrastructure/download_models.sh --no-llm
 
 step "vLLM (separate environment; first install takes several minutes)"
 "$WS/vllm-venv/bin/python" -c "import vllm" 2>/dev/null || { rm -rf "$WS/vllm-venv"; uv venv -q --python 3.12 "$WS/vllm-venv" && uv pip install -q --python "$WS/vllm-venv/bin/python" vllm; }
-if ! curl -fs http://127.0.0.1:8081/v1/models >/dev/null 2>&1; then
+# With ROLLY_GPU_API_KEY set, vLLM requires that bearer token (it is then safe to expose through the pod's HTTPS proxy)
+if ! curl -fs http://127.0.0.1:8081/health >/dev/null 2>&1; then
   echo "starting vLLM with $LLM_MODEL (downloads ~27 GB on first start) - log: $LOGS/vllm.log"
-  nohup "$WS/vllm-venv/bin/vllm" serve "$LLM_MODEL" --served-model-name local --port 8081 --max-model-len 16384 \
-    --gpu-memory-utilization "${ROLLY_VLLM_MEM:-0.70}" --enable-prefix-caching > "$LOGS/vllm.log" 2>&1 &
+  nohup "$WS/vllm-venv/bin/vllm" serve "$LLM_MODEL" --served-model-name local --host 0.0.0.0 --port 8081 --max-model-len 16384 \
+    --gpu-memory-utilization "${ROLLY_VLLM_MEM:-0.70}" --enable-prefix-caching ${ROLLY_GPU_API_KEY:+--api-key "$ROLLY_GPU_API_KEY"} > "$LOGS/vllm.log" 2>&1 &
 fi
-for i in $(seq 1 240); do curl -fs http://127.0.0.1:8081/v1/models >/dev/null 2>&1 && break
+for i in $(seq 1 240); do curl -fs http://127.0.0.1:8081/health >/dev/null 2>&1 && break
   pgrep -f "vllm serve" >/dev/null || { echo "vLLM exited - see $LOGS/vllm.log (try: ROLLY_VLLM_MODEL=google/gemma-4-12B-it bash infrastructure/pod_setup.sh)"; tail -20 "$LOGS/vllm.log"; exit 1; }
   sleep 10; done
-curl -fs http://127.0.0.1:8081/v1/models >/dev/null || { echo "vLLM not ready after 40 minutes - see $LOGS/vllm.log"; exit 1; }
+curl -fs http://127.0.0.1:8081/health >/dev/null || { echo "vLLM not ready after 40 minutes - see $LOGS/vllm.log"; exit 1; }
 echo "vLLM is serving $LLM_MODEL"
+
+if [ "${ROLLY_POD_MODE:-app}" = "worker" ]; then
+  # GPU backend for an application hosted elsewhere: speech recognition + voices on port 8000, vLLM on port 8081
+  step "GPU worker (speech recognition and voices)"
+  pkill -f "uvicorn backend.gpu_worker" 2>/dev/null || true; sleep 1
+  export ROLLY_STT_DEVICE=cuda ROLLY_STT_COMPUTE=float16 ROLLY_STT_WORKERS="${ROLLY_STT_WORKERS:-4}" ROLLY_TTS_INSTANCES="${ROLLY_TTS_INSTANCES:-4}"
+  nohup .venv/bin/uvicorn backend.gpu_worker:app --host 0.0.0.0 --port 8000 > "$LOGS/worker.log" 2>&1 &
+  for i in $(seq 1 120); do curl -fs http://127.0.0.1:8000/healthz 2>/dev/null | grep -q '"ready":true' && break; sleep 3; done
+  curl -fs http://127.0.0.1:8000/healthz | grep -q '"ready":true' || { echo "GPU worker not ready - see $LOGS/worker.log"; tail -30 "$LOGS/worker.log"; exit 1; }
+  step "ready"; echo "GPU worker on port 8000, vLLM on port 8081 (both require the bearer token when ROLLY_GPU_API_KEY is set)"
+  exit 0
+fi
 
 step "application server"
 TOK="$WS/rolly_tokens.env"

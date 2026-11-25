@@ -37,7 +37,8 @@ def _utility_llm(settings: Settings):
     if not settings.utility_llm_base_url:
         return None
     return OpenAICompatLLM({"base_url": settings.utility_llm_base_url, "model": settings.utility_llm_model,
-                            "api_key_env": settings.utility_llm_key_env, "name": f"utility:{settings.utility_llm_model}"})
+                            "api_key_env": settings.utility_llm_key_env, "name": f"utility:{settings.utility_llm_model}",
+                            "token_param": settings.utility_llm_token_param, "reasoning_effort": settings.utility_llm_reasoning})
 
 
 @asynccontextmanager
@@ -53,6 +54,7 @@ async def lifespan(app: FastAPI):
     app.state.rolly = state
     state.sampler.start()
     purge_task = asyncio.create_task(_purge_loop(state))
+    health_task = asyncio.create_task(_backend_health_loop(state))
     # optional warm-up so the first journey does not pay the model-loading time
     state.warming = 0
 
@@ -68,8 +70,28 @@ async def lifespan(app: FastAPI):
             asyncio.get_running_loop().run_in_executor(None, _warm, pid)
     yield
     purge_task.cancel()
+    health_task.cancel()
     state.sampler.stop()
     store.close()
+
+
+async def _backend_health_loop(state) -> None:
+    """Probe remote model backends (e.g. the GPU worker) so providers whose backend is switched off show as unavailable."""
+    import httpx
+
+    urls = state.registry.health_urls()
+    if not urls:
+        return
+    async with httpx.AsyncClient(timeout=4) as client:
+        while True:
+            for url in urls:
+                try:
+                    r = await client.get(url)
+                    ok = r.status_code == 200
+                except Exception:
+                    ok = False
+                state.registry.health[url] = ok
+            await asyncio.sleep(15)
 
 
 async def _purge_loop(state) -> None:

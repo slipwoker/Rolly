@@ -107,11 +107,14 @@ class OpenAICompatTTS:
         key_env = cfg.get("api_key_env")
         self.api_key = (os.environ.get(key_env) if key_env else None) or cfg.get("api_key") or "not-needed"
         self.extra = dict(cfg.get("extra_body") or {})
+        self.send_language = str(cfg.get("send_language", "")).lower() in ("1", "true", "yes")  # our GPU worker routes voices by language
         self._client = httpx.AsyncClient(timeout=60)
         self.name = f"tts-api:{self.model}:{self.voice}@{self.base_url}"
 
     async def synth(self, text: str, language: str | None = None) -> AsyncIterator[bytes]:
         body = {"model": self.model, "voice": self.voice, "input": text, "response_format": "pcm", **self.extra}
+        if self.send_language and language in ("he", "en"):
+            body["language"] = language
         async with self._client.stream("POST", f"{self.base_url}/audio/speech",
                                        headers={"Authorization": f"Bearer {self.api_key}"}, json=body) as resp:
             if resp.status_code >= 400:

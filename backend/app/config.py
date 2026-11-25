@@ -33,6 +33,8 @@ class Settings:
     utility_llm_base_url: str = field(default_factory=lambda: os.environ.get("ROLLY_UTILITY_LLM_BASE_URL", os.environ.get("ROLLY_LLM_BASE_URL", "http://127.0.0.1:8081/v1")))
     utility_llm_model: str = field(default_factory=lambda: os.environ.get("ROLLY_UTILITY_LLM_MODEL", os.environ.get("ROLLY_LLM_MODEL", "local")))
     utility_llm_key_env: str = field(default_factory=lambda: os.environ.get("ROLLY_UTILITY_LLM_KEY_ENV", "ROLLY_LLM_API_KEY"))
+    utility_llm_token_param: str = field(default_factory=lambda: os.environ.get("ROLLY_UTILITY_LLM_TOKEN_PARAM", "max_tokens"))
+    utility_llm_reasoning: str = field(default_factory=lambda: os.environ.get("ROLLY_UTILITY_LLM_REASONING", ""))
     max_session_minutes: float = field(default_factory=lambda: float(os.environ.get("ROLLY_MAX_SESSION_MINUTES", "75")))
 
     @property

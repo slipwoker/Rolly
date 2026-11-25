@@ -66,6 +66,8 @@ class ProviderRegistry:
                 continue
             self.entries[pid] = cfg
         self._labels = self._make_labels()
+        # url -> last probe result, maintained by the application's background health loop
+        self.health: dict[str, bool] = {}
 
     # -- availability ------------------------------------------------------------
     def missing_requirements(self, pid: str) -> list[str]:
@@ -74,7 +76,13 @@ class ProviderRegistry:
         for p in cfg.get("requires_files", []):
             if not Path(p).exists():
                 missing.append(p)
+        for url in cfg.get("requires_health", []):
+            if url and self.health.get(url) is False:
+                missing.append(f"backend not reachable: {url.split('//')[-1].split('/')[0]}")
         return missing
+
+    def health_urls(self) -> list[str]:
+        return sorted({u for cfg in self.entries.values() for u in cfg.get("requires_health", []) if u})
 
     def available(self, pid: str) -> bool:
         return pid in self.entries and not self.missing_requirements(pid)

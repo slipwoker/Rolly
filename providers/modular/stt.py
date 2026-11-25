@@ -134,8 +134,10 @@ class OpenAICompatSTT:
         )
         if resp.status_code >= 400:
             raise RuntimeError(f"STT HTTP {resp.status_code}: {resp.text[:300]}")
-        text = (resp.json().get("text") or "").strip()
-        return STTResult(text=text, language=language, ms=(time.monotonic() - t0) * 1000, audio_s=len(audio) / 16000)
+        body = resp.json()
+        text = (body.get("text") or "").strip()
+        detected = body.get("language") if body.get("language") in ("he", "en") else language
+        return STTResult(text=text, language=detected, ms=(time.monotonic() - t0) * 1000, audio_s=len(audio) / 16000)
 
 
 class STTRouter:

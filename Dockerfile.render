@@ -1,0 +1,27 @@
+# Hosted app tier (Render): web app, sessions, memory, turn-taking.  No GPU and no large models:
+# speech recognition, the language model and the voices are reached over HTTPS (see config/providers.render.yaml).
+# Baked in: the VAD model and the two small CPU voices used by the GPU-less `hybrid-api` agent.
+FROM python:3.12-slim
+ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+RUN apt-get update && apt-get install -y --no-install-recommends curl bzip2 ca-certificates && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+RUN mkdir -p models/hebrew-tts && cd models \
+ && curl -fsSL -o silero_vad.onnx https://raw.githubusercontent.com/snakers4/silero-vad/master/src/silero_vad/data/silero_vad.onnx \
+ && curl -fsSL -o v.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-en_US-lessac-medium.tar.bz2 \
+ && tar -xjf v.tar.bz2 && rm v.tar.bz2 \
+ && curl -fsSL -o hebrew-tts/he_IL-noa-medium.onnx https://huggingface.co/thewh1teagle/piper-he-noa/resolve/main/he_IL-noa-medium.onnx \
+ && curl -fsSL -o hebrew-tts/he_IL-noa-medium.onnx.json https://huggingface.co/thewh1teagle/piper-he-noa/resolve/main/he_IL-noa-medium.onnx.json \
+ && curl -fsSL -o hebrew-tts/renikud.onnx https://huggingface.co/renikud/renikud/resolve/main/model.onnx
+COPY backend backend
+COPY providers providers
+COPY memory memory
+COPY telemetry telemetry
+COPY benchmarks benchmarks
+COPY finops finops
+COPY config config
+COPY frontend frontend
+ENV ROLLY_PROVIDERS_FILE=config/providers.render.yaml ROLLY_DATA_DIR=/var/data
+EXPOSE 10000
+CMD ["sh", "-c", "exec uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT:-10000}"]

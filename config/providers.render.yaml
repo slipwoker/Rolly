@@ -1,0 +1,103 @@
+# Provider set for the hosted deployment (Render web app + optional RunPod GPU backend).
+# The app tier holds no large models: speech recognition, the language model and the voices are
+# reached over authenticated HTTPS on the GPU host.  When the GPU is switched off, `selfhosted-gpu`
+# shows as unavailable and the two OpenAI-backed agents keep working.
+#
+#   ROLLY_GPU_WORKER_URL   e.g. https://<pod-id>-8000.proxy.runpod.net/v1   (backend/gpu_worker.py)
+#   ROLLY_GPU_LLM_URL      e.g. https://<pod-id>-8081.proxy.runpod.net/v1   (vLLM)
+#   ROLLY_GPU_HEALTH_URL   e.g. https://<pod-id>-8000.proxy.runpod.net/healthz
+#   ROLLY_GPU_API_KEY      bearer token shared with the GPU host
+#   OPENAI_API_KEY
+
+providers:
+
+  mock:
+    type: mock
+    architecture: mock
+    test_only: true
+    description: Deterministic tone generator for plumbing tests. Never benchmarked.
+
+  # Architecture B: every model self-hosted on the GPU host
+  selfhosted-gpu:
+    type: modular
+    architecture: modular
+    description: Whisper (per language) + Gemma-4 26B on vLLM + Piper voices, all on the rented GPU host; orchestration in this app
+    requires_env: [ROLLY_GPU_WORKER_URL, ROLLY_GPU_LLM_URL]
+    requires_health: ["${ROLLY_GPU_HEALTH_URL:-}"]
+    vad_model: "${ROLLY_VAD_MODEL:-models/silero_vad.onnx}"
+    max_history_turns: ${ROLLY_MAX_HISTORY_TURNS:-24}
+    vad:
+      endpoint_silence_ms: ${ROLLY_ENDPOINT_SILENCE_MS:-544}
+      eager_silence_ms: ${ROLLY_EAGER_SILENCE_MS:-256}
+    stt:
+      engine: openai_compat
+      base_url: "${ROLLY_GPU_WORKER_URL:-}"
+      model: whisper-routed
+      api_key_env: ROLLY_GPU_API_KEY
+    llm:
+      base_url: "${ROLLY_GPU_LLM_URL:-}"
+      model: local
+      api_key_env: ROLLY_GPU_API_KEY
+      max_tokens: 120
+      temperature: 0.6
+    tts:
+      engine: openai_compat
+      base_url: "${ROLLY_GPU_WORKER_URL:-}"
+      model: piper
+      voice: default
+      sample_rate: 22050
+      send_language: "true"
+      api_key_env: ROLLY_GPU_API_KEY
+
+  # Architecture A: commercial speech-to-speech (fastest of the measured turn-detection modes)
+  openai-realtime:
+    type: openai_realtime
+    architecture: commercial
+    description: OpenAI Realtime API, server VAD 500 ms, server-side WebSocket bridge
+    requires_env: [OPENAI_API_KEY]
+    model: "${ROLLY_OPENAI_REALTIME_MODEL:-gpt-realtime-2.1}"
+    voice: "${ROLLY_OPENAI_REALTIME_VOICE:-marin}"
+    api_key_env: OPENAI_API_KEY
+    turn_detection: server_vad
+    silence_duration_ms: 500
+    transcription_model: "${ROLLY_OPENAI_TRANSCRIBE_MODEL:-gpt-transcribe}"
+
+  # Architecture D: works without any GPU - commercial transcription and language model, open voices on this app's CPU
+  hybrid-api:
+    type: modular
+    architecture: hybrid
+    description: OpenAI transcription + gpt-6-luna (reasoning off) + open Hebrew/English voices on the app's CPU
+    requires_env: [OPENAI_API_KEY]
+    requires_files: ["${ROLLY_VAD_MODEL:-models/silero_vad.onnx}", "models/hebrew-tts/he_IL-noa-medium.onnx"]
+    vad_model: "${ROLLY_VAD_MODEL:-models/silero_vad.onnx}"
+    max_history_turns: ${ROLLY_MAX_HISTORY_TURNS:-24}
+    vad:
+      endpoint_silence_ms: ${ROLLY_ENDPOINT_SILENCE_MS:-544}
+      eager_silence_ms: ${ROLLY_EAGER_SILENCE_MS:-256}
+    stt:
+      engine: openai_compat
+      base_url: https://api.openai.com/v1
+      model: "${ROLLY_OPENAI_TRANSCRIBE_MODEL:-gpt-transcribe}"
+      api_key_env: OPENAI_API_KEY
+    llm:
+      base_url: https://api.openai.com/v1
+      model: "${ROLLY_HYBRID_LLM_MODEL:-gpt-6-luna}"
+      api_key_env: OPENAI_API_KEY
+      max_tokens: 120
+      token_param: max_completion_tokens
+      reasoning_effort: none
+    tts:
+      default: en
+      en:
+        engine: sherpa
+        kind: vits
+        model_dir: models/vits-piper-en_US-lessac-medium
+        model_file: en_US-lessac-medium.onnx
+        speaker_id: 0
+        num_threads: 1
+        num_instances: 2
+      he:
+        engine: renikud_piper
+        model_dir: models/hebrew-tts
+        num_threads: 1
+        num_instances: 2
