@@ -40,7 +40,7 @@ export function useVoice() {
   useEffect(() => () => { void ctl.current?.stop(); }, []);
 
   /** Transcripts always arrive from the server; `withCaptions` only marks the session as a debug-captions session. */
-  const start = async (language: "he" | "en" | "auto", withCaptions = false) => {
+  const start = async (language: "he" | "en" | "auto", withCaptions = false, journey?: { duration_min?: number }) => {
     setCaptions([]);
     setLastReplyMs(null);
     const c = new VoiceController({
@@ -61,7 +61,7 @@ export function useVoice() {
       }),
     });
     ctl.current = c;
-    await c.start({ language, captions: withCaptions });
+    await c.start({ language, captions: withCaptions, journey });
   };
 
   const stop = async () => { await ctl.current?.stop(); };
