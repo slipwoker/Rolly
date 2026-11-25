@@ -245,3 +245,12 @@ Points to settle before launch (general engineering practice, not legal findings
 12. If we fine-tune STT on ivrit.ai datasets, what do the dataset terms (attribution, training-only use, no deep-fakes) require of the product?
 13. Are there disclosure requirements for synthetic voices, and what release is needed if a custom brand voice is recorded?
 14. If LiveKit Agents is adopted for production, is the LiveKit Model License on its turn detector acceptable given the framework lock-in?
+
+## Added 2026-11-25: ZONOS3-Mini (Hebrew voice of the self-hosted agent)
+
+| Item | Licence | Source of the statement | Notes |
+|---|---|---|---|
+| ZONOS3-Mini weights (`Zyphra/ZONOS3-Mini`, GGUF files) | Apache-2.0 | Hugging Face model card, read 2026-11-25 | Commercial use allowed |
+| ZONOS3-Mini code (`github.com/Zyphra/ZONOS3-Mini`, pinned commit `a50e141`) | MIT according to the earlier research report | The repository's LICENSE file was not re-read during this work | To confirm before production |
+| ggml (submodule) | MIT | upstream repository | |
+| Cloned voice | Not a software licence question | – | A team member's recording, made for this experiment. Written consent and scope of use are needed before any use outside it |

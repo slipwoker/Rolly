@@ -44,3 +44,21 @@ room, on nearly every reply (BENCHMARKS.md section 0.9). The same will happen in
 
 **Cost.** A quiet real interruption is ignored. A false cut still costs about a second before the sentence is repeated.
 **Not solved.** A second person speaking as loudly as the user. Thresholds are first values, to be tuned from logged levels.
+
+## D22. Hebrew voice of the self-hosted agent: ZONOS3-Mini, cloned voice, on the same GPU (2026-11-25)
+
+**Context.** The Piper Hebrew voice failed the first listening test (robotic, flat, accented). The research had listed
+ZONOS3-Mini and BlueV3 as the open candidates; BlueV3 still waits for approval of its package (BLOCKERS B4).
+
+**Decision.** Hebrew speech of the self-hosted agent comes from ZONOS3-Mini (Zyphra; Apache-2.0 weights), served by its
+C++/ggml server on the pipeline's GPU, with raw-reference cloning of a recording made by a team member for this purpose.
+English keeps the Piper voice for now. If the voice server or the voice file is missing, Hebrew falls back to Piper.
+
+**Details that were not obvious.**
+- The project's CUDA build targets the H100 only; on the L40S it must be configured with `-DCMAKE_CUDA_ARCHITECTURES=89`.
+- CPU serving is too slow for conversation with a 23 s reference (first audio after about 1.3 s).
+- The cloned voice is biometric-like data: the recording and the derived codes stay off the public repository; the codes are
+  uploaded to the GPU host over the authenticated worker API.
+
+**Open.** Consent and terms for using a real person's voice beyond this experiment; a voice-server concurrency test; a
+listening comparison against BlueV3 and a commercial Hebrew voice.

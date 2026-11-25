@@ -80,7 +80,9 @@ Done in response: relay of the pipeline to the GPU host, false-interruption hand
 turns for all agents (opening line 5-7 s instead of 9-13 s), and an OpenAI voice for Hebrew on the hybrid agent as a
 listening reference. After the persona change the hosted self-test measured 808 ms median over 8 replies for the self-hosted
 agent, 7 of 7 checks (`benchmarks/results/hosted_selftest_friend_persona_20261125.json`).
-Not done: replacing the self-hosted Hebrew voice (candidates ZONOS3-Mini and BlueV3; the latter awaits approval, BLOCKERS B4).
+Later the same day the self-hosted agent's Hebrew voice was replaced by ZONOS3-Mini with a cloned voice on the GPU
+(BENCHMARKS.md 0.10, DECISIONS.md): Hebrew replies 929 ms median over 10 self-test replies, 18 of 18 checks.
+Still open: BlueV3 (awaits approval, BLOCKERS B4), English voice, a listening verdict on the new Hebrew voice in conversation.
 
 ## Next actions (in order of value)
 
