@@ -254,3 +254,16 @@ Points to settle before launch (general engineering practice, not legal findings
 | ZONOS3-Mini code (`github.com/Zyphra/ZONOS3-Mini`, pinned commit `a50e141`) | MIT according to the earlier research report | The repository's LICENSE file was not re-read during this work | To confirm before production |
 | ggml (submodule) | MIT | upstream repository | |
 | Cloned voice | Not a software licence question | – | A team member's recording, made for this experiment. Written consent and scope of use are needed before any use outside it |
+
+## Added 2026-11-25: BlueV3 (Hebrew voice candidate, evaluated offline only)
+
+Installation of the `blue-onnx` package was approved by the product owner on 2026-11-25 (previously BLOCKERS B4).
+
+| Item | Licence | Source of the statement | Notes |
+|---|---|---|---|
+| BlueV3 ONNX bundle (`notmax123/BlueV3-onnx`, v3.0.1) | MIT, except files listed in its `LICENSES.md` | Model card, read 2026-11-25 | The audio decoder is an OpenRAIL-M derivative: commercial use allowed, use-based restrictions travel with it |
+| BlueTTS code (`github.com/maxmelichov/BlueTTS`, `blue-onnx` 3.0.1) | MIT | `pyproject.toml` of the repository | |
+| RenikudPlus weights (Hebrew front end) | Apache-2.0 | Bundle `frontend/FRONTEND.md` | |
+| polyg2p 0.1.0 | Apache-2.0; German and Italian lexicons CC BY-SA (not needed for Hebrew or English) | Bundle `frontend/FRONTEND.md` | |
+| Built-in voices | LibriTTS-R speakers, CC BY 4.0 | Model card | English-speaking source voices |
+| Training data of the model | **Not documented** | – | Open question from the research phase; ask the author before commercial use |

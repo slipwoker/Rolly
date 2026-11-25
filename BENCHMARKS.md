@@ -260,6 +260,29 @@ Measured afterwards on the development machine (same model files, C++ server on 
 - Not tried: the unquantised model, the vendor's PyTorch GPU server, a different reference recording, steering controls.
 - The self-hosted agent's Hebrew is back on the Piper voice (`ROLLY_TTS_HE_ENGINE=renikud_piper` on the pod).
 
+### 0.11 Hebrew voice candidates: sentence-ending test (offline, before any live use)
+
+After the ZONOS3-Mini withdrawal every voice candidate goes through the same set before it is played to anyone:
+12 conversational sentences (six of two to four words, six longer, one of two sentences), each checked for (a) the last word
+being recognised by the Hebrew speech recogniser, (b) the audio ending in silence and not mid-sound, (c) word errors,
+(d) pace. Run on the development machine (4 CPU cores).
+
+| Voice | Last word recognised | Ends in silence | Word errors | Pace | Silence before / after | Synthesis time, one sentence |
+|---|---:|---:|---:|---|---|---|
+| ZONOS3-Mini, raw-reference clone (section 0.10; 4 texts x 3 seeds) | 10 / 12 | 5 / 12 | not counted | 7.7-20.4 chars/s | 0 / 0-55 ms | 1.0-1.3 s to first audio (CPU) |
+| **BlueV3 v3.0.1, cloned voice, fp32** | **12 / 12** | **12 / 12** | 2 / 95 | 6.4-11.6 chars/s at speed 1.0 | 115 / 397 ms | 0.73 s (x4.0 real time) |
+| BlueV3, built-in voice "noa", fp32 | 12 / 12 | 12 / 12 | 2 / 95 | 6.9-12.1 | 140 / 335 ms | 0.67 s |
+| BlueV3, cloned voice, int8 | 12 / 12 | 12 / 12 | 2 / 95 | 6.4-11.6 | 140 / 447 ms | 0.56 s (x5.0) |
+
+- Both BlueV3 word errors are the same word in the same sentence ("הראיונות" recognised as "הרעיונות"); whether the model
+  mispronounces it or the recogniser mishears it was not determined.
+- BlueV3 synthesises a sentence as a whole, so the time above is also the wait before its first audio. On 4 CPU cores that is
+  0.56-0.73 s, too slow for the 800 ms reply target; a GPU run was not made yet.
+- At speed 1.2 the four listening reels (6 replies each) also ended cleanly 6 / 6 with the last word recognised 6 / 6.
+- This test says nothing about naturalness, accent or intonation. Listening samples were sent to the product owner.
+- BlueV3 is a single-author release two days old at the time of the test (Hugging Face shows 0 downloads); licence notes in
+  `LICENSES.md`.
+
 ## 1. Speech recognition accuracy
 
 FLEURS test split (real human read speech, CC BY), faster-whisper, greedy decoding, language forced. Road noise is synthetic

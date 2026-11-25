@@ -38,7 +38,7 @@ Housekeeping for the owner:
 | Security / licensing | Evaluators speak into third-party APIs when a commercial provider is in the rotation; tell them. Use evaluator codes, not names |
 | Can work continue without it | Yes |
 
-## B4 — Approval to evaluate additional Hebrew TTS engines  ·  OPEN
+## B4 — Approval to evaluate additional Hebrew TTS engines  ·  RESOLVED 2026-11-25 (approved; BlueV3 evaluated offline, BENCHMARKS.md 0.11)
 
 | | |
 |---|---|
@@ -61,3 +61,13 @@ by a human (10 minutes) or by allowing those hosts. The cost model is one comman
 | | |
 |---|---|
 | Hugging Face downloads blocked | Resolved 2026-11-24: owner approved adding the Hugging Face hosts to the environment's allowed list |
+
+## B6 — Key for a commercial Hebrew voice (Inworld)  ·  OPEN (requested 2026-11-25)
+
+- **What:** an Inworld API key (platform.inworld.ai, Manage > API Keys > Create Inworld API key, Standard).
+- **Why:** a Hebrew-native commercial voice as the listening reference; the open voices have not passed a listening test.
+  Inworld lists Hebrew as a Tier 1 language and has an OpenAI-compatible speech endpoint that fits the existing client.
+- **Cost:** about $15 (Flash) or $25 (TTS-2) per million characters according to the research phase; a test of a few dozen
+  sentences is a few cents. Free credits for new accounts: not verified.
+- **Security:** the key is entered in the secure form and injected by the session proxy; it never appears in chat or the repository.
+- **Can work continue without it:** yes (BlueV3 evaluation continues).
