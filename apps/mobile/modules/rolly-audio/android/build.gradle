@@ -1,0 +1,19 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.zappy.rollyaudio'
+version = '0.1.0'
+
+expoModule {
+  v2 true
+}
+
+android {
+  namespace "com.zappy.rollyaudio"
+  defaultConfig {
+    versionCode 1
+    versionName '0.1.0'
+  }
+}
