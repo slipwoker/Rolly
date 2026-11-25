@@ -11,31 +11,60 @@
     "ios": {
       "bundleIdentifier": "com.zappy.rolly",
       "supportsTablet": false,
-      "icon": { "light": "./assets/icon.png", "dark": "./assets/icon-dark.png" },
+      "icon": {
+        "light": "./assets/icon.png",
+        "dark": "./assets/icon-dark.png"
+      },
       "infoPlist": {
         "NSMicrophoneUsageDescription": "ROLLY מקשיב לך בזמן שיחה קולית. ROLLY listens to you during a voice conversation.",
-        "UIBackgroundModes": ["audio"],
+        "UIBackgroundModes": [
+          "audio"
+        ],
         "CFBundleDevelopmentRegion": "he",
-        "CFBundleLocalizations": ["he", "en"],
+        "CFBundleLocalizations": [
+          "he",
+          "en"
+        ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      ["expo-localization", { "supportsRTL": true }],
+      [
+        "expo-localization",
+        {
+          "supportsRTL": true
+        }
+      ],
       "expo-font",
-      ["expo-splash-screen", {
-        "image": "./assets/splash-orb.png", "imageWidth": 180, "resizeMode": "contain", "backgroundColor": "#F7F6FA",
-        "dark": { "image": "./assets/splash-orb.png", "backgroundColor": "#0D0B13" }
-      }]
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-orb.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#F7F6FA",
+          "dark": {
+            "image": "./assets/splash-orb.png",
+            "backgroundColor": "#0D0B13"
+          }
+        }
+      ]
     ],
     "extra": {
       "apiUrl": "https://rolly-api.onrender.com",
       "supportsRTL": true,
-      "eas": { "projectId": "270750de-fa01-4bdd-bc89-4a8d946e476a" }
+      "eas": {
+        "projectId": "270750de-fa01-4bdd-bc89-4a8d946e476a"
+      }
     },
-    "experiments": { "typedRoutes": false },
-    "owner": "zappy-technologies-ltd"
+    "experiments": {
+      "typedRoutes": false
+    },
+    "owner": "zappy-technologies-ltd",
+    "android": {
+      "package": "com.zappy.rolly"
+    }
   }
 }
