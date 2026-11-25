@@ -12,6 +12,8 @@ say() { echo "[$(date -u +%T)] $*"; }
 state() { echo "{\"zonos\": \"$1\", \"time\": \"$(date -u +%FT%TZ)\", \"backend\": \"${BACKEND:-?}\"}" > "$PUB/zonos.json"; }
 BACKEND="?"; state building
 
+# a CPU instance from an earlier attempt is too slow for conversation: stop it, the pipeline falls back to Piper
+pkill -f "zonos3-server" 2>/dev/null || true
 say "tools"
 export DEBIAN_FRONTEND=noninteractive
 command -v cmake >/dev/null && command -v git >/dev/null && command -v pkg-config >/dev/null || \
@@ -27,7 +29,7 @@ cd "$Z/src" && git fetch -q origin && git checkout -q "$COMMIT" && git submodule
 cd "$Z/src/servers/ggml"
 
 # CUDA build needs the compiler part of the toolkit, which the runtime image does not ship
-if [ "${ROLLY_ZONOS_BACKEND:-auto}" != "cpu" ] && ! command -v nvcc >/dev/null && [ ! -x /usr/local/cuda/bin/nvcc ]; then
+if [ "${ROLLY_ZONOS_BACKEND:-gpu}" != "cpu" ] && ! command -v nvcc >/dev/null && [ ! -x /usr/local/cuda/bin/nvcc ]; then
   V="$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -1)"; say "installing the CUDA compiler packages (driver $V)"
   # the nvidia/cuda images export CUDA_VERSION (e.g. 12.4.1); the apt packages are named by major-minor
   CV="$(echo "${CUDA_VERSION:-$(ls -d /usr/local/cuda-*.* 2>/dev/null | head -1 | sed 's/.*cuda-//')}" | cut -d. -f1,2 | tr . -)"; CV="${CV:-12-4}"
@@ -36,21 +38,30 @@ if [ "${ROLLY_ZONOS_BACKEND:-auto}" != "cpu" ] && ! command -v nvcc >/dev/null &
     || say "CUDA compiler packages not available"
 fi
 export PATH="/usr/local/cuda/bin:$PATH" CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
-if [ "${ROLLY_ZONOS_BACKEND:-auto}" != "cpu" ] && command -v nvcc >/dev/null; then
-  if [ ! -x build-cuda/zonos3-server ]; then
-    say "building with CUDA (several minutes)"
-    cmake -B build-cuda -DGGML_CUDA=ON -DCMAKE_BUILD_TYPE=Release > "$LOGS/zonos_build.log" 2>&1 && cmake --build build-cuda -j"$(nproc)" --target zonos3-server zonos3-cli >> "$LOGS/zonos_build.log" 2>&1 \
-      || { say "CUDA build failed:"; tail -15 "$LOGS/zonos_build.log"; rm -rf build-cuda; }
+# The project's CMake file compiles for sm_90 (H100) only; any other GPU then fails at run time with
+# "no kernel image is available".  Build for the GPU that is actually here (L40S = compute capability 8.9 -> 89).
+ARCH="${ROLLY_ZONOS_CUDA_ARCH:-$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>/dev/null | head -1 | tr -d '. ')}"
+BUILD="build-cuda-$ARCH"
+if [ "${ROLLY_ZONOS_BACKEND:-gpu}" != "cpu" ] && command -v nvcc >/dev/null && [ -n "$ARCH" ]; then
+  if [ ! -x "$BUILD/zonos3-server" ]; then
+    say "building with CUDA for architecture $ARCH (about 15 minutes)"
+    cmake -B "$BUILD" -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES="$ARCH" -DCMAKE_BUILD_TYPE=Release > "$LOGS/zonos_build.log" 2>&1 \
+      && cmake --build "$BUILD" -j"$(nproc)" --target zonos3-server zonos3-cli >> "$LOGS/zonos_build.log" 2>&1 \
+      || { say "CUDA build failed:"; grep -i "error" "$LOGS/zonos_build.log" | head -8; tail -8 "$LOGS/zonos_build.log"; rm -rf "$BUILD"; }
   fi
 fi
-if [ -x build-cuda/zonos3-server ]; then BIN="$PWD/build-cuda/zonos3-server"; BACKEND=gpu; FLAG="--gpu"
-else
+if [ -x "$BUILD/zonos3-server" ] && [ "${ROLLY_ZONOS_BACKEND:-gpu}" != "cpu" ]; then BIN="$PWD/$BUILD/zonos3-server"; BACKEND=gpu; FLAG="--gpu"
+elif [ "${ROLLY_ZONOS_BACKEND:-gpu}" = "cpu" ]; then
+  # CPU was measured on this host with a 23 s voice reference: first audio after about 1.3 s and gaps in playback.
+  # Too slow for conversation, so it is used only when asked for explicitly.
   if [ ! -x build/zonos3-server ]; then
     say "building for CPU (several minutes)"
     cmake -B build -DCMAKE_BUILD_TYPE=Release > "$LOGS/zonos_build.log" 2>&1 && cmake --build build -j"$(nproc)" --target zonos3-server zonos3-cli >> "$LOGS/zonos_build.log" 2>&1 \
       || { say "CPU build failed:"; tail -15 "$LOGS/zonos_build.log"; state failed; exit 1; }
   fi
   BIN="$PWD/build/zonos3-server"; BACKEND=cpu; FLAG="--cpu"
+else
+  say "no GPU build of the voice server: the pipeline keeps using the Piper voice"; BACKEND=none; state failed; exit 1
 fi
 
 say "model files"
@@ -69,7 +80,6 @@ nohup "$BIN" "$Z/gguf/backbone-ptq.gguf" $FLAG --host 127.0.0.1 --port 1919 --ba
 for i in $(seq 1 90); do curl -fs -m 3 http://127.0.0.1:1919/v2/capabilities >/dev/null 2>&1 && break; sleep 2; done
 if ! curl -fs -m 3 http://127.0.0.1:1919/v2/capabilities >/dev/null 2>&1; then
   say "server did not come up:"; tail -15 "$LOGS/zonos_server.log"
-  if [ "$BACKEND" = gpu ] && [ "${ROLLY_ZONOS_BACKEND:-auto}" = auto ]; then say "retrying on CPU"; ROLLY_ZONOS_BACKEND=cpu exec bash "$SELF"; fi
   state failed; exit 1
 fi
 
