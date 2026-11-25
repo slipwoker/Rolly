@@ -3,13 +3,14 @@
 # deployment branch (the pod has no shell access), without restarting vLLM.  Output: $WS/logs/job.log.
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
-# job 9: BlueV3 took 6-9 s per sentence on GPU and on CPU alike (job 8).  The host shows 128 CPUs but the container's
-# quota is about 13: a component that sizes its thread pool by the visible CPUs is throttled.  Measure with the
-# process pinned to 8 CPUs, unpinned for comparison, and time the Hebrew text front end on its own.
-WS="${ROLLY_WORKSPACE:-/workspace}"; BL="$WS/blue"
-pkill -f "examples/openai_server.py" 2>/dev/null || true
-SITE="$("$BL/venv/bin/python" -c "import site; print(site.getsitepackages()[0])")"
-NVLIBS="$(ls -d "$SITE"/nvidia/*/lib 2>/dev/null | tr '\n' ':')"
-command -v taskset >/dev/null || (apt-get update -qq && apt-get install -y -qq util-linux >/dev/null)
-echo "--- pinned to CPUs 0-7"
-LD_LIBRARY_PATH="$NVLIBS${LD_LIBRARY_PATH:-}" taskset -c 0-7 "$BL/venv/bin/python" infrastructure/blue_diag.py "$BL" 2>&1 | grep -v "consider to run pre-processing\|Loaded RenikudPlus\|Using ONNX" | cut -c1-400
+# job 10: Hebrew voice = BlueV3 (built-in voice "daniel", speed 1.2), chosen by the product owner from listening samples.
+# Jobs 8-9 found the cause of the 3-9 s per sentence: the Hebrew text front end ran on the host's CPU (2.5 s alone).
+# blue_serve.py now puts it on the GPU.  The worker is switched to BlueV3 only if blue_setup.sh's speed gate passes;
+# otherwise Hebrew stays on Piper.
+pkill -f "zonos3-server" 2>/dev/null || true
+if bash infrastructure/blue_setup.sh; then
+  ROLLY_TTS_HE_ENGINE=blue bash infrastructure/start_worker.sh
+else
+  echo "BlueV3 not in use; Hebrew stays on Piper"
+  ROLLY_TTS_HE_ENGINE=renikud_piper bash infrastructure/start_worker.sh
+fi

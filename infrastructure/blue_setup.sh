@@ -5,6 +5,7 @@
 #   Serves the OpenAI-compatible example server of BlueTTS on 127.0.0.1:1920 only; the pipeline talks to it locally.
 # Everything lives under $ROLLY_WORKSPACE/blue (persistent volume).  Idempotent.  Output goes to the job log.
 set -uo pipefail
+SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
 WS="${ROLLY_WORKSPACE:-/workspace}"; BL="$WS/blue"; LOGS="$WS/logs"; PUB="$WS/public"; mkdir -p "$BL" "$LOGS" "$PUB"
 COMMIT="${ROLLY_BLUE_COMMIT:-5a9d9a0}"; VOICE="${ROLLY_BLUE_VOICE:-daniel}"
 say() { echo "[$(date -u +%T)] $*"; }
@@ -52,9 +53,9 @@ PROVIDERS="CPUExecutionProvider"
   && PROVIDERS="CUDAExecutionProvider,CPUExecutionProvider"
 
 say "starting the server (providers requested: $PROVIDERS)"
-pkill -f "examples/openai_server.py" 2>/dev/null || true; sleep 1
+pkill -f "examples/openai_server.py" 2>/dev/null || true; pkill -f "blue_serve.py" 2>/dev/null || true; sleep 1
 # fp32: the listening samples were made with the float graph; the int8 graph is not quality-gated by its author
-LD_LIBRARY_PATH="$NVLIBS${LD_LIBRARY_PATH:-}" BLUE_ONNX_PRECISION=fp32 POLYG2P_DATA="$BL/bundle/frontend/polyg2p_data" nohup "$PY" "$BL/src/examples/openai_server.py" --bundle "$BL/bundle" \
+LD_LIBRARY_PATH="$NVLIBS${LD_LIBRARY_PATH:-}" BLUE_ONNX_PRECISION=fp32 POLYG2P_DATA="$BL/bundle/frontend/polyg2p_data" nohup "$PY" "$SELF_DIR/blue_serve.py" "$BL/src/examples/openai_server.py" --bundle "$BL/bundle" \
   --voices-dir "$BL/voice" --default-voice "$VOICE" --pcm-sample-rate 0 --host 127.0.0.1 --port 1920 --providers "$PROVIDERS" > "$LOGS/blue_server.log" 2>&1 &
 for i in $(seq 1 90); do curl -fs -m 3 http://127.0.0.1:1920/health >/dev/null 2>&1 && break; sleep 2; done
 curl -fs -m 3 http://127.0.0.1:1920/health >/dev/null 2>&1 || { say "server did not come up:"; tail -15 "$LOGS/blue_server.log"; state failed; exit 1; }
@@ -67,6 +68,7 @@ for n in 1 2 3 4; do
   say "request $n: $LAST s for one sentence of about 3.8 s"
 done
 grep -i "Failed to create\|error" "$LOGS/blue_server.log" | cut -c1-260 | sort -u | head -4
+grep -F "[blue_serve]" "$LOGS/blue_server.log" | sort -u
 nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader
 tail -c 6000 "$LOGS/blue_server.log" > "$PUB/blue_server.log"
 # Speed gate: a sentence is synthesised as a whole, so this time is the wait before its first sound.
