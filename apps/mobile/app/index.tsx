@@ -12,7 +12,7 @@ import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../src/api";
 import { fill, t } from "../src/i18n";
-import { Backdrop, CircleButton, PressScale, Row, Sheet, TopBar, Txt, cardStyle } from "../src/ui/components";
+import { Backdrop, Chip, CircleButton, IconTile, PressScale, Row, Sheet, TopBar, Txt, cardStyle } from "../src/ui/components";
 import { Orb } from "../src/ui/Orb";
 import { radius, spacing, useTheme } from "../src/ui/theme";
 import { MicButton, Waveform } from "../src/ui/VoiceParts";
@@ -22,17 +22,32 @@ import { useVoiceSession, type ConvLang } from "../src/voice/VoiceProvider";
 const LIVE: VoiceState[] = ["listening", "user_speaking", "agent_speaking"];
 const LANG_SHORT: Record<ConvLang, string> = { he: "עב", en: "EN", auto: "A" };
 const NEXT_LANG: Record<ConvLang, ConvLang> = { he: "en", en: "auto", auto: "he" };
+const TRIP_MINUTES = [10, 20, 40] as const;
+
+function greeting(name: string | null): string {
+  const h = new Date().getHours();
+  const base = h >= 5 && h < 12 ? t.morning : h >= 12 && h < 17 ? t.afternoon : t.evening;
+  return name ? `${base}, ${name}` : base;
+}
+
+interface Progress { goals: { content: string }[]; action_items: { content: string }[]; sessions: { summary: string | null }[] }
 
 export default function Home() {
   const c = useTheme();
   const v = useVoiceSession();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  const compact = height < 740; // iPhone SE / mini: smaller idle orb, one-line recap
   const [chat, setChat] = useState(false);
   const [menu, setMenu] = useState(false);
   const [name, setName] = useState<string | null>(null);
+  const [recap, setRecap] = useState<{ last: string | null; next: string | null }>({ last: null, next: null });
 
   useFocusEffect(useCallback(() => {
     api<{ preferred_name: string | null }>("/v1/me").then((m) => setName(m.preferred_name)).catch(() => {});
+    api<Progress>("/v1/progress").then((p) => setRecap({
+      last: p.sessions.find((x) => x.summary)?.summary ?? null,
+      next: p.action_items[0]?.content ?? p.goals[0]?.content ?? null,
+    })).catch(() => {});
   }, []));
 
   const label = (t as Record<string, string>)[v.state] ?? v.state;
@@ -43,7 +58,7 @@ export default function Home() {
 
   const toggle = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (v.active) void v.stop(); else void v.start(v.lang);
+    if (v.active) void v.stop(); else void v.start();
   };
   const go = (path: "/progress" | "/personalisation") => { setMenu(false); router.push(path); };
 
@@ -65,8 +80,32 @@ export default function Home() {
         ) : (
           <View style={s.stage}>
             <Pressable accessibilityRole="button" accessibilityLabel={v.active ? t.stop : t.start} onPress={v.active ? undefined : toggle} style={s.orbWrap}>
-              <Orb size={Math.min(width * 0.74, 320)} state={v.state} />
+              <Orb size={v.active ? Math.min(width * 0.74, 320) : compact ? Math.min(width * 0.4, 150) : Math.min(width * 0.56, 240)} state={v.state} />
             </Pressable>
+            {!v.active && v.state !== "error" ? (
+              <Animated.View entering={FadeIn.duration(400)} style={[s.idle, compact ? { gap: spacing.md } : null]}>
+                <View style={{ gap: spacing.xs }}>
+                  <Txt variant="display" style={s.center}>{greeting(name)}</Txt>
+                  <Txt variant="subhead" tone="dim" style={s.center}>{recap.last || recap.next ? t.startHint : t.intro}</Txt>
+                </View>
+                {recap.last || recap.next ? (
+                  <PressScale accessibilityRole="button" onPress={() => router.push("/progress")} scaleTo={0.98} style={[cardStyle(c), s.recap]}>
+                    {recap.last ? <RecapLine icon="clock" label={t.lastTime} text={recap.last} lines={compact ? 1 : 2} /> : null}
+                    {recap.last && recap.next ? <View style={[s.rule, { backgroundColor: c.border }]} /> : null}
+                    {recap.next ? <RecapLine icon="flag" label={t.nextUp} text={recap.next} lines={compact ? 1 : 2} /> : null}
+                  </PressScale>
+                ) : null}
+                <View style={{ gap: spacing.sm }}>
+                  <Txt variant="micro" tone="faint" style={s.center}>{t.tripLen}</Txt>
+                  <View style={s.chips}>
+                    {TRIP_MINUTES.map((m) => (
+                      <Chip key={m} size="sm" label={fill(t.minShort, { n: String(m) })} selected={v.minutes === m} onPress={() => v.setMinutes(v.minutes === m ? null : m)} />
+                    ))}
+                    <Chip size="sm" label={t.anyLen} selected={v.minutes === null} onPress={() => v.setMinutes(null)} />
+                  </View>
+                </View>
+              </Animated.View>
+            ) : (
             <View style={s.lineBox}>
               {v.state === "error" && v.detail ? (
                 <View style={s.lineInner}><Txt variant="transcript" tone="danger" style={s.center}>{v.detail}</Txt></View>
@@ -78,14 +117,10 @@ export default function Home() {
                 </View>
               ) : v.active ? (
                 <View style={s.lineInner}><Txt variant="transcript" tone="faint" style={s.center}>{t.waitingFirst}</Txt></View>
-              ) : (
-                <Animated.View entering={FadeIn.duration(400)} style={s.greeting}>
-                  <Txt variant="display" style={s.center}>{name ? fill(t.hiName, { name }) : t.hi}</Txt>
-                  <Txt variant="subhead" tone="dim" style={s.center}>{t.startHint}</Txt>
-                </Animated.View>
-              )}
-              {v.active ? <LinearGradient pointerEvents="none" colors={[plainBg, `${plainBg}00`]} style={s.fadeTop} /> : null}
+              ) : null}
+              <LinearGradient pointerEvents="none" colors={[plainBg, `${plainBg}00`]} style={s.fadeTop} />
             </View>
+            )}
           </View>
         )}
 
@@ -123,6 +158,19 @@ export default function Home() {
   );
 }
 
+/** One line of the "picking up from here" card. */
+function RecapLine({ icon, label, text, lines }: { icon: "clock" | "flag"; label: string; text: string; lines: number }) {
+  return (
+    <View style={s.recapLine}>
+      <IconTile icon={icon} tone="soft" />
+      <View style={{ flex: 1, gap: spacing.xxs }}>
+        <Txt variant="micro" tone="faint">{label}</Txt>
+        <Txt variant="subhead" numberOfLines={lines}>{text}</Txt>
+      </View>
+    </View>
+  );
+}
+
 /** Chat-style transcript: ROLLY on the start side with its orb, you on the end side in ink bubbles. */
 function Transcript() {
   const c = useTheme();
@@ -150,10 +198,14 @@ function Transcript() {
 const s = StyleSheet.create({
   center: { textAlign: "center" },
   stage: { flex: 1, paddingHorizontal: spacing.xxl },
-  orbWrap: { flex: 1, alignItems: "center", justifyContent: "center", minHeight: 220 },
+  orbWrap: { flex: 1, alignItems: "center", justifyContent: "center", minHeight: 120 },
   lineBox: { height: 150, overflow: "hidden" },
   lineInner: { flex: 1, justifyContent: "flex-end" },
-  greeting: { flex: 1, justifyContent: "center", gap: spacing.sm },
+  idle: { gap: spacing.xl, paddingBottom: spacing.sm },
+  recap: { padding: spacing.lg, gap: spacing.md },
+  recapLine: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  rule: { height: StyleSheet.hairlineWidth },
+  chips: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: spacing.sm },
   fadeTop: { position: "absolute", top: 0, left: 0, right: 0, height: 56 },
   controls: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.xxl, paddingTop: spacing.md, paddingBottom: spacing.sm },
   side: { width: 44 },
