@@ -2,13 +2,14 @@
  * System prompt + proactive opener, ported from memory/context.py build_context().
  * Divergences from the research version (recorded in docs/PHASE1_DECISIONS.md P1-D4):
  *  - the profile comes from PostgreSQL (MemoryView) instead of the SQLite store;
- *  - Phase 1 sections are appended: addressing, other voices, memory control, onboarding / gaps, unconfirmed candidates;
+ *  - Phase 1 sections are appended: lead (bring content, never two questions in a row), addressing, other voices,
+ *    memory control, onboarding / gaps, unconfirmed candidates (P1-D15 for "lead");
  *  - the opener does not use a name when none is known, and the first conversation gets an onboarding opener;
  *  - only ACTIVE memories are presented as facts; candidates are listed separately as "not confirmed".
  */
 import { END_MARKER, LANG, VOICE_STYLE } from "./research.ts";
 import {
-  MEMORY_CONTROL, ONBOARDING, OTHER_VOICES, addressingSection, onboardingGapsSection, type AddressingState,
+  LEAD, MEMORY_CONTROL, ONBOARDING, OTHER_VOICES, addressingSection, onboardingGapsSection, type AddressingState,
 } from "./phase1Sections.ts";
 
 export type Lang = "he" | "en" | "auto";
@@ -74,7 +75,7 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
     style = style.split(k).join(v);
   }
 
-  const sections: string[] = [];
+  const sections: string[] = [LEAD];
   const addr = addressingSection(p.addressing, language);
   if (addr) sections.push(addr);
   sections.push(OTHER_VOICES, MEMORY_CONTROL);
@@ -140,8 +141,12 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
         + "and one light, specific question that starts getting to know them (for example what they usually do with their time on the road, or simply their name). "
         + "Two short sentences, under twenty-five words. Do not introduce yourself at length, do not explain what you can do, do not list options.";
     } else if (!mem.summaries.length && !mem.openTopics.length) {
+      const knowsSomething = p.interests.length > 0 || p.travelGoals.length > 0 || mem.facts.length > 0;
       opener = tag + "The user has just started a journey. Open the conversation yourself the way a friend would, in two short sentences: "
-        + `a casual hello${hasName ? " using their name" : ""}, and one specific question about something connected to their goals or interests.`;
+        + `a casual hello${hasName ? " using their name" : ""}, and `
+        + (knowsSomething
+          ? "one specific remark or question about something connected to their goals or interests."
+          : "one light, concrete topic you bring up yourself, said as a statement rather than a question.");
     } else {
       opener = tag + `The user has just started a journey${minutes ? ` of about ${Math.round(minutes)} minutes` : ""}. `
         + "Open the conversation yourself, right now, the way a friend does when you get in the car: "
