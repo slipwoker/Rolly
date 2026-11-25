@@ -239,6 +239,27 @@ second in Hebrew, no working speed control, 0.65-1.3 s to start.
 - Whether it sounds natural is a listening judgement; only the sample comparison above has been made so far.
 - Result file: `benchmarks/results/hosted_selftest_zonos_hebrew_voice_20261125.json`.
 
+**Withdrawn from live use the same day.** In conversation the listener reported that the last word of sentences was cut,
+words seemed to run into each other, the pace jumped, the tone sounded slightly angry and flat, and the audio was not clean.
+Measured afterwards on the development machine (same model files, C++ server on CPU, 4 texts x 3 random seeds per setting):
+
+| Setting | Last word recognised | Utterance ends in silence, not mid-sound | Pace between utterances |
+|---|---:|---:|---|
+| Raw-reference cloning, as deployed | 10 / 12 | 5 / 12 | 7.7-20.4 characters/s |
+| Raw-reference, text padded with " ." | 11 / 12 | 7 / 12 | 10.1-13.9 |
+| Raw-reference, text padded with " . ." | 11 / 12 | 4 / 12 | 6.6-19.0 |
+| Speaker-embedding cloning | 10 / 12 | 7 / 12 | 6.6-9.3 |
+| Speaker-embedding, padded | 8 / 12 | 5 / 12 | 6.3-10.2 |
+| Raw-reference from the last 10 s of the recording | 11 / 12 | 5 / 12 | 8.0-15.0 |
+
+- The generated audio has no silence before or after it (0 ms lead, 0-55 ms trail), so consecutive sentences were played
+  with no pause between them. That, not a streaming fault, explains the "running together": the stream itself had no clicks
+  and a noise floor 41 dB below speech, in every streaming mode and with the full-size decoder.
+- Streaming mode, the decoder and the silence prefill made no difference to the endings; a 60 ms fade-out made recognition worse.
+- The earlier self-test did not catch any of this: it checks that the agent answers and how fast, not what the audio sounds like.
+- Not tried: the unquantised model, the vendor's PyTorch GPU server, a different reference recording, steering controls.
+- The self-hosted agent's Hebrew is back on the Piper voice (`ROLLY_TTS_HE_ENGINE=renikud_piper` on the pod).
+
 ## 1. Speech recognition accuracy
 
 FLEURS test split (real human read speech, CC BY), faster-whisper, greedy decoding, language forced. Road noise is synthetic

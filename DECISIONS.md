@@ -62,3 +62,9 @@ English keeps the Piper voice for now. If the voice server or the voice file is 
 
 **Open.** Consent and terms for using a real person's voice beyond this experiment; a voice-server concurrency test; a
 listening comparison against BlueV3 and a commercial Hebrew voice.
+
+**Update, same day: withdrawn from live use.** In conversation the voice cut sentence endings (ended mid-sound in 5 of 12
+test utterances), ran sentences together and varied its pace from 7.7 to 20.4 characters per second between utterances
+(BENCHMARKS.md section 0.10). No setting tried fixed the endings. Hebrew is back on Piper; the ZONOS3 server stays installed
+for further tests. Lesson: a voice is not accepted on single samples and a latency test; it needs a scripted listening set of
+short and long sentences and an automatic check of sentence endings before it goes live.
