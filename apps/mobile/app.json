@@ -8,6 +8,11 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "android": {
+      "package": "com.zappy.rolly",
+      "adaptiveIcon": { "foregroundImage": "./assets/icon.png", "backgroundColor": "#F7F6FA" },
+      "permissions": ["RECORD_AUDIO", "MODIFY_AUDIO_SETTINGS", "FOREGROUND_SERVICE", "FOREGROUND_SERVICE_MICROPHONE"]
+    },
     "ios": {
       "bundleIdentifier": "com.zappy.rolly",
       "supportsTablet": false,

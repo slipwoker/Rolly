@@ -12,6 +12,9 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://rolly-api.onrender.com"
+      },
+      "android": {
+        "buildType": "apk"
       }
     },
     "preview": {
@@ -21,6 +24,9 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://rolly-api.onrender.com"
+      },
+      "android": {
+        "buildType": "apk"
       }
     }
   }
