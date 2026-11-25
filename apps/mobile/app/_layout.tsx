@@ -29,7 +29,6 @@ export default function Root() {
         <View style={[dirStyle, { flex: 1 }]}>
           <Stack screenOptions={{ headerShown: false, contentStyle: [dirStyle, { backgroundColor: c.bg }] }}>
             <Stack.Screen name="index" />
-            <Stack.Screen name="voice" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
             <Stack.Screen name="progress" />
             <Stack.Screen name="personalisation" />
           </Stack>
