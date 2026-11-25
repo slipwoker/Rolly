@@ -27,7 +27,7 @@ from .. import base
 from ..base import VoiceProvider
 from .llm import LLMResult, OpenAICompatLLM
 from .stt import discard_reason, get_stt
-from .text import SentenceChunker, clean_for_speech, echo_like, has_stop_word, user_wants_to_end
+from .text import SentenceChunker, clean_for_speech, echo_like, has_stop_word, question_guard_note, user_wants_to_end
 from .tts import TTSRouter
 from .vad import Endpointer, SileroVAD, VadConfig
 
@@ -79,6 +79,8 @@ class ModularProvider(VoiceProvider):
         self.tts.warm()
         # user/agent exchanges kept verbatim before the older half is compacted into a synopsis
         self.max_history_turns = int(config.get("max_history_turns") or 24)
+        # after a reply that ended with a question, tell the model (for that turn only) to answer with a statement
+        self.question_guard = str(config.get("question_guard", "true")).lower() not in ("0", "false", "no", "off")
         self.history: list[dict] = []
         self._turn: Optional[asyncio.Task] = None
         self._gate: Optional[_Gate] = None
@@ -390,6 +392,10 @@ class ModularProvider(VoiceProvider):
             msgs[-1]["content"] += "\n" + user_text
         else:
             msgs.append({"role": "user", "content": user_text})
+        # copies only: the note goes to the model for this turn and is never stored in self.history
+        note = question_guard_note(self.history) if self.question_guard else None
+        if note:
+            msgs[-1]["content"] += "\n\n" + note
         return msgs
 
     async def _run_turn(self, gate: _Gate, audio: np.ndarray | None = None, text: str | None = None,

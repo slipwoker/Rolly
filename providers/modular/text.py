@@ -36,6 +36,56 @@ def dominant_language(text: str, default: str = "en") -> str:
     return "he" if h >= l * 0.5 and h > 0 else "en"
 
 
+_QUESTION_END = re.compile(r"\?[\s\"'”’»)\]]*$")
+
+
+def ends_with_question(text: str) -> bool:
+    """True when a reply ends with a question (ignoring the end marker and the " —" of a cut-off reply)."""
+    t = (text or "").replace(END_MARKER, " ").strip().rstrip("—-").strip()
+    return bool(_QUESTION_END.search(t))
+
+
+# Appended to the user's message (never stored in history) when Rolly's previous reply was a question.
+# The persona already says "do not end every turn with a question", but a small model loses that rule in a long
+# system prompt; a note next to the turn is followed far more reliably (owner's phone tests, 2026-11-25).
+QUESTION_GUARD_NOTE = (
+    "[Note for this turn only, not said by the user: your previous reply ended with a question. "
+    "This time do not ask anything. React briefly, then say something of your own: an opinion, an idea, "
+    "something interesting, or pick one concrete topic and start talking about it. "
+    "End with a statement, not a question.]")
+
+
+def question_guard_note(history: list[dict]) -> str | None:
+    """The note to add to this turn when the last thing Rolly said was a question, else None."""
+    last = next((m for m in reversed(history) if m.get("role") == "assistant"), None)
+    return QUESTION_GUARD_NOTE if last and ends_with_question(last.get("content", "")) else None
+
+
+# Hebrew words the voice front end reads wrongly without vowels.  Applied only to the text sent to a Hebrew voice
+# (history and transcripts keep the plain spelling).  Value: vocalised spelling with the intended reading.
+#   זאפי (the owner's company, "Zappy"): read as "zaffy" because an unmarked פ in the middle is read as f;
+#   the dagesh in פּ makes it p.
+HE_PRONUNCIATION: dict[str, str] = {
+    "זאפי": "זַאפִּי",
+}
+_HE_LETTER = "א-ת"
+
+
+def _he_pattern(word: str) -> re.Pattern:
+    # optional one- or two-letter prefixes (ו, ה, ב, ל, מ, ש, כ: "בזאפי", "ושזאפי"); not inside a longer word
+    return re.compile(rf"(?<![{_HE_LETTER}])([והבלמשכ]{{0,2}}){re.escape(word)}(?![{_HE_LETTER}])")
+
+
+_HE_PATTERNS = [(_he_pattern(w), v) for w, v in HE_PRONUNCIATION.items()]
+
+
+def he_pronounce(text: str) -> str:
+    """Replace words from HE_PRONUNCIATION with their vocalised reading, keeping any prefix letters."""
+    for pat, v in _HE_PATTERNS:
+        text = pat.sub(lambda m: m.group(1) + v, text)
+    return text
+
+
 def clean_for_speech(text: str) -> str:
     text = text.replace(END_MARKER, " ")
     text = _STRIP.sub(" ", text)
