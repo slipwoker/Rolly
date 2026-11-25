@@ -23,6 +23,7 @@ projects:
                 - "benchmarks/results/**"
                 - "reports/**"
                 - "tests/**"
+                - "infrastructure/**"
             disk:
               name: rolly-data
               mountPath: /var/data

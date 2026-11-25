@@ -28,10 +28,13 @@ cd "$Z/src/servers/ggml"
 # CUDA build needs the compiler part of the toolkit, which the runtime image does not ship
 if [ "${ROLLY_ZONOS_BACKEND:-auto}" != "cpu" ] && ! command -v nvcc >/dev/null && [ ! -x /usr/local/cuda/bin/nvcc ]; then
   V="$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -1)"; say "installing the CUDA compiler packages (driver $V)"
-  CV="$(ls -d /usr/local/cuda-* 2>/dev/null | head -1 | sed 's/.*cuda-//; s/\./-/')"; CV="${CV:-12-4}"
-  (apt-get update -qq && apt-get install -y -qq "cuda-nvcc-$CV" "cuda-cudart-dev-$CV" "libcublas-dev-$CV" "cuda-nvrtc-dev-$CV" >/dev/null) || say "CUDA compiler packages not available"
+  # the nvidia/cuda images export CUDA_VERSION (e.g. 12.4.1); the apt packages are named by major-minor
+  CV="$(echo "${CUDA_VERSION:-$(ls -d /usr/local/cuda-*.* 2>/dev/null | head -1 | sed 's/.*cuda-//')}" | cut -d. -f1,2 | tr . -)"; CV="${CV:-12-4}"
+  say "CUDA packages for version $CV"
+  (apt-get update -qq && apt-get install -y -qq "cuda-nvcc-$CV" "cuda-cudart-dev-$CV" "libcublas-dev-$CV" "cuda-driver-dev-$CV" "cuda-cccl-$CV" >/dev/null) \
+    || say "CUDA compiler packages not available"
 fi
-export PATH="/usr/local/cuda/bin:$PATH"
+export PATH="/usr/local/cuda/bin:$PATH" CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
 if [ "${ROLLY_ZONOS_BACKEND:-auto}" != "cpu" ] && command -v nvcc >/dev/null; then
   if [ ! -x build-cuda/zonos3-server ]; then
     say "building with CUDA (several minutes)"
