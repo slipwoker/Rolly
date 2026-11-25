@@ -1,5 +1,8 @@
 # Rolly — voice-agent feasibility POC
 
+> **Starting product work?** Read `RESEARCH_HANDOFF.md` (state of the research, deployment, protocols, limitations) and
+> `docs/PHASE1_IMPLEMENTATION_PROMPT.md` (Phase 1 brief). Product work happens on branch `rolly-phase1`.
+
 A test platform for a proactive, interruptible Hebrew + English voice companion for people on the move, built to
 compare voice architectures under identical conditions and to estimate what they cost at scale.
 
