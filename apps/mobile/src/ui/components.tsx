@@ -100,11 +100,11 @@ export function IconTile({ icon, tone = "ink" }: { icon: IconName; tone?: "ink" 
   );
 }
 
-export function Chip({ label, selected, onPress, danger, size = "md" }: { label: string; selected?: boolean; onPress?: () => void; danger?: boolean; size?: "sm" | "md" }) {
+export function Chip({ label, selected, onPress, danger }: { label: string; selected?: boolean; onPress?: () => void; danger?: boolean }) {
   const c = useTheme();
   return (
     <PressScale accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress}
-      style={{ paddingHorizontal: size === "sm" ? spacing.md : spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.full,
+      style={{ paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.full,
         backgroundColor: selected ? c.ink : danger ? c.dangerSoft : c.surfaceAlt }}>
       <Txt variant="label" tone={selected ? "onInk" : danger ? "danger" : "text"}>{label}</Txt>
     </PressScale>

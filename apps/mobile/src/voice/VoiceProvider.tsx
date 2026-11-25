@@ -4,21 +4,14 @@ import { uiLang } from "../i18n";
 import { useVoice } from "./useVoice";
 
 export type ConvLang = "he" | "en" | "auto";
-type Ctx = Omit<ReturnType<typeof useVoice>, "start"> & {
-  lang: ConvLang; setLang: (l: ConvLang) => void;
-  /** Expected trip length; sent as journey.duration_min so ROLLY paces the conversation. null = not given. */
-  minutes: number | null; setMinutes: (m: number | null) => void;
-  start: () => Promise<void>;
-};
+type Ctx = ReturnType<typeof useVoice> & { lang: ConvLang; setLang: (l: ConvLang) => void };
 
 const VoiceCtx = createContext<Ctx | null>(null);
 
 export function VoiceProvider({ children }: { children: ReactNode }) {
   const v = useVoice();
   const [lang, setLang] = useState<ConvLang>(uiLang === "en" ? "en" : "he");
-  const [minutes, setMinutes] = useState<number | null>(null);
-  const start = () => v.start(lang, false, minutes ? { duration_min: minutes } : undefined);
-  return <VoiceCtx.Provider value={{ ...v, start, lang, setLang, minutes, setMinutes }}>{children}</VoiceCtx.Provider>;
+  return <VoiceCtx.Provider value={{ ...v, lang, setLang }}>{children}</VoiceCtx.Provider>;
 }
 
 export function useVoiceSession(): Ctx {

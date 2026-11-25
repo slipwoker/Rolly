@@ -3,9 +3,7 @@ import { getLocales } from "expo-localization";
 import { I18nManager, Platform } from "react-native";
 
 const he = {
-  hi: "שלום", hiName: "שלום, {name}", morning: "בוקר טוב", afternoon: "צהריים טובים", evening: "ערב טוב",
-  intro: "ROLLY פותח את השיחה, זוכר מה סיכמתם וממשיך מאיפה שעצרתם.", lastTime: "בפעם הקודמת", nextUp: "הבא בתור",
-  tripLen: "כמה זמן הנסיעה?", minShort: "{n} דק׳", anyLen: "לא משנה",
+  hi: "שלום", hiName: "שלום, {name}",
   progressSub: "מטרות, משימות ושיחות אחרונות.", memorySub: "לתקן, לאשר או למחוק.", speakingTo: "מדבר עם ROLLY", sayIt: "פשוט לדבר — ROLLY רושם", menu: "תפריט", transcript: "תמליל", endConv: "לסיים את השיחה", back: "חזרה", startHint: "לחיצה על המיקרופון מתחילה שיחה",
   waitingFirst: "ROLLY תכף מתחיל לדבר…",
   conversation: "שיחה", progress: "התקדמות", personalisation: "התאמה אישית",
@@ -21,9 +19,7 @@ const he = {
 };
 type Strings = typeof he;
 const en: Strings = {
-  hi: "Hi", hiName: "Hi, {name}", morning: "Good morning", afternoon: "Good afternoon", evening: "Good evening",
-  intro: "ROLLY opens the conversation, remembers what you agreed and picks up where you left off.", lastTime: "Last time", nextUp: "Next up",
-  tripLen: "How long is the drive?", minShort: "{n} min", anyLen: "Any",
+  hi: "Hi", hiName: "Hi, {name}",
   progressSub: "Goals, to-dos and recent conversations.", memorySub: "Correct, confirm or delete.", speakingTo: "Speaking to ROLLY", sayIt: "Just talk — ROLLY takes notes", menu: "Menu", transcript: "Transcript", endConv: "End conversation", back: "Back", startHint: "Tap the mic to start a conversation",
   waitingFirst: "ROLLY is about to speak…",
   conversation: "Conversation", progress: "Progress", personalisation: "Personalisation",
