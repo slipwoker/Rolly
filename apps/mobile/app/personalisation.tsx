@@ -6,7 +6,7 @@ import { Alert, ScrollView, Share, StyleSheet, TextInput, View } from "react-nat
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { api, forgetDevice } from "../src/api";
-import { isRTL, t } from "../src/i18n";
+import { inputAlign, isRTL, t } from "../src/i18n";
 import { Backdrop, Button, Card, Chip, CircleButton, IconTile, TopBar, Txt } from "../src/ui/components";
 import { radius, spacing, type, useTheme } from "../src/ui/theme";
 
@@ -37,7 +37,7 @@ export default function Personalisation() {
       {editing?.id === m.id ? (
         <>
           <TextInput value={editing.text} onChangeText={(x) => setEditing({ id: m.id, text: x })} multiline autoFocus
-            style={[type.body, s.input, { color: c.text, backgroundColor: c.surfaceAlt, textAlign: isRTL ? "right" : "left" }]} />
+            style={[type.body, s.input, { color: c.text, backgroundColor: c.surfaceAlt, textAlign: inputAlign, writingDirection: isRTL ? "rtl" : "ltr" }]} />
           <View style={s.row}>
             <Button variant="primary" label={t.save} onPress={() => act(() => api(`/v1/memories/${m.id}`, { method: "PATCH", body: { content: editing.text } })).then(() => setEditing(null))} />
             <Button label={t.cancel} onPress={() => setEditing(null)} />

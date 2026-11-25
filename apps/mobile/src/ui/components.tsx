@@ -6,18 +6,19 @@ import { Modal, Pressable, StyleSheet, Text, View, type PressableProps, type Sty
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { isRTL } from "../i18n";
+import { dirStyle, isRTL } from "../i18n";
 import { motion, radius, spacing, type, useTheme, type Palette } from "./theme";
 
 export type IconName = ComponentProps<typeof Feather>["name"];
 
 type Tone = "text" | "dim" | "faint" | "accent" | "danger" | "onInk";
-/** `dir` overrides the paragraph direction for text in the other language (e.g. a Hebrew label in the English UI). */
-export function Txt({ variant = "body", tone = "text", dir, style, ...p }: TextProps & { variant?: keyof typeof type; tone?: Tone; dir?: "rtl" | "ltr" }) {
+/**
+ * Text aligns to the reading start: right in Hebrew, left in English. "auto" resolves against the paragraph's
+ * writing direction, which is set explicitly, so it does not depend on whether the RTL layout is active yet.
+ */
+export function Txt({ variant = "body", tone = "text", style, ...p }: TextProps & { variant?: keyof typeof type; tone?: Tone }) {
   const c = useTheme();
-  const d = dir ?? (isRTL ? "rtl" : "ltr");
-  const align = dir && dir !== (isRTL ? "rtl" : "ltr") ? "right" : "left"; // "left" = start side under RTL layout
-  return <Text {...p} style={[type[variant], { color: c[tone], textAlign: align, writingDirection: d }, style]} />;
+  return <Text {...p} style={[type[variant], { color: c[tone], textAlign: "auto", writingDirection: isRTL ? "rtl" : "ltr" }, style]} />;
 }
 
 /** Pressable with a 0.97 press-in scale (feedback on press-in, commit on release). */
@@ -133,7 +134,7 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable accessibilityLabel="close" style={[StyleSheet.absoluteFill, { backgroundColor: c.scrim }]} onPress={onClose} />
-      <View style={{ flex: 1, justifyContent: "flex-end" }} pointerEvents="box-none">
+      <View style={[dirStyle, { flex: 1, justifyContent: "flex-end" }]} pointerEvents="box-none">
         <Animated.View entering={FadeInDown.duration(motion.base)}
           style={[cardStyle(c), { margin: spacing.md, marginBottom: insets.bottom + spacing.md, padding: spacing.xl, gap: spacing.lg, borderRadius: radius.xl, boxShadow: c.shadowRaised }]}>
           <View style={{ alignSelf: "center", width: 36, height: 5, borderRadius: 3, backgroundColor: c.border, marginTop: -spacing.sm }} />

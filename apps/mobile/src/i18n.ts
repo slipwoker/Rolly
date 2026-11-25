@@ -1,10 +1,10 @@
 /** UI strings. Hebrew is the default UI language and is laid out right-to-left. */
 import { getLocales } from "expo-localization";
-import { I18nManager } from "react-native";
+import { I18nManager, Platform } from "react-native";
 
 const he = {
   hi: "שלום", hiName: "שלום, {name}", howHelp: "על מה נדבר היום?", heroSub: "ROLLY מוביל את השיחה, זוכר מה סיכמתם וממשיך מאיפה שעצרתם.",
-  newChat: "שיחה חדשה", newChatSub: "ROLLY פותח ומוביל — רק לענות.", otherLang: "Talk in English", otherLangSub: "Same ROLLY, in English.",
+  newChat: "שיחה חדשה", newChatSub: "ROLLY פותח ומוביל — רק לענות.", otherLang: "Talk in English", otherLangSub: "Same ROLLY, in English",
   progressSub: "מטרות, משימות ושיחות אחרונות.", memoryCard: "מה ROLLY זוכר", memorySub: "לתקן, לאשר או למחוק.",
   talkTo: "לדבר עם ROLLY…", tip: "אפשר לקטוע את ROLLY באמצע משפט.", nextUp: "הבא בתור: {x}",
   liveNow: "שיחה פעילה — חזרה לשיחה", speakingTo: "מדבר עם ROLLY", sayIt: "פשוט לדבר — ROLLY רושם", menu: "תפריט", more: "שפת שיחה",
@@ -24,7 +24,7 @@ const he = {
 type Strings = typeof he;
 const en: Strings = {
   hi: "Hi", hiName: "Hi, {name}", howHelp: "What shall we talk about?", heroSub: "ROLLY leads the conversation, remembers what you agreed and picks up where you left off.",
-  newChat: "New chat", newChatSub: "ROLLY opens and leads — just answer.", otherLang: "שיחה בעברית", otherLangSub: "אותו ROLLY, בעברית.",
+  newChat: "New chat", newChatSub: "ROLLY opens and leads — just answer.", otherLang: "שיחה בעברית", otherLangSub: "ממשיכים לדבר בעברית",
   progressSub: "Goals, to-dos and recent conversations.", memoryCard: "Memories", memorySub: "Correct, confirm or delete.",
   talkTo: "Talk to ROLLY…", tip: "You can interrupt ROLLY at any time.", nextUp: "Next up: {x}",
   liveNow: "Conversation live — tap to return", speakingTo: "Speaking to ROLLY", sayIt: "Just talk — ROLLY takes notes", menu: "Menu", more: "Conversation language",
@@ -45,6 +45,15 @@ const en: Strings = {
 export const uiLang: "he" | "en" = getLocales()[0]?.languageCode === "en" ? "en" : "he";
 export const t: Strings = uiLang === "he" ? he : en;
 export const isRTL = uiLang === "he";
+
+/**
+ * Layout direction applied explicitly on every root view (screens, modals). I18nManager.forceRTL only takes effect
+ * after the app restarts, so without this the very first launch would be laid out left-to-right.
+ */
+export const dirStyle = { direction: isRTL ? "rtl" : "ltr" } as const;
+
+/** Text-input alignment to the reading start (right in Hebrew). Native flips "left" under an RTL layout; web does not. */
+export const inputAlign: "left" | "right" = Platform.OS === "web" && isRTL ? "right" : "left";
 
 /** "{name}"-style placeholders. */
 export const fill = (s: string, v: Record<string, string>) => s.replace(/\{(\w+)\}/g, (_, k: string) => v[k] ?? "");

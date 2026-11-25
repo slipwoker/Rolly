@@ -36,10 +36,9 @@ export default function Home() {
   };
   const other: ConvLang = uiLang === "en" ? "he" : "en";
 
-  const otherDir = other === "he" ? "rtl" : "ltr";
-  const cards: { icon: IconName; title: string; sub: string; onPress: () => void; dir?: "rtl" | "ltr" }[] = [
+  const cards: { icon: IconName; title: string; sub: string; onPress: () => void }[] = [
     { icon: "message-circle", title: t.newChat, sub: t.newChatSub, onPress: () => talk() },
-    { icon: "globe", title: t.otherLang, sub: t.otherLangSub, onPress: () => talk(other), dir: otherDir },
+    { icon: "globe", title: t.otherLang, sub: t.otherLangSub, onPress: () => talk(other) },
     { icon: "trending-up", title: t.progress, sub: t.progressSub, onPress: () => router.push("/progress") },
     { icon: "bookmark", title: t.memoryCard, sub: t.memorySub, onPress: () => router.push("/personalisation") },
   ];
@@ -65,9 +64,9 @@ export default function Home() {
                 <PressScale accessibilityRole="button" onPress={k.onPress} style={[cardStyle(c), s.card]}>
                   <View style={s.cardHead}>
                     <Feather name={k.icon} size={18} color={c.text} />
-                    <Txt variant="label" dir={k.dir} style={{ flex: 1 }} numberOfLines={2}>{k.title}</Txt>
+                    <Txt variant="label" style={{ flex: 1 }} numberOfLines={2}>{k.title}</Txt>
                   </View>
-                  <Txt variant="caption" tone="dim" dir={k.dir} numberOfLines={2}>{k.sub}</Txt>
+                  <Txt variant="caption" tone="dim" numberOfLines={2}>{k.sub}</Txt>
                 </PressScale>
               </Animated.View>
             ))}
