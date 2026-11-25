@@ -10,7 +10,7 @@ RUN pip install -r requirements.txt
 RUN mkdir -p models/hebrew-tts && cd models \
  && curl -fsSL -o silero_vad.onnx https://raw.githubusercontent.com/snakers4/silero-vad/master/src/silero_vad/data/silero_vad.onnx \
  && curl -fsSL -o v.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-en_US-lessac-medium.tar.bz2 \
- && tar -xjf v.tar.bz2 && rm v.tar.bz2 \
+ && tar --no-same-owner -xjf v.tar.bz2 && rm v.tar.bz2 \
  && curl -fsSL -o hebrew-tts/he_IL-noa-medium.onnx https://huggingface.co/thewh1teagle/piper-he-noa/resolve/main/he_IL-noa-medium.onnx \
  && curl -fsSL -o hebrew-tts/he_IL-noa-medium.onnx.json https://huggingface.co/thewh1teagle/piper-he-noa/resolve/main/he_IL-noa-medium.onnx.json \
  && curl -fsSL -o hebrew-tts/renikud.onnx https://huggingface.co/renikud/renikud/resolve/main/model.onnx

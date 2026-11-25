@@ -12,7 +12,7 @@ export HF_HOME="$ROOT/models/hf"
 
 # English TTS voices packaged for sherpa-onnx (Kokoro: Apache-2.0; Piper lessac: see MODEL_CARD)
 for f in kokoro-multi-lang-v1_0 vits-piper-en_US-lessac-medium; do
-  [ -d "$f" ] || { curl -fsSL -o "$f.tar.bz2" "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/$f.tar.bz2"; tar -xjf "$f.tar.bz2"; rm "$f.tar.bz2"; }
+  [ -d "$f" ] || { curl -fsSL -o "$f.tar.bz2" "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/$f.tar.bz2"; tar --no-same-owner -xjf "$f.tar.bz2"; rm "$f.tar.bz2"; }
 done
 
 # Hebrew TTS: voice (CC BY 4.0) + grapheme-to-phoneme model (CC BY 4.0)
