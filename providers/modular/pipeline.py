@@ -26,7 +26,7 @@ from memory.context import END_MARKER
 from .. import base
 from ..base import VoiceProvider
 from .llm import LLMResult, OpenAICompatLLM
-from .stt import get_stt
+from .stt import discard_reason, get_stt
 from .text import SentenceChunker, clean_for_speech, user_wants_to_end
 from .tts import TTSRouter
 from .vad import Endpointer, SileroVAD, VadConfig
@@ -288,6 +288,10 @@ class ModularProvider(VoiceProvider):
                 if res.detect_ms:
                     await gate.emit(base.METRIC, name="stt_language_detect_ms", value_ms=res.detect_ms, response_id=rid)
                 await gate.emit(base.USAGE, kind="stt", audio_s=res.audio_s, engine=self.stt.name)
+                why = discard_reason(text, res.audio_s, res.no_speech_prob)
+                if why:  # noise or echo that the recogniser turned into words: treat as "nothing was said"
+                    await gate.emit(base.METRIC, name=f"stt_discarded_{why}", value_ms=res.audio_s * 1000, response_id=rid)
+                    text = ""
                 await gate.emit(base.USER_TRANSCRIPT, text=text, final=True, language=res.language,
                                 avg_logprob=res.avg_logprob, no_speech_prob=res.no_speech_prob)
                 if not text:

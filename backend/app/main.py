@@ -23,7 +23,7 @@ from providers.registry import ProviderRegistry
 from telemetry.recorder import summarize
 from telemetry.resources import ResourceSampler, snapshot
 
-from .config import Settings
+from .config import ROOT, Settings
 from .session import VoiceSession
 
 RATING_CRITERIA = [
@@ -57,6 +57,7 @@ async def lifespan(app: FastAPI):
     health_task = asyncio.create_task(_backend_health_loop(state))
     # optional warm-up so the first journey does not pay the model-loading time
     state.warming = 0
+    state.selftests = {}
 
     def _warm(pid: str) -> None:
         try:
@@ -340,6 +341,79 @@ async def ratings_export(request: Request, token: str | None = None, fmt: str = 
                         *[r["scores"].get(c, "") for c in RATING_CRITERIA], r["comments"]])
         return PlainTextResponse(buf.getvalue(), media_type="text/csv")
     return {"ratings": rows, "n": len(rows)}
+
+
+# -- self-test: a scripted conversation run by the server against itself ---------------
+# Lets an operator measure a deployed provider without a browser.  The simulated user is next to
+# the app, so the numbers include everything behind the app (for a relayed pipeline: the network
+# hop to the GPU host) but not the real user's own network or audio device.
+SELFTEST_DEFAULT = ["s01_he_brainstorm", "s02_en_brainstorm", "s07_interrupt"]
+
+
+async def _run_selftest(job: dict, url: str, scenarios: list[dict], repeat: int) -> None:
+    from benchmarks.run_scenarios import aggregate, run_scenario
+    from benchmarks.synth import user_speech
+
+    try:
+        for sc in scenarios:  # synthesise the user's lines first so that CPU work does not overlap the conversation
+            for step in sc["steps"]:
+                for key in ("say", "barge_in"):
+                    if isinstance(step.get(key), str):
+                        text = step[key]
+                        await user_speech(text, "he" if any("\u0590" <= c <= "\u05ff" for c in text) else "en")
+        for rep in range(repeat):
+            for sc in scenarios:
+                try:
+                    r = await asyncio.wait_for(run_scenario(url, job["provider"], sc, job["tag"], 60, 60), timeout=300)
+                except asyncio.TimeoutError:
+                    r = {"id": sc["id"], "title": sc["title"], "language": sc.get("language", "en"), "snr_db": sc.get("snr_db"),
+                         "turns": [], "checks": [], "interruptions": [], "error": "scenario exceeded 300 s"}
+                r["repeat"] = rep
+                job["results"].append(r)
+                job["aggregate"] = aggregate(job["results"])
+        job["status"] = "done"
+    except Exception as e:
+        job["status"] = "failed"
+        job["error"] = repr(e)[:400]
+    job["finished"] = time.time()
+
+
+@app.post("/api/selftest")
+async def selftest_start(request: Request, token: str | None = None):
+    st = S(request)
+    if not _is_admin(st, token):
+        raise HTTPException(403, "admin token required")
+    body = await request.json()
+    pid = body.get("provider")
+    if pid not in st.registry.entries or not st.registry.available(pid):
+        raise HTTPException(400, f"provider not available: {pid}")
+    jobs = st.selftests
+    if any(j["status"] == "running" for j in jobs.values()):
+        raise HTTPException(409, "a self-test is already running")
+    spec = json.loads((ROOT / "benchmarks/scenarios/scenarios.json").read_text(encoding="utf-8"))
+    wanted = body.get("scenarios") or SELFTEST_DEFAULT
+    scenarios = [s for s in spec["scenarios"] if s["id"] in wanted]
+    if not scenarios:
+        raise HTTPException(400, "no such scenario")
+    port = (request.scope.get("server") or ("", int(os.environ.get("PORT", "10000"))))[1]
+    from urllib.parse import quote
+    url = f"ws://127.0.0.1:{port}/ws?token={quote(st.settings.admin_token, safe='')}"
+    job = {"id": uuid.uuid4().hex[:10], "provider": pid, "status": "running", "started": time.time(), "results": [],
+           "tag": str(body.get("tag") or "selftest")[:40], "scenarios": [s["id"] for s in scenarios]}
+    jobs[job["id"]] = job
+    job["_task"] = asyncio.create_task(_run_selftest(job, url, scenarios, max(1, min(int(body.get("repeat", 1)), 5))))
+    return {k: v for k, v in job.items() if not k.startswith("_")}
+
+
+@app.get("/api/selftest/{job_id}")
+async def selftest_get(job_id: str, request: Request, token: str | None = None):
+    st = S(request)
+    if not _is_admin(st, token):
+        raise HTTPException(403, "admin token required")
+    job = st.selftests.get(job_id)
+    if job is None:
+        raise HTTPException(404, "unknown self-test")
+    return {k: v for k, v in job.items() if not k.startswith("_")}
 
 
 # -- voice socket ----------------------------------------------------------------

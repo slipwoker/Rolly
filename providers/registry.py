@@ -44,6 +44,9 @@ def _load_class(type_: str):
     if type_ == "modular":
         from .modular.pipeline import ModularProvider
         return ModularProvider
+    if type_ == "remote":
+        from .remote import RemoteProvider
+        return RemoteProvider
     if type_ == "openai_realtime":
         from .commercial.openai_realtime import OpenAIRealtimeProvider
         return OpenAIRealtimeProvider

@@ -1,10 +1,9 @@
 # Provider set for the hosted deployment (Render web app + optional RunPod GPU backend).
-# The app tier holds no large models: speech recognition, the language model and the voices are
-# reached over authenticated HTTPS on the GPU host.  When the GPU is switched off, `selfhosted-gpu`
-# shows as unavailable and the two OpenAI-backed agents keep working.
+# The app tier holds no large models.  The self-hosted agent runs entirely on the GPU host and is
+# relayed from here; when the GPU is switched off, `selfhosted-gpu` shows as unavailable and the two
+# OpenAI-backed agents keep working.
 #
 #   ROLLY_GPU_WORKER_URL   e.g. https://<pod-id>-8000.proxy.runpod.net/v1   (backend/gpu_worker.py)
-#   ROLLY_GPU_LLM_URL      e.g. https://<pod-id>-8081.proxy.runpod.net/v1   (vLLM)
 #   ROLLY_GPU_HEALTH_URL   e.g. https://<pod-id>-8000.proxy.runpod.net/healthz
 #   ROLLY_GPU_API_KEY      bearer token shared with the GPU host
 #   OPENAI_API_KEY
@@ -17,37 +16,17 @@ providers:
     test_only: true
     description: Deterministic tone generator for plumbing tests. Never benchmarked.
 
-  # Architecture B: every model self-hosted on the GPU host
+  # Architecture B: everything self-hosted on the GPU host.  The complete pipeline (turn detection,
+  # Whisper, Gemma on vLLM, voices) runs there and this app relays audio over one WebSocket, so a turn
+  # pays the network once.  (Calling the three models separately from here cost about 200-300 ms each.)
   selfhosted-gpu:
-    type: modular
+    type: remote
     architecture: modular
-    description: Whisper (per language) + Gemma-4 26B on vLLM + Piper voices, all on the rented GPU host; orchestration in this app
-    requires_env: [ROLLY_GPU_WORKER_URL, ROLLY_GPU_LLM_URL]
+    description: Complete self-hosted pipeline on the rented GPU host (Whisper per language + Gemma-4 26B on vLLM + Piper voices); this app relays audio
+    requires_env: [ROLLY_GPU_WORKER_URL]
     requires_health: ["${ROLLY_GPU_HEALTH_URL:-}"]
-    vad_model: "${ROLLY_VAD_MODEL:-models/silero_vad.onnx}"
-    max_history_turns: ${ROLLY_MAX_HISTORY_TURNS:-24}
-    vad:
-      endpoint_silence_ms: ${ROLLY_ENDPOINT_SILENCE_MS:-544}
-      eager_silence_ms: ${ROLLY_EAGER_SILENCE_MS:-256}
-    stt:
-      engine: openai_compat
-      base_url: "${ROLLY_GPU_WORKER_URL:-}"
-      model: whisper-routed
-      api_key_env: ROLLY_GPU_API_KEY
-    llm:
-      base_url: "${ROLLY_GPU_LLM_URL:-}"
-      model: local
-      api_key_env: ROLLY_GPU_API_KEY
-      max_tokens: 120
-      temperature: 0.6
-    tts:
-      engine: openai_compat
-      base_url: "${ROLLY_GPU_WORKER_URL:-}"
-      model: piper
-      voice: default
-      sample_rate: 22050
-      send_language: "true"
-      api_key_env: ROLLY_GPU_API_KEY
+    url: "${ROLLY_GPU_WORKER_URL:-}"
+    api_key_env: ROLLY_GPU_API_KEY
 
   # Architecture A: commercial speech-to-speech (fastest of the measured turn-detection modes)
   openai-realtime:

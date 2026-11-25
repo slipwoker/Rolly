@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import io
 import os
+import re
 import threading
 import time
 import wave
@@ -38,6 +39,30 @@ HALLUCINATIONS = {
     "thanks for watching", "thank you for watching", "thank you.", "you", "bye.", ".",
     "תודה רבה", "תודה רבה.", "תודה.", "תודה על הצפייה", "תודה שצפיתם", "כתוביות מופעלות על ידי",
 }
+
+
+_RUN = re.compile(r"(.)\1{7,}", re.S)  # one character repeated 8+ times: "אההההההההה"
+
+
+def discard_reason(text: str, audio_s: float, no_speech_prob: Optional[float] = None) -> Optional[str]:
+    """Why a transcript should not reach the language model, or None if it looks like speech.
+
+    Recognisers invent text for noise, echo and breath.  Seen on the hosted deployment: a 1.7 s
+    noise burst came back as one Hebrew letter repeated more than a hundred times, and a 1 s
+    burst as "תודה."  Passing these on makes the agent answer something nobody said."""
+    s = text.strip()
+    if not s:
+        return None
+    if _RUN.search(s):
+        return "repeated_character"
+    words = s.split()
+    if len(words) >= 6 and len({w.strip(".,!?…").lower() for w in words}) <= max(1, len(words) // 6):
+        return "repeated_word"
+    if audio_s > 0 and len(s) / audio_s > 40:  # speech is about 15 characters per second; 40 is not physically possible
+        return "too_much_text_for_audio"
+    if s.lower() in HALLUCINATIONS and (audio_s < 1.2 or (no_speech_prob or 0) > 0.5):
+        return "known_hallucination"
+    return None
 
 
 class FasterWhisperSTT:
@@ -90,8 +115,6 @@ class FasterWhisperSTT:
         text = " ".join(s.text.strip() for s in segs).strip()
         avg_lp = float(np.mean([s.avg_logprob for s in segs])) if segs else None
         nsp = float(np.max([s.no_speech_prob for s in segs])) if segs else None
-        if text.lower().strip() in HALLUCINATIONS and (len(audio) / 16000 < 1.2 or (nsp or 0) > 0.5):
-            text = ""
         return STTResult(text=text, language=lang or info.language, ms=(time.monotonic() - t0) * 1000,
                          audio_s=len(audio) / 16000, queue_ms=(t0 - t_submit) * 1000, avg_logprob=avg_lp, no_speech_prob=nsp)
 

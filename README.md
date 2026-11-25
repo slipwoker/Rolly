@@ -87,43 +87,49 @@ with the results so CPU and GPU runs are never confused.
 ## Hosted deployment (Render + RunPod)
 
 The platform is deployed at **https://rolly-voice.onrender.com** (Render project *Rolly*, service `rolly-voice`, Frankfurt,
-Standard plan). The page and every API call need the access token: open `https://rolly-voice.onrender.com/?token=<ROLLY_ACCESS_TOKEN>`.
+Standard plan). Pages and API calls need the access token: open `https://rolly-voice.onrender.com/?token=<ROLLY_ACCESS_TOKEN>`.
+Scripts can send it as `Authorization: Bearer <token>` instead.
 
 ```
 +----------------------------------------------------+
 | RENDER  web service  rolly-voice  (CPU only)       |
-|   web pages, WebSocket sessions, turn-taking,      |
-|   memory (SQLite on a 1 GB disk), telemetry        |
+|   web pages, sessions, memory and telemetry        |
+|   (SQLite on a 1 GB disk)                          |
 +----------------------------------------------------+
-     |                              |
-     | HTTPS + bearer token         | HTTPS + API key
-     v                              v
+     |  ^                           |
+     |  |  one WebSocket per        | HTTPS + API key
+     v  |  conversation (relay)     v
 +---------------------------+  +---------------------+
 | RUNPOD  GPU pod (L40S)    |  | OPENAI API          |
-|  port 8000  speech-to-    |  |  realtime voice,    |
-|             text + voices |  |  transcription,     |
-|  port 8081  language      |  |  language model     |
-|             model (vLLM)  |  +---------------------+
+|  the complete self-hosted |  |  realtime voice,    |
+|  pipeline: turn detection,|  |  transcription,     |
+|  Whisper, Gemma on vLLM,  |  |  language model     |
+|  voices                   |  +---------------------+
 +---------------------------+
 ```
 
-| Provider in the app | Needs | Available when |
+| Provider in the app | Runs where | Available when |
 |---|---|---|
-| `selfhosted-gpu` | `ROLLY_GPU_WORKER_URL`, `ROLLY_GPU_LLM_URL`, `ROLLY_GPU_API_KEY` | the GPU pod is running and healthy (probed every 15 s) |
-| `openai-realtime` | `OPENAI_API_KEY` | always |
-| `hybrid-api` (OpenAI transcription and language model, voices on the Render CPU) | `OPENAI_API_KEY` | always |
+| `selfhosted-gpu` | Whole pipeline on the GPU pod (`backend/gpu_worker.py`, `/v1/session`); Render relays audio (`providers/remote.py`) | the pod is running and healthy (probed every 15 s) |
+| `openai-realtime` | OpenAI, bridged by the Render app | `OPENAI_API_KEY` is set |
+| `hybrid-api` | OpenAI transcription and language model, voices on the Render CPU | `OPENAI_API_KEY` is set |
+
+The first hosted version kept turn-taking on Render and called speech-to-text, the language model and the voice on the pod
+separately. Three measured replies took 1.3-1.5 s, against 681 ms with everything on one machine, because each call paid the
+network; the pipeline was therefore moved to the pod. See `BENCHMARKS.md` section 0 for the hosted measurements.
 
 Files: `render.yaml` (Blueprint), `Dockerfile.render`, `config/providers.render.yaml`, `backend/gpu_worker.py`,
-and `ROLLY_POD_MODE=worker` in `infrastructure/pod_setup.sh`. Render redeploys on every push to the deployment branch.
+`providers/remote.py`, and `ROLLY_POD_MODE=worker` in `infrastructure/pod_setup.sh`. Render redeploys on every push to the
+deployment branch.
+
+**Measuring without a browser:** `POST /api/selftest` (admin) with `{"provider": "selfhosted-gpu"}` makes the server run
+scripted Hebrew and English conversations against itself; `GET /api/selftest/<id>` returns latencies and checks. The simulated
+user sits next to the app, so the result includes the hop to the GPU but not a real user's network or audio device.
+Stored sessions: `GET /api/sessions`, and `GET /api/sessions/<id>?events=1` (admin) for the raw timing events.
 
 **Cost while it runs:** Render about $25/month plus $0.25/month for the disk; the GPU pod **$1.09 per hour (about $26 per day)
-for as long as it exists** — terminate it in the RunPod console when nobody is testing. The pod's address contains its id, so a
-new pod means updating the three `ROLLY_GPU_*_URL` values in Render.
-
-**Verified:** the app serves pages and enforces the token; the GPU backend answers speech-to-text, text-to-speech and
-language-model calls and rejects calls without its token; the same configuration held full conversations in a local test.
-**Not verified:** a browser conversation against the hosted address (the build environment cannot open WebSockets) and the
-response latency with the app and the GPU in different data centres, which will be higher than the 681 ms measured on one machine.
+for as long as it exists** - terminate it in the RunPod console when nobody is testing. The pod's address contains its id, so a
+new pod means updating `ROLLY_GPU_WORKER_URL` and `ROLLY_GPU_HEALTH_URL` in Render.
 
 ## Adding or switching a provider
 
