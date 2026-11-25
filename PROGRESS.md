@@ -68,6 +68,20 @@ Render made replies about twice as slow as on one machine, so the pipeline was m
 926 ms median over 18 self-test replies (BENCHMARKS.md section 0.8). Noise transcripts are discarded, and the server can
 test itself (`POST /api/selftest`). Still open: a longer real-user session on the hosted address, with headphones.
 
+## First listening feedback from the team (2026-11-25, informal, not scored)
+
+Three people tried the hosted agents. No ratings were entered on the blind-evaluation page; this is what they said.
+- Conversation flow: the OpenAI Realtime agent was preferred; at that moment it was also the fastest.
+- Hebrew: "very weak", mainly the pace; the open Hebrew voice is robotic, flat and heavily accented. English was acceptable.
+- The pipeline agents were cut off by their own voice and by other voices in the room (fixed, BENCHMARKS.md 0.9, DECISIONS.md).
+- The agents sound like an AI assistant, not like a person.
+
+Done in response: relay of the pipeline to the GPU host, false-interruption handling, a friend-like persona with shorter
+turns for all agents (opening line 5-7 s instead of 9-13 s), and an OpenAI voice for Hebrew on the hybrid agent as a
+listening reference. After the persona change the hosted self-test measured 808 ms median over 8 replies for the self-hosted
+agent, 7 of 7 checks (`benchmarks/results/hosted_selftest_friend_persona_20261125.json`).
+Not done: replacing the self-hosted Hebrew voice (candidates ZONOS3-Mini and BlueV3; the latter awaits approval, BLOCKERS B4).
+
 ## Next actions (in order of value)
 
 1. Blind human evaluation with native Hebrew speakers, including a Hebrew voice bake-off (B3, B4). This is now the main unknown.
