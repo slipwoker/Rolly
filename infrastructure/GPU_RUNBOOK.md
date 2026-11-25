@@ -106,3 +106,20 @@ download); a restart on the same volume takes a few minutes.
 Point the app at it with `ROLLY_GPU_WORKER_URL=https://<pod>-8000.proxy.runpod.net/v1`,
 `ROLLY_GPU_HEALTH_URL=https://<pod>-8000.proxy.runpod.net/healthz` and the same `ROLLY_GPU_API_KEY`.
 Progress is published on port 8001 (`status.json`, `setup.log`, `worker.tail.log`).
+
+## 8. Night shutdown of the GPU pod (set up 2026-11-25)
+
+Two scheduled Claude Code tasks in the owner's account, Israel time, each run in a fresh session and report by push notification:
+
+| Task | When | What it does |
+|---|---|---|
+| "Rolly GPU: stop for the night" | every day 21:04 | waits up to 30 minutes if a conversation is active, then `podStop` (never terminate); reports the balance |
+| "Rolly GPU: start for the day" | every day 06:13 | `podResume`, retries if the host has no free GPU, waits until the pod and the Hebrew voice server are serving; reports |
+
+- A stopped pod keeps its id, its address and its `/workspace` volume, so the app needs no change; storage is still billed.
+- While the pod is off the self-hosted agent shows as unavailable in the app; the two OpenAI-based agents keep working.
+- Risk: a stopped pod is tied to its host. If that host has no free GPU in the morning the pod cannot start; the task then
+  reports it and does not create another pod.
+- The tasks use the RunPod key saved on the Claude Code environment. They can be paused or deleted in the Claude app
+  (scheduled tasks) or by asking in a session.
+- First real run: the evening of 2026-11-25. Not exercised before that.
