@@ -24,7 +24,17 @@ def run(label, **kw):
 if "CUDAExecutionProvider" in ort.get_available_providers():
     run("GPU, default options", providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
     run("GPU, heuristic conv search", providers=[("CUDAExecutionProvider", {"cudnn_conv_algo_search": "HEURISTIC"}), "CPUExecutionProvider"])
-for n in (2, 4, 8):
-    os.environ["OMP_NUM_THREADS"] = str(n); os.environ["BLUE_ONNX_THREADS"] = str(n)
-    try: run(f"CPU, {n} threads", providers=[("CPUExecutionProvider", {})])
-    except Exception as e: print("cpu run failed", repr(e)[:200])
+# where does the time go?  time the Hebrew text front end on its own
+try:
+    tts = BlueTTS(onnx_dir=B + "/bundle/onnx", style_json=B + "/voice/daniel.json", providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
+    tp = tts.tts.text_processor if hasattr(tts.tts, "text_processor") else None
+    for name, obj in list(vars(tts.tts).items()) + (list(vars(tp).items()) if tp else []):
+        if "renikud" in name.lower() or "g2p" in name.lower():
+            ph = getattr(obj, "phonemize", None)
+            if ph:
+                ts = []
+                for _ in range(3):
+                    t = time.monotonic(); ph(T); ts.append(round(time.monotonic() - t, 2))
+                print("text front end", name, "alone:", ts, "s")
+except Exception as e:
+    print("front-end timing failed:", repr(e)[:200])
