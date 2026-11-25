@@ -64,6 +64,7 @@ providers:
       he:
         engine: renikud_piper
         model_dir: "${ROLLY_TTS_HE_DIR:-models/hebrew-tts}"
+        length_scale: ${ROLLY_TTS_HE_LENGTH_SCALE:-0.85}   # below 1 = faster speech
         num_threads: ${ROLLY_TTS_THREADS:-2}
         num_instances: ${ROLLY_TTS_INSTANCES:-1}
         provider: "${ROLLY_TTS_PROVIDER:-cpu}"
@@ -120,6 +121,7 @@ providers:
       he:
         engine: renikud_piper
         model_dir: "${ROLLY_TTS_HE_DIR:-models/hebrew-tts}"
+        length_scale: ${ROLLY_TTS_HE_LENGTH_SCALE:-0.85}   # below 1 = faster speech
         num_threads: ${ROLLY_TTS_THREADS:-2}
 
   # ---------------------------------------------------------------- Architecture A: commercial realtime
