@@ -106,6 +106,30 @@ async def _purge_loop(state) -> None:
 app = FastAPI(title="Rolly voice-agent POC", lifespan=lifespan)
 
 
+class HeaderTokenMiddleware:
+    """Accept the access/admin token as `Authorization: Bearer <token>` as well as `?token=`.
+
+    Lets scripts authenticate without putting the token in a URL (URLs end up in logs and shell history).
+    A token in the query string, if present, wins."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] in ("http", "websocket"):
+            qs = scope.get("query_string", b"")
+            if b"token=" not in qs:
+                auth = dict(scope.get("headers") or []).get(b"authorization", b"")
+                if auth[:7].lower() == b"bearer " and auth[7:].strip():
+                    from urllib.parse import quote
+                    extra = b"token=" + quote(auth[7:].strip().decode("latin-1"), safe="").encode()
+                    scope = dict(scope, query_string=(qs + b"&" + extra) if qs else extra)
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(HeaderTokenMiddleware)
+
+
 def S(request: Request):
     return request.app.state.rolly
 
@@ -225,16 +249,23 @@ async def sessions(request: Request, token: str | None = None, tag: str | None =
 
 
 @app.get("/api/sessions/{session_id}")
-async def session_detail(session_id: str, request: Request, token: str | None = None):
+async def session_detail(session_id: str, request: Request, token: str | None = None, events: bool = False):
+    """One session with its transcript.  `events=1` (admin only) adds the raw timing events for offline analysis."""
     st = S(request)
     _check_access(st, token)
     s = st.store.get_session(session_id)
     if s is None:
         raise HTTPException(404, "unknown session")
-    if not _is_admin(st, token):
+    admin = _is_admin(st, token)
+    if not admin:
         s.pop("provider_id", None)
         s.pop("provider_info", None)
-    return {"session": s, "turns": st.store.get_turns(session_id)}
+    out = {"session": s, "turns": st.store.get_turns(session_id)}
+    if events:
+        if not admin:
+            raise HTTPException(403, "admin token required")
+        out["events"] = st.store.get_events(session_id)
+    return out
 
 
 @app.get("/api/telemetry/summary")
