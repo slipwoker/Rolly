@@ -3,13 +3,10 @@
 # deployment branch (the pod has no shell access), without restarting vLLM.  Output: $WS/logs/job.log.
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
-# job 7: Hebrew voice = BlueV3 (built-in voice "daniel", speed 1.2), chosen by the product owner from listening samples.
-# Job 6 started it on CPU because the GPU libraries did not match (3-7 s per sentence).  Until BlueV3 passes the
-# speed gate in blue_setup.sh the pipeline runs on the Piper voice; the worker is switched over only if it passes.
-pkill -f "zonos3-server" 2>/dev/null || true
-ROLLY_TTS_HE_ENGINE=renikud_piper bash infrastructure/start_worker.sh
-if bash infrastructure/blue_setup.sh; then
-  ROLLY_TTS_HE_ENGINE=blue bash infrastructure/start_worker.sh
-else
-  echo "BlueV3 not in use; Hebrew stays on Piper"
-fi
+# job 8: diagnose why BlueV3 takes about 4 s per sentence on this host (job 7: speed gate failed, Hebrew stays on Piper).
+WS="${ROLLY_WORKSPACE:-/workspace}"; BL="$WS/blue"
+pkill -f "examples/openai_server.py" 2>/dev/null || true
+SITE="$("$BL/venv/bin/python" -c "import site; print(site.getsitepackages()[0])")"
+NVLIBS="$(ls -d "$SITE"/nvidia/*/lib 2>/dev/null | tr '\n' ':')"
+echo "nvidia wheel library dirs: $(ls -d "$SITE"/nvidia/*/lib 2>/dev/null | wc -l)"; nproc; uptime
+LD_LIBRARY_PATH="$NVLIBS${LD_LIBRARY_PATH:-}" "$BL/venv/bin/python" infrastructure/blue_diag.py "$BL" 2>&1 | grep -v "consider to run pre-processing" | cut -c1-400
