@@ -29,7 +29,15 @@ describe("Rolly leads the conversation instead of interviewing (P1-D15)", () => 
       const ctx = buildContext(mem, { language: "he" });
       expect(ctx.system_prompt).toContain(LEAD);
       expect(ctx.system_prompt).toContain("Never ask two questions in a row");
+      // last section, after the memory and the journey, where the small model weighs it most
+      expect(ctx.system_prompt.trimEnd().endsWith(LEAD)).toBe(true);
+      expect(ctx.system_prompt.indexOf(LEAD)).toBeGreaterThan(ctx.system_prompt.indexOf("## Current journey"));
     }
+  });
+
+  it("Rolly does not pretend to play music or use the phone", () => {
+    expect(LEAD).toContain("You cannot play music");
+    expect(LEAD).toContain("never pretend to do it");
   });
 
   it("the first conversation caps the getting-to-know questions and hands over to a topic", () => {

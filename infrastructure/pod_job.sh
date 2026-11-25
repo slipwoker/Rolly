@@ -7,6 +7,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 # Jobs 8-9 found the cause of the 3-9 s per sentence: the Hebrew text front end ran on the host's CPU (2.5 s alone).
 # blue_serve.py now puts it on the GPU.  The worker is switched to BlueV3 only if blue_setup.sh's speed gate passes;
 # otherwise Hebrew stays on Piper.
+# job 11 (2026-11-25): restart the worker for the per-turn question guard and the Hebrew pronunciation fix (זאפי);
+# vLLM and the BlueV3 server keep running, blue_setup.sh is idempotent.
 pkill -f "zonos3-server" 2>/dev/null || true
 if bash infrastructure/blue_setup.sh; then
   ROLLY_TTS_HE_ENGINE=blue bash infrastructure/start_worker.sh
