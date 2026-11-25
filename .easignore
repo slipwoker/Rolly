@@ -1,0 +1,26 @@
+# EAS uploads the git repository; the Python research tree is not needed for the iOS build
+.venv/
+models/
+benchmarks/
+reports/
+telemetry/
+finops/
+docs/
+.venv/
+models/
+data/
+__pycache__/
+*.pyc
+.env
+.pytest_cache/
+node_modules/
+benchmarks/audio_cache/
+*.log
+
+# Phase 1
+apps/api/e2e-out/
+.expo/
+apps/mobile/ios/
+apps/mobile/android/
+.env.local
+.env*.local

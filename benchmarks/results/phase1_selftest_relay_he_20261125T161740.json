@@ -1,0 +1,253 @@
+{
+    "id": "3bed7a38-18ea-47bc-983b-e4dd52a91116",
+    "scenario": "relay",
+    "lang": "he",
+    "status": "done",
+    "started": "2026-11-25T16:17:09.130Z",
+    "results": [
+        {
+            "label": "relay",
+            "ok": true,
+            "lang": "he",
+            "turns": [
+                {
+                    "label": "opener",
+                    "seq": 1,
+                    "text": "ערב טוב. מה השם, ואיך הכי כיף לנצל את הזמן בנסיעה?",
+                    "audio_s": 4.56,
+                    "interrupted": false,
+                    "proactive": true
+                },
+                {
+                    "label": "reply1",
+                    "seq": 2,
+                    "text": "וואלה, בהצלחה. זה משהו שמרגישים עליו הרבה לחץ או שזה סבבה?",
+                    "audio_s": 4.81,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 700,
+                    "user_said": "היי, אני בדרך לעבודה, יש לי פגישה חשובה עם לקוח חדש היום."
+                },
+                {
+                    "label": "reply2",
+                    "seq": 3,
+                    "text": "תכלס, פשוט להקשיב יותר מאשר לדבר. זה תמיד עובד.",
+                    "audio_s": 0.16,
+                    "interrupted": true,
+                    "proactive": false,
+                    "reply_latency_ms": 503,
+                    "user_said": "אני קצת לחוץ, תן לי טיפ אחד קצר לפגישה.",
+                    "interrupt_received_ms_after_barge_start": 406
+                },
+                {
+                    "label": "after_barge_in_3",
+                    "seq": 4,
+                    "text": "סבבה, מה על הפרק?",
+                    "audio_s": 1.81,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 340,
+                    "user_said": "רגע, רגע, בעצם בוא נדבר על משהו אחר."
+                }
+            ],
+            "transcripts": [
+                {
+                    "text": "היי, אני בדרך לעבודה, יש לי פגישה חשובה עם לקוח חדש היום.",
+                    "language": "he"
+                },
+                {
+                    "text": "אני קצת לחוץ, תן לי טיפ אחד קצר לפגישה.",
+                    "language": "he"
+                },
+                {
+                    "text": "רגע רגע, בעצם בוא נדבר על משהו אחר.",
+                    "language": "he"
+                }
+            ],
+            "events": [
+                {
+                    "t": 501,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 501,
+                    "type": "session.created"
+                },
+                {
+                    "t": 965,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 1256,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 5899,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 10018,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 10143,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 10143,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 10404,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 10630,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 15579,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 18601,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 18602,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 18603,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 18793,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 18905,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 19899,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 19899,
+                    "type": "agent.interrupted"
+                },
+                {
+                    "t": 22950,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 22950,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 22950,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 23053,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 23072,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 29905,
+                    "type": "session.summary"
+                },
+                {
+                    "t": 29905,
+                    "type": "session.closed"
+                }
+            ],
+            "session_id": "8845a91a-bca3-404f-bea4-b56a3ba5993c",
+            "summary": {
+                "type": "session.summary",
+                "session_id": "8845a91a-bca3-404f-bea4-b56a3ba5993c",
+                "summary": {
+                    "summary": "המשתמש אמר שהוא בדרך לעבודה ויש לו היום פגישה חשובה עם לקוח חדש, והוא מעט לחוץ. הוא ביקש טיפ קצר וקיבל הצעה להקשיב יותר מאשר לדבר, אך מיד ביקש לעבור לנושא אחר.",
+                    "progress": [],
+                    "method": "llm"
+                },
+                "stats": {
+                    "end_reason": "client_end",
+                    "duration_s": 25,
+                    "turns_user": 3,
+                    "turns_agent": 4,
+                    "interruptions": 1,
+                    "errors": 0,
+                    "audio_in_s": 24.8,
+                    "audio_out_s": 15.6,
+                    "server_reply_ms": [
+                        384,
+                        189,
+                        103
+                    ],
+                    "server_reply_ms_median": 189,
+                    "client_first_audio_ms": [],
+                    "client_first_audio_ms_median": null,
+                    "client_flush_ms": [],
+                    "audio_events": [],
+                    "pod_metrics_median": {
+                        "tts_ttfa_ms": 117.80437000561506,
+                        "pipeline_ms": 454.80509696062654,
+                        "llm_ttft_ms": 71.97203498799354,
+                        "llm_total_ms": 282.6087271096185,
+                        "stt_ms": 146.1882370058447,
+                        "stt_queue_ms": 0.1377089647576213,
+                        "llm_first_chunk_ms": 141.92745403852314
+                    },
+                    "summary_ms": 4990
+                }
+            }
+        }
+    ],
+    "user_id": "2f04940c-9154-4b51-8258-e8eb86153e0e",
+    "error": null,
+    "state": {
+        "profile": {
+            "preferred_name": null,
+            "preferred_language": "he",
+            "addressing": {
+                "value": null,
+                "status": "unknown",
+                "evidence": {
+                    "examples": [
+                        {
+                            "at": "2026-11-25T16:17:29.170Z",
+                            "form": "masculine",
+                            "quote": "אני קצת לחוץ",
+                            "session_id": "8845a91a-bca3-404f-bea4-b56a3ba5993c"
+                        }
+                    ],
+                    "feminine": 0,
+                    "masculine": 1,
+                    "ignored_uncertain": 0
+                }
+            }
+        },
+        "memories": [
+            {
+                "kind": "open_topic",
+                "status": "active",
+                "content": "הנושא החדש שהמשתמש רוצה לדבר עליו",
+                "confidence": null
+            },
+            {
+                "kind": "summary",
+                "status": "active",
+                "content": "המשתמש אמר שהוא בדרך לעבודה ויש לו היום פגישה חשובה עם לקוח חדש, והוא מעט לחוץ. הוא ביקש טיפ קצר וקיבל הצעה להקשיב יותר מאשר לדבר, אך מיד ביקש לעבור לנושא אחר.",
+                "confidence": null
+            }
+        ],
+        "progress": [],
+        "next_opener_instruction": "[journey_start event - this is not something the user said] The user has just started a journey. Open the conversation yourself, right now, the way a friend does when you get in the car: a casual hello for the evening, then one specific question about the single most relevant unresolved thing from your memory (name what was actually discussed, as in 'so, what happened with ...?'). Two short sentences, under twenty-five words in total. Do not mention how long the journey is, do not list options, and do not announce what you are going to talk about.",
+        "addressing_section_in_next_prompt": "How to address the user in Hebrew (not known yet):\n- You do not know yet whether this user is addressed in masculine or feminine forms. Do not guess: not from their name, not from their voice, not from their interests. Never ask about their gender.\n- Until you know, phrase everything you say TO the user so that it has no gender: impersonal forms (\"יש תוכניות להיום?\", \"איך היה?\", \"מה נשמע?\", \"שווה לנסות\"), infinitives (\"אפשר לנסות...\", \"כדאי לבדוק\"), first person plural (\"יאללה נדבר על זה\", \"ננסה\"), or talk about the thing rather than the person (\"מה קרה עם הפגישה?\" rather than \"מה עשית בפגישה?\").\n- Everything you write is read aloud without vowels, so avoid second-person words whose pronunciation carries gender, even when the spelling looks neutral: אתה, את, לך, שלך, אותך, עליך, איתך, בשבילך, and verbs or adjectives in second person singular (רוצה is fine; תרצה/תרצי, עשית, בטוח/בטוחה are not).\n- Do not alternate between masculine and feminine forms and do not write both (\"רוצה/רוצה\").\n- If the user tells you how to address them (for example \"תדבר אליי בלשון נקבה\", \"אני אישה\", \"תפנה אליי בזכר\"), follow it immediately for the rest of the conversation without comment beyond a word or two."
+    }
+}

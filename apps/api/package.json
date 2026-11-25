@@ -1,0 +1,31 @@
+{
+  "name": "@rolly/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ROLLY Phase 1 backend: auth, memory (PostgreSQL), prompt building, relay to the GPU worker, summaries.",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "node --import tsx src/main.ts",
+    "migrate": "tsx src/db/migrate.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@rolly/contracts": "*",
+    "fastify": "^5.12.8",
+    "https-proxy-agent": "^9.1.0",
+    "pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "undici": "^8.13.1",
+    "ws": "^8.23.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.23.1",
+    "@types/ws": "^8.18.2",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.2"
+  }
+}

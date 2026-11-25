@@ -1,0 +1,12 @@
+{
+  "name": "rolly",
+  "private": true,
+  "description": "ROLLY Phase 1: TypeScript workspaces (apps/api, apps/mobile, packages/contracts). The Python research tree is not part of the workspaces.",
+  "workspaces": ["packages/contracts", "apps/api", "apps/mobile"],
+  "scripts": {
+    "api:dev": "npm run dev -w @rolly/api",
+    "api:test": "npm test -w @rolly/api",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": { "node": ">=22" }
+}
