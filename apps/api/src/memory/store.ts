@@ -1,4 +1,5 @@
 /** PostgreSQL memory store: profile, typed memories with status and provenance, sessions, turns, progress. */
+import { redactPersonalText } from "../audit/recorder.ts";
 import type { Db } from "../db/index.ts";
 import type { MemoryView } from "../persona/promptBuilder.ts";
 import type { AddressingValue } from "../persona/phase1Sections.ts";
@@ -202,6 +203,8 @@ export class MemoryStore {
     if (!PERSONAL_KINDS.includes(old.kind) || !old.content.trim()) return;
     if (replacement !== null && replacement.trim().toLowerCase() === old.content.trim().toLowerCase()) return;
     await this.db.query("INSERT INTO scrub_queue(user_id, content, replacement) VALUES ($1,$2,$3)", [userId, old.content, replacement]);
+    // the audit's copies of prompts, plans and notes may state it too: their personal text goes now (src/audit/recorder.ts)
+    await redactPersonalText(this.db, "user_id = $1", userId, "forget");
     // the transcript line it was taken from (known exactly from the provenance) is blanked as well; the rest of the raw
     // transcript is never put into a prompt and is deleted after the retention period
     const prov = old.provenance ?? {};

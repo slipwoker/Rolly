@@ -1,9 +1,12 @@
 /** Minimal OpenAI-compatible chat client for the utility LLM (summaries, memory commands). */
 import { fetch, ProxyAgent, type Dispatcher } from "undici";
 
+export type LlmPurpose = "summary" | "live_command" | "capture" | "plan" | "scrub" | "consolidate" | "judge" | "other";
+
 export interface UtilityLlm {
   name: string;
-  json(prompt: string, opts?: { maxTokens?: number }): Promise<{ obj: Record<string, unknown>; ms: number; usage?: unknown }>;
+  /** `purpose` labels the call in the audit (src/audit/recorder.ts); it is not sent to the model */
+  json(prompt: string, opts?: { maxTokens?: number; purpose?: LlmPurpose }): Promise<{ obj: Record<string, unknown>; ms: number; usage?: unknown }>;
 }
 
 let dispatcher: Dispatcher | undefined;

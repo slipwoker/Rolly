@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Rolly Agent Audit</title>
+  <link rel="stylesheet" href="/admin/app.css">
+</head>
+<body>
+  <div id="app" class="app">
+    <aside class="nav" id="nav">
+      <div class="brand"><span class="dot" aria-hidden="true"></span>Rolly audit</div>
+      <nav aria-label="Sections">
+        <a href="#/overview" data-route="overview">Overview</a>
+        <a href="#/sessions" data-route="sessions">Conversations</a>
+        <a href="#/prompts" data-route="prompts">Prompts</a>
+        <a href="#/costs" data-route="costs">Costs</a>
+        <a href="#/calls" data-route="calls">Model calls</a>
+        <a href="#/users" data-route="users">Users</a>
+      </nav>
+      <div class="nav-foot">
+        <button type="button" class="link" id="theme">Theme</button>
+        <button type="button" class="link" id="logout">Sign out</button>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="filters" id="filters" role="group" aria-label="Filters">
+        <label>Range
+          <select id="f-days">
+            <option value="1">Today</option>
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="365">Last year</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="f-selftest"> Include self-tests</label>
+        <span class="spacer"></span>
+        <span class="muted small" id="status" aria-live="polite"></span>
+      </div>
+      <div id="view" class="view"></div>
+    </main>
+  </div>
+  <div id="login" class="login" hidden>
+    <form id="login-form" class="card login-card">
+      <h1>Rolly agent audit</h1>
+      <p class="muted">Owner access. The admin token stays in this browser tab only.</p>
+      <label>Admin token <input type="password" id="token" autocomplete="off" required></label>
+      <button type="submit" class="primary">Open</button>
+      <p class="error" id="login-error" hidden></p>
+    </form>
+  </div>
+  <div id="tip" class="tip" role="tooltip" hidden></div>
+  <script src="/admin/app.js"></script>
+</body>
+</html>

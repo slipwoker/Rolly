@@ -25,6 +25,10 @@ export interface Config {
   /** development only: accept `?dev_user=<id>` on the voice socket without a ticket. Refused when NODE_ENV=production. */
   devAuth: boolean;
   timezone: string;
+  /** deploy commit, recorded with each prompt version in the audit (Render sets RENDER_GIT_COMMIT) */
+  build: string | null;
+  /** run the LLM judge after every conversation with at least two user turns (ROLLY_AUDIT_JUDGE=off disables it) */
+  auditJudge: boolean;
 }
 
 function req(env: NodeJS.ProcessEnv, name: string, fallback?: string): string {
@@ -84,5 +88,7 @@ export function loadConfig(env = process.env): Config {
     maxSessionMinutes: Number(env.ROLLY_MAX_SESSION_MINUTES ?? 90),
     devAuth,
     timezone: env.ROLLY_TIMEZONE ?? "Asia/Jerusalem",
+    build: (env.RENDER_GIT_COMMIT || env.ROLLY_BUILD || "").slice(0, 12) || null,
+    auditJudge: !/^(off|0|false|no)$/i.test(env.ROLLY_AUDIT_JUDGE ?? "on"),
   };
 }
