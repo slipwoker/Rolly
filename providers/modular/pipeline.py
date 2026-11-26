@@ -501,6 +501,13 @@ class ModularProvider(VoiceProvider):
                 try:
                     async for delta in self.llm.stream(messages, llm_res, **getattr(self, "_llm_extra", {})):
                         state["agent_text"] += delta
+                        # "checking": reported as soon as the marker has been written, not at the end of the reply.  A user who
+                        # speaks right after "אני בודק" cancels the reply, and a request reported only at its end was lost
+                        # (2026-11-26: three of seven requests, then Rolly "reported" a search that never ran).
+                        if (not state.get("lookup_sent") and LOOKUP_MARKER in state["agent_text"] and END_MARKER not in state["agent_text"]
+                                and not (typed and (text or "").startswith("[lookup"))):
+                            state["lookup_sent"] = True
+                            await gate.emit(base.LOOKUP_REQUESTED, response_id=rid)
                         visible = shown.feed(delta)
                         if visible:
                             await gate.emit(base.AGENT_TEXT, response_id=rid, delta=visible)
@@ -567,7 +574,7 @@ class ModularProvider(VoiceProvider):
                 await gate.emit(base.END_REQUESTED, reason="user_ended", after_s=tts_audio_s)
             # "checking": the caller looks it up and sends the answer back as a marked message.  A reply to such a
             # message cannot ask for another lookup (no loops).
-            elif LOOKUP_MARKER in state["agent_text"] and not (typed and (text or "").startswith("[lookup")):
+            elif LOOKUP_MARKER in state["agent_text"] and not state.get("lookup_sent") and not (typed and (text or "").startswith("[lookup")):
                 await gate.emit(base.LOOKUP_REQUESTED, response_id=rid)
             if gate.committed:
                 await self._finalize_committed(state)
