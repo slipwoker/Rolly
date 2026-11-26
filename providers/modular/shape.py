@@ -61,3 +61,45 @@ class PieceShaper:
         self._carry = np.zeros(0, dtype="<i2")
         self._pending = []
         return out + (self.gap if self._started else b"")
+
+
+class PauseCap:
+    """Streaming: no silence in the piece is longer than `cap_ms` (inside the speech, at its start and at its end).
+
+    The owner's blind listening (2026-11-26) preferred the natural intonation of a whole merged piece, except in the replies
+    where the pauses were long (0.5-0.7 s); a fixed gap after trimming (`PieceShaper`) sounded mechanical when they were not.
+    So only the long pauses are shortened, to the cap; everything shorter is left exactly as the model made it."""
+
+    def __init__(self, sample_rate: int, cap_ms: int = 350):
+        self.frame = max(1, int(sample_rate * FRAME_MS / 1000))
+        self.cap_frames = max(1, cap_ms // FRAME_MS)
+        self._carry = np.zeros(0, dtype="<i2")
+        self._run = 0  # silent frames seen since the last sound (frames beyond the cap are dropped)
+
+    def _frames(self, samples: np.ndarray) -> bytes:
+        out = []
+        for i in range(0, len(samples), self.frame):
+            fr = samples[i:i + self.frame]
+            silent = float(np.max(np.abs(fr.astype(np.float32))) / 32768.0) < SILENCE_PEAK if len(fr) else True
+            if silent:
+                self._run += 1
+                if self._run <= self.cap_frames:
+                    out.append(fr.tobytes())
+            else:
+                self._run = 0
+                out.append(fr.tobytes())
+        return b"".join(out)
+
+    def feed(self, pcm: bytes) -> bytes:
+        n = len(pcm) >> 1
+        if not n:
+            return b""
+        samples = np.concatenate([self._carry, np.frombuffer(pcm, dtype="<i2", count=n)])
+        whole = (len(samples) // self.frame) * self.frame
+        self._carry = samples[whole:].copy()
+        return self._frames(samples[:whole]) if whole else b""
+
+    def finish(self) -> bytes:
+        out = self._frames(self._carry) if len(self._carry) else b""
+        self._carry = np.zeros(0, dtype="<i2")
+        return out

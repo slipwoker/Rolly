@@ -147,6 +147,7 @@ class BlueTTS(OpenAICompatTTS):
         self.stream = flag(cfg.get("blue_stream"), True)
         self.trim = flag(cfg.get("blue_trim"), False)
         self.gap_ms = int(cfg.get("blue_gap_ms") or 150)
+        self.pause_cap_ms = int(cfg.get("blue_pause_cap_ms") or 0)  # >0: no silence longer than this (shape.PauseCap)
         super().__init__({"base_url": cfg.get("blue_url", "http://127.0.0.1:1920/v1"), "model": "bluev3",
                           "voice": cfg.get("blue_voice", "ariel"), "sample_rate": int(cfg.get("blue_sample_rate", 44100)),
                           "extra_body": {"speed": float(cfg.get("blue_speed", 1.0)), "language": cfg.get("blue_language", "he"), "stream": self.stream}})
@@ -155,12 +156,12 @@ class BlueTTS(OpenAICompatTTS):
         self.language_spans = True
 
     async def synth(self, text: str, language: str | None = None) -> AsyncIterator[bytes]:
-        if not self.trim:
+        if not self.trim and not self.pause_cap_ms:
             async for pcm in super().synth(text, language):
                 yield pcm
             return
-        from .shape import PieceShaper
-        shaper = PieceShaper(self.sample_rate, self.gap_ms)
+        from .shape import PauseCap, PieceShaper
+        shaper = PieceShaper(self.sample_rate, self.gap_ms) if self.trim else PauseCap(self.sample_rate, self.pause_cap_ms)
         async for pcm in super().synth(text, language):
             out = shaper.feed(pcm)
             if out:

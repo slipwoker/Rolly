@@ -384,3 +384,20 @@ def test_short_sentences_are_kept_together_after_the_first_piece_when_merging_is
     assert len(merged) == 2 and merged[1].count(".") >= 3         # the rest together, one synthesis
     assert " ".join(merged) == " ".join(plain)                    # the same words
 
+
+
+def test_a_pause_cap_shortens_only_the_long_silences():
+    import numpy as np
+    from providers.modular.shape import PauseCap
+    sr = 24000
+    tone = (np.sin(np.arange(sr // 5) * 0.3) * 8000).astype("<i2")
+    sil = lambda ms: np.zeros(sr * ms // 1000, dtype="<i2")
+    pcm = np.concatenate([sil(600), tone, sil(200), tone, sil(700), tone, sil(500)]).tobytes()
+    cap = PauseCap(sr, 350)
+    out = b"".join(cap.feed(pcm[i:i + 1000]) for i in range(0, len(pcm), 1000)) + cap.finish()  # odd chunking on purpose
+    n = len(out) // 2
+    # 600 -> 350, 200 stays, 700 -> 350, 500 -> 350: 750 ms removed; the tones are intact
+    assert abs(n - (len(pcm) // 2 - sr * 750 // 1000)) <= 2 * (sr // 100)
+    got = np.frombuffer(out, dtype="<i2")
+    assert int((np.abs(got) > 1000).sum()) == int((np.abs(np.frombuffer(pcm, dtype="<i2")) > 1000).sum())
+    assert PauseCap(sr, 350).finish() == b""
