@@ -156,3 +156,16 @@ personalisation screen opens it and only shows when the server has WhatsApp. Pur
 unit-tested; **the screens have not been run on a device or simulator and the link has not been tried end to end on a personal account** (planned: the owner's
 personal number, live). The terms wording is a draft for the legal review (W6). Business accounts will fail at the code step until whatsmeow issue 1360 is fixed;
 the screen says so when a code expires.
+
+### Link from a computer (2026-11-26, `apps/api/src/whatsapp/webLink.ts`, `src/email/elastic.ts`)
+Why: the pairing code of the phone-only flow fails on real accounts (personal iPhone and Business: the phone answers "Couldn't link device" after
+the client's last step; no fix upstream as of 2026-11-26; unknown whether it is a new passkey step, the datacenter IP, or iOS), and a QR cannot be scanned from the same phone.
+The QR works (also for Business), so the app asks `POST /v1/whatsapp/web-link {consent:true[, email, lang]}`: the answer is a one-time address to share, or the same address
+is emailed. The page `/link/wa#<token>` (any computer) starts a QR link for the token's user and shows the live QR; the phone scans it; the page and the app say "connected".
+- The token is in the URL **fragment**: it never reaches server logs or a Referer. It lives 10 minutes, replaces the user's previous one, and dies when the link succeeds.
+- The page is self-contained: CSP with a per-load nonce, no external resources, no framing, `no-store`, `noindex`.
+- Email: Elastic Email v4 transactional send (`ROLLY_EMAIL_API_KEY`, `ROLLY_EMAIL_FROM` = a sender verified in Elastic Email, set on `rolly-api`; unset = the app only offers sharing).
+  **Not verified against the live API** from this environment (no key): check it with one real send. Limits: 3 emails/hour and 8/day per user, 10/hour per address of the caller.
+  The address is used for that one message and is not stored or logged.
+- Residual risk: whoever holds a live link can show the QR, and whoever scans it connects THEIR WhatsApp to this Rolly account. Hence the short life, and the consent before the link exists.
+Tests: `apps/api/test/webLink.test.ts` (routes, tokens, limits, mail shape), `apps/mobile/test/whatsapp.test.ts`. The page was also run in Chromium against a fake gateway (QR, success, expired).

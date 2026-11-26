@@ -101,3 +101,7 @@ the gateway has no in-app consent screen yet (the API requires the flag; the scr
 - **Google (calendar + mail)** is read only (`calendar.readonly`, `gmail.readonly`). The refresh token is stored encrypted (AES-256-GCM) in `integrations`, under a key that only the service's environment holds (`ROLLY_INTEGRATIONS_KEY`, never in the database; P1-D40, `docs/SECURITY.md`), deleted on disconnect or account deletion, and revoked at Google at that moment. Rolly never sends, replies, accepts or changes anything.
 - When the user asks about their calendar or mail, only the events (title, time, place) or at most five messages (sender, subject, Google's snippet, never full bodies) needed for that one question are fetched and sent to the utility model to be put into a spoken answer. Nothing from mail or calendar is written to memory or the transcript store beyond what the user hears Rolly say.
 - **Spotify** uses the app's own credentials to search the public catalogue; no user account is connected and no user data is sent except the search words.
+
+**Link by email (WhatsApp).** When the user asks for the QR link by email, the address they type is sent to Elastic Email (our email provider) together with a message containing a
+10-minute one-time link. We do not store or log the address; Elastic Email keeps its own delivery records under its own terms (to be checked in the contract). The link is the only
+content of the message.

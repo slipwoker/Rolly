@@ -27,6 +27,15 @@ export function formatCode(code: string): string {
   return c.length === 8 ? `${c.slice(0, 4)}-${c.slice(4)}` : c;
 }
 
+/** A usable email address: something@something.tld, no spaces. (The server checks again.) */
+export function isEmail(input: string): boolean {
+  const e = input.trim();
+  return e.length <= 254 && /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(e);
+}
+
+/** Whole minutes left, rounded up, never negative: "10 minutes left" while there are 9 min 1 s. */
+export function minutesLeft(secondsLeft: number): number { return Math.max(0, Math.ceil(secondsLeft / 60)); }
+
 export type LinkState = "unlinked" | "pairing" | "connected" | "reconnecting" | "needs_relink" | "banned" | "conflict" | "client_outdated" | "unavailable";
 
 /** What the screen offers for each state. `text` is a key of the UI strings (i18n.ts). */
@@ -51,12 +60,13 @@ export function httpStatus(e: unknown): number | null {
   return m ? Number(m[1]) : null;
 }
 
-export type LinkError = "waErrBusy" | "waErrPhone" | "waErrLimit" | "waErrGeneric";
+export type LinkError = "waErrBusy" | "waErrPhone" | "waErrLimit" | "waErrEmail" | "waErrEmailOff" | "waErrGeneric";
 export function linkError(e: unknown): LinkError {
   switch (httpStatus(e)) {
     case 409: return "waErrBusy"; // already linked
     case 400: return "waErrPhone";
     case 429: return "waErrLimit";
+    case 501: return "waErrEmailOff"; // the server has no email provider set up
     default: return "waErrGeneric";
   }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCode, httpStatus, linkError, normalizePhone, stateView } from "../src/whatsapp";
+import { formatCode, httpStatus, isEmail, linkError, minutesLeft, normalizePhone, stateView } from "../src/whatsapp";
 
 describe("normalizePhone", () => {
   it("turns Israeli local numbers into digits with the country code", () => {
@@ -51,7 +51,17 @@ describe("errors", () => {
     expect(linkError(new Error("x: HTTP 409"))).toBe("waErrBusy");
     expect(linkError(new Error("x: HTTP 400"))).toBe("waErrPhone");
     expect(linkError(new Error("x: HTTP 429"))).toBe("waErrLimit");
+    expect(linkError(new Error("x: HTTP 501"))).toBe("waErrEmailOff");
     expect(linkError(new Error("x: HTTP 502"))).toBe("waErrGeneric");
     expect(linkError("boom")).toBe("waErrGeneric");
   });
+});
+
+describe("isEmail", () => {
+  it("accepts ordinary addresses", () => { for (const ok of ["a@b.co", " me@example.com ", "first.last+tag@sub.example.co.il"]) expect(isEmail(ok)).toBe(true); });
+  it("refuses what cannot be one", () => { for (const bad of ["", "me", "me@", "@x.com", "me@x", "me@x..com", "me @x.com", "a@b@c.com", "x".repeat(250) + "@b.co"]) expect(isEmail(bad)).toBe(false); });
+});
+
+describe("minutesLeft", () => {
+  it("rounds up and never goes below zero", () => { expect(minutesLeft(600)).toBe(10); expect(minutesLeft(541)).toBe(10); expect(minutesLeft(60)).toBe(1); expect(minutesLeft(1)).toBe(1); expect(minutesLeft(0)).toBe(0); expect(minutesLeft(-5)).toBe(0); });
 });
