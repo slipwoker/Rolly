@@ -67,7 +67,7 @@ async function ride(label: string, turns: SessionTurn[], live: number[] = []) {
   const v = await store.memoryView(uid);
   console.log("  tasks:", v.tasks.map((t) => t.content), "| ideas:", v.ideas, "| done:", (await store.memories(uid, { kinds: ["action_item", "idea"], done: true })).map((m) => m.content));
   console.log("  progress:", (await store.progress(uid)).slice(0, 4).map((p) => `${p.goal_id ? "[goal] " : ""}${p.text}`));
-  console.log("  next plan:", v.agenda?.items.map((a) => `${a.kind}${a.ref_id ? "*" : ""}: ${a.topic} (${a.why})`));
+  console.log("  next plan:", v.agenda?.items.map((a) => `${a.kind}${a.ref_id ? "*" : ""}: ${a.topic} | take: ${a.take ?? "-"}`));
   console.log("  scrub:", scrub, "| consolidate:", cons, "| digest:", v.digest);
 }
 
