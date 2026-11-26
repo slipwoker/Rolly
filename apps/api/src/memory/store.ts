@@ -217,7 +217,8 @@ export class MemoryStore {
   }
 
   /** Apply the summariser's output under the memory policy. Returns what was decided, for the session record and tests. */
-  async applySummary(userId: string, sessionId: string, s: SummaryResult, turns: SessionTurn[]): Promise<{ decisions: { kind: string; content: string; decision: Decision }[]; applied: string[] }> {
+  async applySummary(userId: string, sessionId: string, s: SummaryResult, turns: SessionTurn[],
+    opts: { languageDetected?: boolean } = {}): Promise<{ decisions: { kind: string; content: string; decision: Decision }[]; applied: string[] }> {
     const decisions: { kind: string; content: string; decision: Decision }[] = [];
     const applied: string[] = [];
     if (s.method !== "llm") {
@@ -274,11 +275,30 @@ export class MemoryStore {
       if (c.action === "delete" && await this.deleteMemory(userId, c.memory_id, "voice", sessionId)) applied.push(`delete:${c.memory_id}`);
       if (c.action === "replace" && c.new_content && await this.correctMemory(userId, c.memory_id, c.new_content, "voice", sessionId, c.quote)) applied.push(`correct:${c.memory_id}`);
     }
-    if (s.language && !others) {
+    // Only a conversation whose language was DETECTED says something about the user's language: with a fixed language the
+    // recogniser writes everything in that language whatever was spoken.
+    if (s.language && !others && opts.languageDetected) {
       const p = await this.profile(userId);
       if (!p.preferred_language) await this.updateProfile(userId, { preferred_language: s.language });
     }
     return { decisions, applied };
+  }
+
+  /**
+   * Delete one conversation and what was learned from it: its transcript, its summary, the topics, progress notes and
+   * unconfirmed items that came from it. Memories the user has since confirmed or corrected (`provenance.confirmed`) stay.
+   */
+  async deleteSession(userId: string, sessionId: string): Promise<{ deleted: true; memories: number; progress: number } | null> {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId)) return null;
+    const own = await this.db.query("SELECT 1 FROM sessions WHERE id=$1 AND user_id=$2", [sessionId, userId]);
+    if (!own.rowCount) return null;
+    const mem = await this.db.query<{ id: string }>(
+      `SELECT id FROM memories WHERE user_id=$1 AND status<>'deleted' AND coalesce(provenance->>'confirmed', 'false') <> 'true'
+         AND (source_session_id=$2::uuid OR provenance->>'session_id'=$3)`, [userId, sessionId, sessionId]);
+    for (const m of mem.rows) await this.deleteMemory(userId, m.id, "app", sessionId);
+    const prog = await this.db.query("UPDATE progress_items SET deleted_at=now(), text='' WHERE user_id=$1 AND session_id=$2 AND deleted_at IS NULL", [userId, sessionId]);
+    await this.db.query("DELETE FROM sessions WHERE id=$1 AND user_id=$2", [sessionId, userId]); // turns go with it (cascade)
+    return { deleted: true, memories: mem.rows.length, progress: prog.rowCount ?? 0 };
   }
 
   /** last turns of one of the user's sessions (for resuming after a dropped connection) */

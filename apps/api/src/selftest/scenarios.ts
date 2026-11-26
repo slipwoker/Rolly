@@ -43,7 +43,7 @@ export async function runConversation(o: RunOpts): Promise<RunResult> {
   };
   try {
     await phone.connect(o.wsUrl);
-    phone.send({ type: "session.start", language: o.lang, proactive: true, journey: { duration_min: 20 }, client: { platform: "selftest" } });
+    phone.send({ type: "session.start", language: o.lang, language_explicit: true, proactive: true, journey: { duration_min: 20 }, client: { platform: "selftest" } });
     const created = await waitEvent(phone, "session.created", 40_000);
     res.session_id = (created as { session_id: string }).session_id;
     const opener = await phone.waitReply(0, 45_000);

@@ -48,7 +48,8 @@ describe("VoiceController", () => {
     const h = harness();
     await h.ctl.start({ language: "he" });
     await tick();
-    expect(h.sent[0]).toMatchObject({ type: "session.start", language: "he" });
+    // a default language is not marked as the user's choice (the server then uses the profile's language)
+    expect(h.sent[0]).toMatchObject({ type: "session.start", language: "he", language_explicit: false });
     h.mic(5000); // before session.created: not sent
     expect(h.sent.filter((m) => "binary" in m)).toHaveLength(0);
     h.server({ type: "session.created", session_id: "s1", input_sample_rate: 16000, output_sample_rate: 24000, language: "he", proactive: true, onboarding: true });

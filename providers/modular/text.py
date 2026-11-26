@@ -63,10 +63,13 @@ def question_guard_note(history: list[dict]) -> str | None:
 
 # Hebrew words the voice front end reads wrongly without vowels.  Applied only to the text sent to a Hebrew voice
 # (history and transcripts keep the plain spelling).  Value: vocalised spelling with the intended reading.
-#   זאפי (the owner's company, "Zappy"): read as "zaffy" because an unmarked פ in the middle is read as f;
-#   the dagesh in פּ makes it p.
+#   זאפי (the owner's company, "Zappy"): read as "zaffy" because an unmarked פ in the middle is read as f.  The vocalised
+#   spelling זַאפִּי did not fix it for the owner's ear; written in Latin letters the Hebrew voice says it right
+#   (listening samples, 2026-11-26: the owner chose "Zappy" and מָאוֹר).
+#   מאור (a first name, "Ma-or"): read as "Me-or" without vowels.
 HE_PRONUNCIATION: dict[str, str] = {
-    "זאפי": "זַאפִּי",
+    "זאפי": "Zappy",
+    "מאור": "מָאוֹר",
 }
 _HE_LETTER = "א-ת"
 
@@ -82,7 +85,9 @@ _HE_PATTERNS = [(_he_pattern(w), v) for w, v in HE_PRONUNCIATION.items()]
 def he_pronounce(text: str) -> str:
     """Replace words from HE_PRONUNCIATION with their vocalised reading, keeping any prefix letters."""
     for pat, v in _HE_PATTERNS:
-        text = pat.sub(lambda m: m.group(1) + v, text)
+        # a Hebrew prefix letter before a word written in Latin letters takes a hyphen, as in written Hebrew ("ב-Zappy")
+        joiner = "-" if v[:1].isascii() and v[:1].isalpha() else ""
+        text = pat.sub(lambda m, v=v, joiner=joiner: (m.group(1) + joiner if m.group(1) else "") + v, text)
     return text
 
 
