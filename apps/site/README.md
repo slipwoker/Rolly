@@ -16,6 +16,16 @@ toggled.
   WebPage + FAQPage with speakable). The visible "questions" section is the FAQ the structured data describes.
   `robots.txt` allows all crawlers including AI assistants, `sitemap.xml` lists both URLs, `llms.txt` is a
   plain-language summary for AI assistants, `site.webmanifest` names the site and its icons.
+- **Legal pages**: privacy policy (`/privacy/`), terms of use (`/terms/`) and accessibility statement
+  (`/accessibility/`), each also under `/en/`, linked from the footer. Their text is in `legal/<slug>.<he|en>.html`
+  (content only; the first line is a `<!--meta {json}-->` with title, h1, description and the `updated` date); the
+  build wraps it in the page layout with a table of contents. Operator: Zappy Technologies Ltd.; contact Ido Sela
+  (ido@zappy5.com, privacy@zappy5.com). The privacy policy describes the real data flows (voice not stored,
+  transcripts 30 days, unconfirmed items 14 days, OpenAI/RunPod/Render/Cloudflare/Google): **update it whenever a
+  data flow or provider changes**, and bump `updated`. The accessibility statement claims SI 5568 / WCAG 2.0 AA,
+  last checked with axe and by hand on 26 Nov 2026: re-check before changing the claims.
+- **Accessibility features**: skip link, a pause-animations button (remembered in `localStorage` `rolly-motion`), and
+  `prefers-reduced-motion` support.
 
 The driver is the same drawing as the app's `apps/mobile/src/ui/RollyAvatar.tsx`.
 
