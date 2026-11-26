@@ -33,7 +33,8 @@ Return ONLY a JSON object with these keys:
   "candidate_confirmations": list of {"id": "<id from the 'Not confirmed' list>", "answer": "yes"|"no", "turn": <turn number>} for items the user was asked about and answered,
   "corrections": list of {"memory_id": "<id from 'Known memories'>"|null, "action": "replace"|"delete", "new_content": "<corrected text>"|null, "turn": <turn number>, "quote": "<the user's words>"} when the user said something remembered is wrong or asked to forget it,
   "other_speakers_suspected": true if anything in the transcript suggests more than one person was talking (someone addressed by name, replies that do not fit, "USER?" lines), else false,
-  "language": "he" or "en" — the language the user mostly spoke.
+  "language": "he" or "en" — the language the user mostly spoke,
+  "user_gender": {"form": "masculine"|"feminine"|null, "quotes": [up to three short phrases copied exactly from USER lines (never "USER?" lines) in which the user speaks about THEMSELVES in a gendered Hebrew form, e.g. "אני אורזת", "אני עייף"]}. form is null and quotes are empty when the user never did (English, or only forms that are the same for both). How the user addresses Rolly ("אתה", "את") says nothing about the user.
 ITEM is {"content": "<short statement in the user's language>", "confidence": 0.0-1.0, "first_person": true|false,
          "turn": <turn number it comes from>, "quote": "<the user's exact words, verbatim from that turn>", "importance": 1|2|3}.
 confidence is how sure you are that this is true AND was said by the owner about themselves.
@@ -77,6 +78,8 @@ export interface SummaryResult {
   corrections: { memory_id: string | null; action: "replace" | "delete"; new_content: string | null; turn: number | null; quote: string }[];
   other_speakers_suspected: boolean;
   language: "he" | "en" | null;
+  /** how the user speaks about themselves in Hebrew, with the phrases that show it (checked against the transcript before use) */
+  user_gender: { form: "masculine" | "feminine"; quotes: string[] } | null;
   llm?: string;
   ms?: number;
   error?: string;
@@ -127,7 +130,15 @@ export function normalize(obj: Record<string, unknown>): SummaryResult {
       })),
     other_speakers_suspected: obj.other_speakers_suspected === true,
     language: obj.language === "he" || obj.language === "en" ? obj.language : null,
+    user_gender: genderEvidence(obj.user_gender),
   };
+}
+
+function genderEvidence(v: unknown): SummaryResult["user_gender"] {
+  const g = (v ?? {}) as { form?: unknown; quotes?: unknown };
+  if (g.form !== "masculine" && g.form !== "feminine") return null;
+  const quotes = strs(g.quotes).map((q) => q.trim()).filter((q) => q.length >= 3 && q.length <= 80).slice(0, 3);
+  return quotes.length ? { form: g.form, quotes } : null;
 }
 
 export function fallbackSummary(turns: SessionTurn[]): SummaryResult {
@@ -137,7 +148,7 @@ export function fallbackSummary(turns: SessionTurn[]): SummaryResult {
     summary: user.length ? `Conversation with ${user.length} user turns. First user remark: ${user[0]!.slice(0, 200)}` : "Conversation ended before the user said anything.",
     topics: [], decisions: [], unresolved_topics: [], resolved_topics: [], progress: [], suggested_next_opener: "",
     preferred_name: null, travel_goals: [], interests: [], goals: [], action_items: [], ideas: [], facts: [], preferences: [],
-    candidate_confirmations: [], corrections: [], other_speakers_suspected: false, language: null,
+    candidate_confirmations: [], corrections: [], other_speakers_suspected: false, language: null, user_gender: null,
   };
 }
 

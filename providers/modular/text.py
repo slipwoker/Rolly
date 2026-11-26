@@ -36,6 +36,28 @@ def dominant_language(text: str, default: str = "en") -> str:
     return "he" if h >= l * 0.5 and h > 0 else "en"
 
 
+_LATIN_WORD = re.compile(r"[A-Za-z\u00c0-\u024f']+")
+SHORT_FOREIGN_WORDS = 8
+
+
+def speech_language(text: str, hint: str | None = None, default: str = "en") -> str:
+    """Which voice speaks a piece of a reply.
+
+    Hebrew letters always go to the Hebrew voice: the English voice spells them out ("Hebrew letter alef, Hebrew letter
+    zayin...").  That happened on 2026-11-26 with `אז נגיד "Un café, por favor".`, which has more Latin letters than
+    Hebrew ones and was sent to the English voice.  A short phrase in Latin letters inside a Hebrew conversation also
+    stays with the Hebrew voice (it reads Latin words as words), so the voice does not change in the middle of a reply.
+    """
+    h, latin = len(_HEB.findall(text)), _LATIN_WORD.findall(text)
+    if h:
+        return "he"
+    if not latin:
+        return hint if hint in ("he", "en") else default
+    if hint == "he" and len(latin) <= SHORT_FOREIGN_WORDS:
+        return "he"
+    return "en"
+
+
 _QUESTION_END = re.compile(r"\?[\s\"'”’»)\]]*$")
 
 

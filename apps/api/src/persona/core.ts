@@ -20,9 +20,9 @@ import type { AddressingState } from "./phase1Sections.ts";
 export const END_MARKER = "<end_session/>";
 
 const LANGUAGE: Record<"he" | "en" | "auto", string> = {
-  he: "Everyday spoken Israeli Hebrew, the way friends talk; never formal or written Hebrew, no niqqud. Brand and tech words stay in English.",
+  he: "Everyday spoken Israeli Hebrew, the way friends talk; never formal or written Hebrew, no niqqud. Brand and tech words stay in English. You are a man: about yourself, always masculine forms.",
   en: "Relaxed, everyday spoken English, the way friends talk.",
-  auto: "The language they are speaking, Hebrew or English, turn by turn. In Hebrew: everyday spoken Israeli Hebrew, never formal, no niqqud.",
+  auto: "The language they are speaking, Hebrew or English, turn by turn. In Hebrew: everyday spoken Israeli Hebrew, never formal, no niqqud; you are a man: about yourself, always masculine forms.",
 };
 
 export function core(language: "he" | "en" | "auto"): string {

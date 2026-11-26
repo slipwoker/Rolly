@@ -3,7 +3,7 @@ import time
 from memory.context import END_MARKER, build_context, seed_store
 from memory.store import MemoryStore
 from memory.summarizer import _extract_json, fallback_summary, persist_summary
-from providers.modular.text import SentenceChunker, clean_for_speech, dominant_language, user_wants_to_end
+from providers.modular.text import SentenceChunker, clean_for_speech, dominant_language, speech_language, user_wants_to_end
 
 
 def test_chunker_releases_first_clause_early_and_whole_sentences_after():
@@ -224,3 +224,28 @@ def test_hebrew_pronunciation_fixes_zappy_only_as_a_word():
     assert he_pronounce("בוקר טוב מאור, מה קורה עם זאפי?") == "בוקר טוב מָאוֹר, מה קורה עם Zappy?"
     assert he_pronounce("אמרתי למאור") == "אמרתי למָאוֹר"
     assert he_pronounce("מאוד מאורגן, יש מאורות") == "מאוד מאורגן, יש מאורות"  # other words that contain the letters
+
+
+def test_hebrew_letters_never_go_to_the_english_voice():
+    # the piece the live pipeline cut on 2026-11-26: more Latin letters than Hebrew ones
+    chunks = []
+    c = SentenceChunker()
+    for ch in 'אז נגיד "Un café, por favor". נשמע לך קל מדי?':
+        chunks += c.feed(ch)
+    chunks += c.flush()
+    assert chunks == ['אז נגיד "Un café, por favor".', "נשמע לך קל מדי?"]
+    assert dominant_language(chunks[0]) == "en"  # the old routing
+    assert [speech_language(x, "he") for x in chunks] == ["he", "he"]
+    assert speech_language(chunks[0], None) == "he"  # also when the conversation's language is detected
+    assert speech_language("My friend שרה said hi", "en") == "he"
+
+
+def test_a_short_foreign_phrase_keeps_the_hebrew_voice_in_a_hebrew_conversation():
+    assert speech_language("¿Buenos días?", "he") == "he"
+    assert speech_language("Un café, por favor.", "he") == "he"
+    # English conversations and long English passages use the English voice
+    assert speech_language("Good morning, how was the drive?", "en") == "en"
+    assert speech_language("Good morning.", None) == "en"
+    assert speech_language("This is a much longer answer that the model gave entirely in English for some reason.", "he") == "en"
+    assert speech_language("123", "he") == "he" and speech_language("...", None, "en") == "en"
+

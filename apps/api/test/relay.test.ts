@@ -4,7 +4,7 @@ import type { FastifyInstance } from "fastify";
 import { loadConfig } from "../src/config.ts";
 import { buildServer } from "../src/server.ts";
 import { buildContext, emptyMemory } from "../src/persona/promptBuilder.ts";
-import type { SessionHooks, SessionTurn } from "../src/voice/session.ts";
+import { seqBase, type SessionHooks, type SessionTurn } from "../src/voice/session.ts";
 import { Phone, gainDb } from "../src/selftest/phone.ts";
 import { startFakePod, tone, type FakePod } from "./fakePod.ts";
 
@@ -49,7 +49,8 @@ describe("relay phone <-> rolly-api <-> pod", () => {
     phone.send({ type: "session.start", language: "he" });
 
     const opener = await phone.waitReply(0, 5000);
-    expect(opener.seq).toBe(1);
+    expect(opener.seq).toBeGreaterThan(1000); // a range of its own, not 1 (see seqBase)
+    expect(opener.seq).toBeLessThan(2 ** 32);
     expect(opener.proactive).toBe(true);
     // 1.2 s at 44.1 kHz -> 1.2 s at 24 kHz (16-bit mono)
     expect(Math.abs(opener.bytes / 2 / 24000 - 1.2)).toBeLessThan(0.01);
@@ -58,7 +59,7 @@ describe("relay phone <-> rolly-api <-> pod", () => {
 
     const end1 = await phone.say(speech(600));
     const r1 = await phone.waitReply(end1 - 1, 5000);
-    expect(r1.seq).toBe(2);
+    expect(r1.seq).toBe(opener.seq + 1);
     expect(r1.text).toBe("Reply to: שלום");
 
     // second utterance, then barge in while its reply is still playing
@@ -149,6 +150,26 @@ describe("relay phone <-> rolly-api <-> pod", () => {
     const f = finalized.at(-1)!;
     expect((f.stats.notes as { kind: string }[]).map((n) => n.kind).filter((k) => k === "style")).toHaveLength(1);
     expect(f.turns.map((t) => t.text).join(" ")).not.toContain("Bring up this now");
+  }, 30_000);
+
+  it("turn numbers are never reused between conversations (the phone mutes a number that was cut off before)", async () => {
+    const seen = new Set<number>();
+    for (let i = 0; i < 2; i++) {
+      const phone = new Phone();
+      await phone.connect(`ws://127.0.0.1:${port}/v1/voice?dev_user=u-seq`);
+      phone.send({ type: "session.start", language: "he" });
+      const opener = await phone.waitReply(0, 5000);
+      const end = await phone.say(speech(600));
+      const reply = await phone.waitReply(end - 1, 5000);
+      for (const q of [opener.seq, reply.seq]) { expect(seen.has(q)).toBe(false); seen.add(q); }
+      phone.send({ type: "session.end" });
+      await phone.waitFor(() => phone.events.some((e) => e.msg.type === "session.closed"), 5000, "closed");
+    }
+    // ranges: 1,000 numbers apart even within one second, by the clock across server restarts, always within 4 bytes
+    const a = seqBase(1_800_000_000_000), b = seqBase(1_800_000_000_000), c = seqBase(1_800_000_005_000);
+    expect(b - a).toBeGreaterThanOrEqual(1000);
+    expect(c).toBeGreaterThan(b);
+    expect(seqBase(Date.UTC(2030, 0, 1))).toBeLessThan(2 ** 32);
   }, 30_000);
 
   it("one live conversation per user: a second session closes the older one, another user's session is untouched", async () => {

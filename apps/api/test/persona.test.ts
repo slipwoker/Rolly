@@ -64,6 +64,10 @@ describe("what the prompt does say", () => {
     // no Hebrew example phrases (the small model parrots them) and no "react first" rule (it produced the stock openers)
     expect(c).not.toMatch(/[֐-׿]/);
     expect(c.toLowerCase()).not.toContain("react");
+    // Rolly has a man's voice: in Hebrew it speaks about itself in masculine forms (it had drifted to feminine with a woman user)
+    expect(c).toContain("You are a man: about yourself, always masculine forms");
+    expect(core("auto")).toContain("you are a man");
+    expect(core("en")).not.toContain("masculine");
     expect(core("en")).toContain("everyday spoken English");
     expect(core("auto")).toContain("turn by turn");
   });

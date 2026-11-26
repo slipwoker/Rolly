@@ -91,7 +91,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
         summary = await summarizeSession(llm, visible, { openTopics: view.openTopics, known: view.knownIds, candidates: view.candidates });
         stats.summary_ms = Date.now() - t0;
         policy = await store.applySummary(userId, sessionId, summary, visible, { languageDetected: language === "auto" });
-        await store.learnAddressing(userId, sessionId, visible);
+        await store.learnAddressing(userId, sessionId, visible, summary.user_gender);
       }
       await store.finishSession({ sessionId, userId, turns: visible, summary, stats, endReason, describe, policy });
       if (summary && policy) {

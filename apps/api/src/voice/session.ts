@@ -80,11 +80,29 @@ export function attributionFor(d: Record<string, unknown>): { attribution: "prim
   return { attribution: "primary" };
 }
 
+/**
+ * Every conversation numbers its agent turns from a range of its own.
+ *
+ * They used to start at 1 in every conversation. The phone's audio player remembers which turn numbers were cut off
+ * (to drop their late audio) and, in the builds installed in November 2026, keeps that list for as long as the app is
+ * open. So a reply whose number had been interrupted in an EARLIER conversation was shown as text and never spoken
+ * (owner's phone, 2026-11-26 11:27: replies 4 and 7 were silent; 4 had been cut off at 11:18 and 7 at 11:14).
+ * With a range per conversation no number is ever seen twice by one app. The value still fits the 4 bytes it has
+ * in an audio frame.
+ */
+let lastSeqBase = 0;
+export function seqBase(now = Date.now()): number {
+  const byClock = (Math.floor(now / 1000) % 4_000_000) * 1000 + 1; // unique across server restarts
+  lastSeqBase = byClock > lastSeqBase ? byClock : lastSeqBase + 1000; // and for two conversations in the same second
+  if (lastSeqBase > 4_000_000_000) lastSeqBase = 1;
+  return lastSeqBase;
+}
+
 export class VoiceSession {
   readonly sessionId: string;
   private pod: PodSession | null = null;
   private seqByRid = new Map<string, number>();
-  private nextSeq = 1;
+  private nextSeq = seqBase();
   private proactiveRids = new Set<string>();
   private resamplers = new Map<string, StreamResampler>();
   private agentPartial = new Map<string, string>();

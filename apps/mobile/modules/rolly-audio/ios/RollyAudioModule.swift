@@ -101,6 +101,13 @@ public class RollyAudioModule: Module {
   private func startInternal() throws {
     wantRunning = true
     if running { return }
+    // A new conversation: forget which turns were cut off or already reported in the previous one. These lists used to
+    // live as long as the app, and a reply whose number had been interrupted in an earlier conversation stayed silent.
+    flushedSeqs.removeAll()
+    firstReported.removeAll()
+    generation += 1
+    scheduled = 0
+    playingSeq = -1
     try configureSession()
     installObserversOnce()
     try buildEngine()
