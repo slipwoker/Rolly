@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { Config } from "./config.ts";
 import { createPool, migrate } from "./db/index.ts";
 import { Auth, RateLimiter, adminOk, secretOk } from "./auth.ts";
+import { waitlistRoutes } from "./waitlist.ts";
 import { buildContext, practiceLanguage, resolveLanguage } from "./persona/promptBuilder.ts";
 import { openAiLlm, type UtilityLlm } from "./memory/llm.ts";
 import { MemoryStore } from "./memory/store.ts";
@@ -158,6 +159,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
   const routes = async (app: FastifyInstance) => {
     await auditRoutes(app, { db, audit, llm, timeZone: config.timezone, retentionDays: config.transcriptRetentionDays,
       isAdmin: (req) => adminOk(req.headers.authorization, config.adminToken) });
+    await waitlistRoutes(app, { db, isAdmin: (req) => adminOk(req.headers.authorization, config.adminToken) });
     const user = (req: FastifyRequest, reply: FastifyReply): string | null => {
       const h = req.headers.authorization;
       const id = auth.verifyAccess(h?.startsWith("Bearer ") ? h.slice(7) : undefined);
