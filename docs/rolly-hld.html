@@ -22,7 +22,7 @@ figcaption{color:var(--mut);margin-top:12px;font-size:.9rem}
 <h1>Rolly – ארכיטקטורה ברמה גבוהה</h1>
 <p class="sub">מצב נוכחי (נובמבר 2026), לפי הקוד והקונפיגורציה בריפו</p>
 <figure style="margin:0"><div class="scroll" dir="ltr">
-<svg viewBox="0 0 1000 620" role="img" aria-label="HLD של Rolly: לקוחות מתחברים ל-rolly-api ול-rolly-voice ב-Render, שמעבירים את הקול ל-pod GPU ב-RunPod ומשתמשים ב-OpenAI">
+<svg viewBox="0 0 1000 620" role="img" aria-label="HLD של Rolly: לקוחות (אפליקציית iOS ו-Android) מתחברים ל-rolly-api ול-rolly-voice ב-Render, שמעבירים את הקול ל-pod GPU ב-RunPod ומשתמשים ב-OpenAI">
 <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
 
 <text class="g" x="20" y="24">CLIENTS</text>
@@ -36,7 +36,7 @@ figcaption{color:var(--mut);margin-top:12px;font-size:.9rem}
 <rect class="box" fill="var(--c-client)" x="20" y="40" width="210" height="75" rx="8"/>
 <text class="t" x="34" y="64">Landing site</text><text class="s" x="34" y="84">apps/site · static</text><text class="s" x="34" y="100">waitlist sign-up</text>
 <rect class="box" fill="var(--c-client)" x="20" y="150" width="210" height="125" rx="8"/>
-<text class="t" x="34" y="174">iPhone app</text><text class="s" x="34" y="194">Expo SDK 58 + Router</text><text class="s" x="34" y="210">Swift module rolly-audio</text><text class="s" x="34" y="226">pairing · Conversation</text><text class="s" x="34" y="242">Progress · Personalisation</text><text class="s" x="34" y="258">Hebrew RTL</text>
+<text class="t" x="34" y="174">Mobile app (iOS + Android)</text><text class="s" x="34" y="194">Expo SDK 58 + Router</text><text class="s" x="34" y="210">native rolly-audio (Swift / Kotlin)</text><text class="s" x="34" y="226">pairing · Conversation</text><text class="s" x="34" y="242">Progress · Personalisation</text><text class="s" x="34" y="258">Hebrew RTL</text>
 <rect class="box" fill="var(--c-client)" x="20" y="340" width="210" height="100" rx="8"/>
 <text class="t" x="34" y="364">Browser tester</text><text class="s" x="34" y="384">frontend/ · no build</text><text class="s" x="34" y="400">drive · blind eval</text><text class="s" x="34" y="416">telemetry dashboard</text>
 
@@ -90,6 +90,6 @@ figcaption{color:var(--mut);margin-top:12px;font-size:.9rem}
 <path class="ar" d="M645 400H735" marker-start="url(#a)" marker-end="url(#a)"/><text class="al" x="656" y="392">WSS</text><text class="al" x="656" y="420">relay</text>
 <path class="ar" d="M645 225H690V545H660M645 435H690" marker-end="url(#a)"/><text class="al" x="696" y="500" transform="rotate(-90 696 500)">HTTPS</text>
 </svg></div>
-<figcaption>הטלפון מדבר עם rolly-api, שמנהל זיכרון ופרסונה ומעביר את האודיו ב-WebSocket ל-pod ה-GPU, שמריץ VAD → STT → LLM → TTS. rolly-voice הוא המבחן הישן מהמחקר ומשתמש באותו pod. OpenAI משמש רק למשימות עזר (סיכומים, חיפוש, שיפוט) ולסוכנים B ו-D של הבוחן.</figcaption>
+<figcaption>אפליקציית המובייל (iOS ו-Android) מדברת עם rolly-api, שמנהל זיכרון ופרסונה ומעביר את האודיו ב-WebSocket ל-pod ה-GPU, שמריץ VAD → STT → LLM → TTS. rolly-voice הוא המבחן הישן מהמחקר ומשתמש באותו pod. OpenAI משמש רק למשימות עזר (סיכומים, חיפוש, שיפוט) ולסוכנים B ו-D של הבוחן.</figcaption>
 </figure>
 </main>
