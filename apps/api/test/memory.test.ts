@@ -361,7 +361,7 @@ describe.skipIf(!process.env.CI && false)("memory policy with PostgreSQL", () =>
       return { rewrites: keys.filter((k) => k.text.includes("בנק")).map((k) => ({ key: k.key, text: k.key.startsWith("a:") || k.key.startsWith("p:") ? "" : k.text.replace(/[^.]*בנק[^.]*\.?/g, "").trim() || "דני רוצה לחסוך לדירה." })) };
     });
     expect(await scrubUser(store, scrubber.llm, uid)).toEqual({ scrubbed: 1, pending: 0 });
-    expect(scrubber.prompts[0]).toContain("Forgotten information:\nעובד בבנק");
+    expect(scrubber.prompts[0]).toContain("Forgotten or corrected items:\n- עובד בבנק");
     expect(await store.scrubQueue(uid)).toEqual([]); // the last copy of the forgotten fact is gone
     view = await store.memoryView(uid);
     const prompt = buildContext(view, { language: "he" }).system_prompt;
@@ -381,7 +381,15 @@ describe.skipIf(!process.env.CI && false)("memory policy with PostgreSQL", () =>
     expect((await store.goals(uid))[0]).toMatchObject({ content: "לחסוך לבית עם גינה", sessions_count: 1 }); // the goal keeps its history
     const fixer = fakeLlm(() => ({ rewrites: [] }));
     await scrubUser(store, fixer.llm, uid);
-    expect(fixer.prompts[0]).toContain("The correct information is: לחסוך לבית עם גינה");
+    expect(fixer.prompts[0]).toContain("- לחסוך לדירה => correct: לחסוך לבית עם גינה");
+    // several removed items are cleaned in ONE call: derived text is back in the prompt after a single round trip
+    const f1 = await store.addMemory(uid, { kind: "fact", content: "גר בחיפה", status: "active", provenance: { confirmed: true } });
+    const f2 = await store.addMemory(uid, { kind: "fact", content: "יש לו כלב", status: "active", provenance: { confirmed: true } });
+    await store.deleteMemory(uid, f1, "app"); await store.deleteMemory(uid, f2, "app");
+    const both = fakeLlm(() => ({ rewrites: [] }));
+    expect(await scrubUser(store, both.llm, uid)).toEqual({ scrubbed: 2, pending: 0 });
+    expect(both.prompts).toHaveLength(1);
+    expect(both.prompts[0]).toContain("- גר בחיפה\n- יש לו כלב");
   });
 
   it("memory that outgrows the prompt: the important stays, old conversations are folded into a digest", async () => {

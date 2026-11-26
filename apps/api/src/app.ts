@@ -17,7 +17,7 @@ import { consolidate } from "./memory/consolidate.ts";
 import type { ServerDeps } from "./server.ts";
 import type { SessionHooks, SessionTurn } from "./voice/session.ts";
 import { LINES, runConversation, type Step } from "./selftest/scenarios.ts";
-import { core } from "./persona/core.ts";
+import { NOTE, core } from "./persona/core.ts";
 import { AuditRecorder } from "./audit/recorder.ts";
 import { loadPricing } from "./audit/pricing.ts";
 import { auditRoutes } from "./audit/routes.ts";
@@ -92,7 +92,10 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       return audit.run({ userId: args.userId, sessionId: args.sessionId }, async () => {
         const done = await handleLiveTurn(store, llm, args);
         if (done.some((d) => /^(delete|correct):/.test(d))) void scrub(args.userId);
-        return (await handleCapture(store, llm, args)).note;
+        const captured = (await handleCapture(store, llm, args)).note;
+        const form = done.map((d) => /^addressing:(masculine|feminine|plural)$/.exec(d)?.[1]).find(Boolean) as "masculine" | "feminine" | "plural" | undefined;
+        // how to address them was just said: tell the model now, and keep telling it until the conversation ends
+        return form ? { text: NOTE.addressing(form), turns: 6, standing: true } : captured;
       });
     },
     async finalize(args) {
@@ -108,7 +111,8 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       if (visible.some((t) => t.role === "user")) {
         const view = await store.memoryView(userId);
         const t0 = Date.now();
-        summary = await summarizeSession(llm, visible, { openTopics: view.openTopics, known: view.knownIds, candidates: view.candidates });
+        summary = await summarizeSession(llm, visible, { openTopics: view.openTopics, known: view.knownIds, candidates: view.candidates,
+          addressing: view.profile.addressing.value });
         stats.summary_ms = Date.now() - t0;
         policy = await store.applySummary(userId, sessionId, summary, visible, { languageDetected: language === "auto" });
         await store.learnAddressing(userId, sessionId, visible, summary.user_gender);
@@ -141,6 +145,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       summary: summary.summary, language: summary.language, progress: summary.progress,
       goals: goals.map((g) => ({ id: g.id, content: g.content, state: [g.state_note, g.next_step ? `next: ${g.next_step}` : null].filter(Boolean).join(" ") || null })),
       tasks: tasks.map((t) => ({ id: t.id, content: t.content })), agenda: had,
+      addressing: (await store.addressing(userId)).value,
     });
     // what opened this ride and was not taken up must not open the next one as well
     const openedSkipped = had[0] && plan.agenda_outcome.find((o) => o.index === 0)?.outcome === "skipped" ? had[0].topic : null;
@@ -320,6 +325,16 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       const kept = await store.keepMemory(id, mid, b.content);
       if (kept && b.content !== undefined) void scrub(id);
       return kept ? { id: kept } : reply.code(404).send({ error: "not found" });
+    });
+    // set (or clear, with null) how a user is addressed, as if they had chosen it in the app
+    app.post("/v1/admin/users/:id/addressing", async (req, reply) => {
+      if (!admin(req, reply)) return;
+      const uid = (req.params as { id: string }).id;
+      const b = parse(z.object({ value: z.enum(["masculine", "feminine", "plural"]).nullable() }), req.body, reply); if (!b) return;
+      if (!(await store.userExists(uid))) return reply.code(404).send({ error: "no such user" });
+      await store.setAddressing(uid, b.value, "app");
+      const a = await store.addressing(uid);
+      return { value: a.value, status: a.status };
     });
     app.post("/v1/admin/users/:id/pairing-code", async (req, reply) => {
       if (!admin(req, reply)) return;

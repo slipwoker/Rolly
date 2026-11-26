@@ -25,7 +25,11 @@ beforeAll(async () => {
       return { onboarding: b.onboarding, pacingScale: pace ? 0.001 : undefined, plan, confirm: userId === "u-plan" ? "אולי גר בחיפה" : null, ctx: { session_id: sessionId, user_id: userId, language: b.language, system_prompt: b.system_prompt,
         opener_instruction: b.opener_instruction, proactive: true, journey: pace ? { duration_min: 20 } : {}, profile: b.profile, options: {} } };
     },
-    async onUserTurn({ turn }) { return turn.text.includes("תרשום") ? { text: "NOTE-FROM-HOOK", turns: 1 } : undefined; },
+    async onUserTurn({ userId, turn, recent }) {
+      // "u-standing": the first thing they say settles how to address them, for the rest of the conversation
+      if (userId === "u-standing") return recent.filter((t) => t.role === "user").length === 1 ? { text: "STANDING-NOTE", turns: 2, standing: true } : undefined;
+      return turn.text.includes("תרשום") ? { text: "NOTE-FROM-HOOK", turns: 1 } : undefined;
+    },
     async finalize(a) { finalized.push(a); return { ok: true }; },
   };
   app = await buildServer({ config, hooks, consumeTicket: async (t) => (t === "good-ticket" ? "u-ticket" : null) });
@@ -150,6 +154,22 @@ describe("relay phone <-> rolly-api <-> pod", () => {
     const f = finalized.at(-1)!;
     expect((f.stats.notes as { kind: string }[]).map((n) => n.kind).filter((k) => k === "style")).toHaveLength(1);
     expect(f.turns.map((t) => t.text).join(" ")).not.toContain("Bring up this now");
+  }, 30_000);
+
+  it("a standing note (how to address the user) is sent again when the pod has used it up", async () => {
+    const before = pod.notes.length;
+    const phone = new Phone();
+    await phone.connect(`ws://127.0.0.1:${port}/v1/voice?dev_user=u-standing`);
+    phone.send({ type: "session.start", language: "he" });
+    await phone.waitReply(0, 5000);
+    for (let i = 0; i < 5; i++) { const end = await phone.say(speech(600)); await phone.waitReply(end - 1, 5000); }
+    phone.send({ type: "session.end" });
+    await phone.waitFor(() => phone.events.some((e) => e.msg.type === "session.closed"), 5000, "closed");
+    const standing = pod.notes.slice(before).filter((n) => n.text === "STANDING-NOTE");
+    // once when it was said, then again after every two replies: five replies -> at least three times
+    expect(standing.length).toBeGreaterThanOrEqual(3);
+    expect(standing.every((n) => n.turns === 2)).toBe(true);
+    expect((finalized.at(-1)!.stats.notes as { kind: string }[]).filter((n) => n.kind === "standing").length).toBe(standing.length);
   }, 30_000);
 
   it("turn numbers are never reused between conversations (the phone mutes a number that was cut off before)", async () => {

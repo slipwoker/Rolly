@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applyObservations, confirm, emptyEvidence, observe, type AddressingRecord } from "../src/memory/addressing.ts";
 import { addressingLine } from "../src/persona/core.ts";
+import { attributionFor } from "../src/voice/session.ts";
 
 const fresh = (): AddressingRecord => ({ value: null, status: "unknown", evidence: emptyEvidence() });
 const feed = (rec: AddressingRecord, texts: string[], attribution: "primary" | "uncertain" = "primary") =>
@@ -65,6 +66,37 @@ describe("addressing state machine", () => {
     expect(r).toMatchObject({ value: "plural", status: "confirmed" });
     r = confirm(r, null);
     expect(r).toMatchObject({ value: null, status: "unknown" });
+  });
+});
+
+describe("said in so many words", () => {
+  it("'אני בת' / 'אני בן' decide at once, like an explicit request", () => {
+    expect(observe("אני בת")).toEqual([{ form: "feminine", kind: "explicit", quote: "אני בת" }]);
+    expect(observe("לא, אני אישה")[0]).toMatchObject({ form: "feminine", kind: "explicit" });
+    expect(observe("תקשיב, אני גבר, כן?")[0]).toMatchObject({ form: "masculine", kind: "explicit" });
+    expect(observe("אני בן שלושים וחמש")[0]).toMatchObject({ form: "masculine", kind: "explicit" });
+    let r = feed(fresh(), ["אני חושב", "אני עייף", "אני בטוח"]); // inferred masculine from a mis-heard conversation
+    r = feed(r, ["אני בת"]);
+    expect(r).toMatchObject({ value: "feminine", status: "confirmed" });
+  });
+  it("is not triggered by 'אני בן אדם', a negation, or both in one sentence", () => {
+    expect(observe("אני בן אדם, לא רובוט")).toEqual([]);
+    expect(observe("אני לא בת")).toEqual([]);
+    expect(observe("אז אתה בת או בן?")).toEqual([]); // asked about Rolly
+    expect(observe("אני בת או אני בן, מה זה משנה").filter((o) => o.kind === "explicit")).toEqual([]);
+  });
+  it("'מתכנת' no longer counts: speech recognition hears it for 'מתכננת'", () => {
+    expect(observe("מה אני מתכנת לעשות שם")).toEqual([]);
+    expect(observe("אני מהנדס")[0]).toMatchObject({ form: "masculine", kind: "self_noun" });
+  });
+});
+
+describe("whose voice: only a much quieter utterance is a hint of someone else", () => {
+  it("a loud utterance is the owner speaking up; a faint one may be a passenger", () => {
+    expect(attributionFor({ level_db: -17.6, ref_level_db: -29 })).toEqual({ attribution: "primary" });
+    expect(attributionFor({ level_db: -41.6, ref_level_db: -27 })).toEqual({ attribution: "uncertain", why: "much_quieter_than_reference" });
+    expect(attributionFor({ level_db: -25, ref_level_db: -27 })).toEqual({ attribution: "primary" });
+    expect(attributionFor({ level_db: -25, ref_level_db: null })).toEqual({ attribution: "primary" });
   });
 });
 

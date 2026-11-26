@@ -31,6 +31,7 @@ describe("the system prompt stays small (P1-D24)", () => {
       const ctx = buildContext(m, { language: "he", journey: { duration_min: 40 }, now, resume: undefined });
       expect(ctx.system_prompt.length).toBeLessThan(PROMPT.total);
       expect(tokens(ctx.system_prompt)).toBeLessThan(1_300);
+      if (process.env.SHOW_BUDGET) console.log("stuffed prompt tokens:", tokens(ctx.system_prompt), "chars:", ctx.system_prompt.length);
       expect(ctx.opener_instruction!.length).toBeLessThan(700);
     }
     // a dropped connection adds the last turns, still within the budget
@@ -59,7 +60,8 @@ describe("the system prompt stays small (P1-D24)", () => {
 describe("what the prompt does say", () => {
   it("the persona: a friend with opinions, short turns, substance first, no bot-speak, nothing invented", () => {
     const c = core("he");
-    for (const must of ["You are Rolly", "You have opinions", "about fifteen words", "Start with the substance", "No general wisdom about life",
+    for (const must of ["You are Rolly", "You have opinions and tastes", "You have no body and no life outside these rides", "What you can do, and say when they ask",
+      "about fifteen words", "Start with the substance", "No general wisdom about life",
       "Never apologise, never promise", "Never invent facts", "You cannot play music", "Others may be in the car", END_MARKER]) expect(c).toContain(must);
     // no Hebrew example phrases (the small model parrots them) and no "react first" rule (it produced the stock openers)
     expect(c).not.toMatch(/[֐-׿]/);
@@ -118,7 +120,11 @@ describe("what the prompt does say", () => {
   it("openers: the plan's first item, else last time, else something of its own; a task check asks lightly", () => {
     const withSummary = mem({ summaries: [{ content: "דובר על משהו.", createdAt: ago(1) }] });
     expect(buildContext(withSummary, { language: "he", now }).opener_instruction).toContain("what you talked about last time");
-    expect(buildContext(mem(), { language: "he", now }).opener_instruction).toContain("one light, concrete thing you bring up yourself, as a statement");
+    // nothing known: a question about them, never something about Rolly itself
+    const blank = buildContext(mem(), { language: "he", now }).opener_instruction!;
+    expect(blank).toContain("one light, specific question about them");
+    expect(blank).toContain("nothing about yourself");
+    expect(blank).not.toContain("bring up yourself");
     const check = mem({ agenda: { created_at: ago(1).toISOString(), session_id: null, items: [{ topic: "השיחה עם רואה החשבון", why: "", kind: "action_check", ref_id: null }] } });
     expect(buildContext(check, { language: "he", now }).opener_instruction).toContain("asking lightly whether it got done");
     expect(buildContext(withSummary, { language: "he", now, resume: [{ role: "user", text: "היי" }] }).opener_instruction).toContain("connection dropped");

@@ -51,7 +51,9 @@ export interface PreparedSession {
 }
 
 /** Something to tell the conversation model on its next turn(s) through the pod's note channel. */
-export interface TurnNote { text: string; turns: number }
+export interface TurnNote { text: string; turns: number;
+  /** holds for the rest of the conversation (e.g. how to address the user): sent again when its turns run out */
+  standing?: boolean }
 
 /** A note as sent, for the audit: what, when (seconds into the session) and for how many turns. */
 export interface NoteRecord { kind: string; text: string; turns: number; at_s: number }
@@ -74,14 +76,15 @@ export interface PodConfig {
 }
 
 /** Weak hint only: a final utterance much quieter than the session's reference level is less likely to be the phone's
- * owner speaking into the phone. Used to mark a turn "uncertain" (never to mark it as the user). */
+ * owner speaking into the phone. Used to mark a turn "uncertain" (never to mark it as the user).
+ * A much LOUDER utterance is no longer a hint (P1-D33): someone else in the car is farther from the microphone, so
+ * quieter; louder is the owner speaking up. On 2026-11-26 a tester's "אני בת" was dropped for being loud. */
 export const QUIET_MARGIN_DB = 10;
 
 export function attributionFor(d: Record<string, unknown>): { attribution: "primary" | "uncertain"; why?: string } {
   const level = typeof d.level_db === "number" ? d.level_db : null;
   const ref = typeof d.ref_level_db === "number" ? d.ref_level_db : null;
   if (level !== null && ref !== null && level < ref - QUIET_MARGIN_DB) return { attribution: "uncertain", why: "much_quieter_than_reference" };
-  if (level !== null && ref !== null && level > ref + QUIET_MARGIN_DB) return { attribution: "uncertain", why: "much_louder_than_reference" };
   return { attribution: "primary" };
 }
 
@@ -130,6 +133,7 @@ export class VoiceSession {
   /** Rolly's completed replies, for the style guard */
   private replies: string[] = [];
   private lastUserWords: number | null = null;
+  private standing: { text: string; turns: number; left: number } | null = null;
   private language: string = "auto";
   private describe: Record<string, unknown> = {};
   private done: Promise<void>;
@@ -245,6 +249,8 @@ export class VoiceSession {
    */
   private afterReply(text: string, proactive: boolean) {
     this.replies.push(text);
+    // the system prompt cannot change mid-conversation, so a standing note is repeated when the pod has used it up
+    if (this.standing && --this.standing.left <= 0) { this.standing.left = this.standing.turns; this.note("standing", this.standing.text, this.standing.turns); }
     const guard = styleGuardNote(this.replies.slice(-2));
     if (guard) this.note("style", guard, 1);
     const item = this.feeder?.afterReply(proactive ? null : this.lastUserWords);
@@ -354,7 +360,11 @@ export class VoiceSession {
             if (left !== null) { this.pacer.setRemaining(left, Date.now()); this.stats.notes.push({ kind: `time_left_${left}`, at_s: Math.round((Date.now() - this.startedAt.getTime()) / 1000) }); }
           }
           this.hooks.onUserTurn?.({ userId: this.userId, sessionId: this.sessionId, turn, recent: this.turns.slice(-8) })
-            .then((n) => { if (n) this.note("memory", n.text, n.turns); })
+            .then((n) => {
+              if (!n) return;
+              if (n.standing) { this.standing = { text: n.text, turns: n.turns, left: n.turns }; this.note("standing", n.text, n.turns); }
+              else this.note("memory", n.text, n.turns);
+            })
             .catch((e) => this.log("onUserTurn failed", { error: String(e).slice(0, 200) }));
         }
         this.send({ type: "user.transcript", text: String(d.text ?? ""), final, language: (d.language as string) ?? null });

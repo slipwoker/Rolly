@@ -27,7 +27,7 @@ const PAIRS: [string, string][] = [
 ];
 /** self-descriptive nouns: stronger evidence (weight 2), still only "inferred", never "confirmed" */
 const NOUNS: [string, string][] = [["גבר", "אישה"], ["בחור", "בחורה"], ["אבא", "אמא"], ["סטודנט", "סטודנטית"], ["מורה", "מורה"],
-  ["מהנדס", "מהנדסת"], ["מתכנת", "מתכנתת"], ["רופא", "רופאה"], ["עורך", "עורכת"], ["יועץ", "יועצת"], ["מעצב", "מעצבת"], ["נהג", "נהגת"],
+  ["מהנדס", "מהנדסת"], ["רופא", "רופאה"], ["עורך", "עורכת"], ["יועץ", "יועצת"], ["מעצב", "מעצבת"], ["נהג", "נהגת"],
   ["אח", "אחות"], ["פרילנסר", "פרילנסרית"], ["יזם", "יזמית"], ["חייל", "חיילת"], ["פנסיונר", "פנסיונרית"]];
 
 const LEX = new Map<string, Form>();
@@ -55,6 +55,12 @@ const EXPLICIT: [RegExp, Form | "plural"][] = [
   [/(לשון|בלשון)\s+רבים/, "plural"],
 ];
 const ADDRESS_ME = /(אליי|אלי|איתי|לי|אותי)/;
+// "אני בת", "אני גבר": said in so many words, it decides at once ("אני בן אדם" says nothing; "אני לא בן" does not match)
+const EDGE = "(?=$|[\\s,.!?])";
+const IDENTITY: [RegExp, Form][] = [
+  [new RegExp(`(?:^|[\\s,.!?])(?:אני|ואני|שאני)\\s+(?:בת|אישה|אשה|בחורה)${EDGE}`), "feminine"],
+  [new RegExp(`(?:^|[\\s,.!?])(?:אני|ואני|שאני)\\s+(?:בן(?!\\s+אדם)|גבר|בחור)${EDGE}`), "masculine"],
+];
 
 /** Gendered self-references and explicit addressing requests in one utterance of the user. */
 export function observe(text: string): Observation[] {
@@ -62,7 +68,11 @@ export function observe(text: string): Observation[] {
   for (const [re, form] of EXPLICIT) {
     if (re.test(text) && ADDRESS_ME.test(text)) out.push({ form, kind: "explicit", quote: text.slice(0, 160) });
   }
-  if (out.length) return out; // an explicit request decides; do not also count the words in it
+  if (!out.length) {
+    const said = IDENTITY.filter(([re]) => re.test(text));
+    if (said.length === 1) out.push({ form: said[0]![1], kind: "explicit", quote: text.slice(0, 160) });
+  }
+  if (out.length) return out; // an explicit request or statement decides; do not also count the words in it
   const t = tokens(text);
   for (let i = 0; i < t.length; i++) {
     const w = t[i]!;

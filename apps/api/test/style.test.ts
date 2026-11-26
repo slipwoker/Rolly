@@ -75,3 +75,16 @@ describe("the plan is fed one item at a time", () => {
     expect(new PlanFeeder([items[0]!]).afterReply(null)).toBeNull();
   });
 });
+
+describe("claims a body or a life of its own", () => {
+  it("is counted, and opinions and tastes are not", () => {
+    for (const bad of ["היי, צהריים טובים. אני ממש רעב, בערך בגלל שהמזגן הזה פתאום נתן לי תחושת רעב.", "אני מעדיף לשבת בבית עם קפה כשזה יורד ככה.",
+      "אני תמיד לוקח איתי אוזניות איכותיות כדי לא להשתגע בטיסות כאלה.", "אני תמיד ישן בטיסות ארוכות, זה פשוט מציל חיים.", "קר לי רק מלחשוב על זה."])
+      expect(markStyle(bad).self_body, bad).toBe(true);
+    for (const fine of ["עם ילדים הייתי הולך על אי רגוע, אתונה נשמעת לי קצת עמוסה מדי.", "אני בעד ניוזלטר קצר עם רעיון שימושי אחד.",
+      "אני חושב שזה תלוי אם את טיפוס של שינה.", "אין לי אפשרות לבדוק מזג אוויר בזמן אמת.", "אני לא יכול לנגן מוזיקה."])
+      expect(markStyle(fine).self_body, fine).toBe(false);
+    expect(countBotSpeak(["אני ממש רעב.", "ביי."]).self_body).toBe(1);
+  });
+});
+

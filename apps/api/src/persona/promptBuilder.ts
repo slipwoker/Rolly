@@ -158,7 +158,9 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
     } else if (mem.summaries.length) {
       opener = tag + `The ride has just started. Open now: ${hello}, then one short remark or specific question about what you talked about last time. Under twenty words in total.`;
     } else {
-      opener = tag + `The ride has just started. Open now: ${hello}, then one light, concrete thing you bring up yourself, as a statement. Under twenty words in total.`;
+      // nothing to pick up (first rides, or they cleared their memory): a question about them. "Something you bring up
+      // yourself" made the small model invent a life of its own ("אני ממש רעב… המזגן הזה", 2026-11-26).
+      opener = tag + `The ride has just started. Open now: ${hello}, then one light, specific question about them: where this drive is going or what is waiting for them today. Under fifteen words in total, nothing about yourself.`;
     }
     if (language === "auto") opener += ` Speak this opening in ${p.preferredLanguage === "en" ? "English" : "Hebrew"}.`;
   }
