@@ -39,7 +39,7 @@ export async function scrubUser(store: MemoryStore, llm: UtilityLlm | null, user
           .replace("{replacement}", q.replacement ? `The correct information is: ${q.replacement}. Where a note states the old information, state the correct one instead.` : "")
           .replace("{forgotten}", q.content)
           .replace("{notes}", texts.map((t) => `- ${t.key}: ${t.text.replace(/\s+/g, " ")}`).join("\n"));
-        const r = await llm.json(prompt, { maxTokens: 2500 });
+        const r = await llm.json(prompt, { maxTokens: 2500, purpose: "scrub" });
         const valid = new Map(texts.map((t) => [t.key, t.text]));
         const rewrites = (Array.isArray(r.obj.rewrites) ? r.obj.rewrites : []) as { key?: unknown; text?: unknown }[];
         for (const w of rewrites) {

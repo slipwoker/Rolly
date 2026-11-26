@@ -151,7 +151,7 @@ export async function summarizeSession(llm: UtilityLlm | null, turns: SessionTur
     .replace("{candidates}", ctx.candidates.map((m) => `- ${m.id}: ${m.content}`).join("\n") || "- (none)")
     .replace("{transcript}", formatTranscript(turns));
   try {
-    const r = await llm.json(prompt, { maxTokens: 2200 });
+    const r = await llm.json(prompt, { maxTokens: 2200, purpose: "summary" });
     if (!("summary" in r.obj)) throw new Error("summariser returned no summary");
     return { ...normalize(r.obj), llm: llm.name, ms: r.ms };
   } catch (e) {

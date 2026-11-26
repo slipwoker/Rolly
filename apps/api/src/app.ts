@@ -16,20 +16,33 @@ import { consolidate } from "./memory/consolidate.ts";
 import type { ServerDeps } from "./server.ts";
 import type { SessionHooks, SessionTurn } from "./voice/session.ts";
 import { LINES, runConversation, type Step } from "./selftest/scenarios.ts";
+import { core } from "./persona/core.ts";
+import { AuditRecorder } from "./audit/recorder.ts";
+import { loadPricing } from "./audit/pricing.ts";
+import { auditRoutes } from "./audit/routes.ts";
 
-export async function createApp(config: Config, overrides: { llm?: UtilityLlm | null } = {}): Promise<ServerDeps & { store: MemoryStore; auth: Auth }> {
+export async function createApp(config: Config, overrides: { llm?: UtilityLlm | null } = {}): Promise<ServerDeps & { store: MemoryStore; auth: Auth; audit: AuditRecorder }> {
   const db = createPool(config.databaseUrl!);
   await migrate(db);
   const store = new MemoryStore(db, { candidateTtlDays: config.candidateTtlDays, transcriptRetentionDays: config.transcriptRetentionDays });
   const auth = new Auth(db, await Auth.loadSecret(db, config.authSecret || null));
-  const llm: UtilityLlm | null = overrides.llm !== undefined ? overrides.llm
+  const rawLlm: UtilityLlm | null = overrides.llm !== undefined ? overrides.llm
     : config.openaiApiKey ? openAiLlm({ baseUrl: config.utilityBaseUrl, apiKey: config.openaiApiKey, model: config.utilityModel, reasoning: config.utilityReasoning }) : null;
+  // the backoffice audit (src/audit/): every utility-model call is recorded with its purpose, tokens and cost
+  const audit = new AuditRecorder(db, loadPricing(), { build: config.build, log: (msg, e) => console.error(msg, String(e).slice(0, 300)) });
+  const llm: UtilityLlm | null = rawLlm ? audit.wrapLlm(rawLlm) : null;
+  /** the LLM judge after each conversation (ROLLY_AUDIT_JUDGE=off to disable) */
+  const autoJudge = async (sessionId: string, userTurns: number) => {
+    if (!llm || !config.auditJudge || userTurns < 2) return;
+    await audit.judge(sessionId, llm).catch((e) => console.error("audit judge failed", String(e).slice(0, 200)));
+  };
 
   // retention: transcripts older than the retention period and expired candidates, hourly
-  const scrub = (userId: string) => scrubUser(store, llm, userId).catch(() => ({ scrubbed: 0, pending: -1 }));
+  const scrub = (userId: string) => audit.run({ userId }, () => scrubUser(store, llm, userId)).catch(() => ({ scrubbed: 0, pending: -1 }));
   const purge = async () => {
     await store.purgeTranscripts().catch(() => 0);
     await store.expireCandidates().catch(() => 0);
+    await audit.purge(config.transcriptRetentionDays);
     // forgotten facts whose removal from derived text did not go through yet (utility LLM was unavailable)
     for (const uid of await store.usersWithPendingScrub().catch(() => [] as string[])) await scrub(uid);
   };
@@ -62,6 +75,9 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       await store.startSession(sessionId, userId, built.language, built.onboarding, new Date());
       await store.markUsed(view.usedIds);
       sessionAgenda.set(sessionId, built.agenda);
+      await audit.recordPrompt({ sessionId, userId, language: built.language, onboarding: built.onboarding, systemPrompt: built.system_prompt,
+        persona: core(built.language), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })),
+        memoryIds: view.usedIds, sampling: config.llmSampling });
       return {
         onboarding: built.onboarding, pacingScale: pacingScales.get(userId),
         plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })), confirm: built.confirm,
@@ -71,17 +87,19 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       };
     },
     async onUserTurn(args) {
-      const done = await handleLiveTurn(store, llm, args);
-      if (done.some((d) => /^(delete|correct):/.test(d))) void scrub(args.userId);
-      return (await handleCapture(store, llm, args)).note;
+      return audit.run({ userId: args.userId, sessionId: args.sessionId }, async () => {
+        const done = await handleLiveTurn(store, llm, args);
+        if (done.some((d) => /^(delete|correct):/.test(d))) void scrub(args.userId);
+        return (await handleCapture(store, llm, args)).note;
+      });
     },
     async finalize(args) {
-      const p = finalizeSession(args);
+      const p = audit.run({ userId: args.userId, sessionId: args.sessionId }, () => finalizeSession(args));
       finalizing.set(args.sessionId, p);
       try { return await p; } finally { setTimeout(() => finalizing.delete(args.sessionId), 60_000); }
     },
   };
-  async function finalizeSession({ userId, sessionId, turns, stats, endReason, describe, language }: Parameters<SessionHooks["finalize"]>[0]) {
+  async function finalizeSession({ userId, sessionId, turns, stats, endReason, describe, language, notes }: Parameters<SessionHooks["finalize"]>[0]) {
       const visible = turns.filter((t) => !t.text.startsWith("["));
       let summary: SummaryResult | null = null;
       let policy: Awaited<ReturnType<MemoryStore["applySummary"]>> | null = null;
@@ -94,12 +112,18 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
         await store.learnAddressing(userId, sessionId, visible);
       }
       await store.finishSession({ sessionId, userId, turns: visible, summary, stats, endReason, describe, policy });
+      if (notes) await audit.saveNotes(sessionId, notes);
+      await audit.assess(sessionId).catch(() => null);
+      const userTurns = visible.filter((t) => t.role === "user").length;
       if (summary && policy) {
         // the look-ahead runs after the phone has its summary: it never delays the end of a conversation
         const la = lookAhead(userId, sessionId, visible, summary, policy.progressIds)
           .catch((e) => store.addSessionStats(sessionId, { lookahead_error: String(e).slice(0, 300) }).catch(() => {}))
+          // the audit's assessment again, now with the plan outcome, then the judge (both after the user's next ride can start)
+          .then(() => audit.assess(sessionId).catch(() => null))
           .finally(() => { if (lookahead.get(userId) === la) lookahead.delete(userId); });
         lookahead.set(userId, la);
+        void la.then(() => autoJudge(sessionId, userTurns));
       } else sessionAgenda.delete(sessionId);
       return summary ? { summary: summary.summary, progress: summary.progress, method: summary.method } : null;
   }
@@ -131,6 +155,8 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
   }
 
   const routes = async (app: FastifyInstance) => {
+    await auditRoutes(app, { db, audit, llm, timeZone: config.timezone, retentionDays: config.transcriptRetentionDays,
+      isAdmin: (req) => adminOk(req.headers.authorization, config.adminToken) });
     const user = (req: FastifyRequest, reply: FastifyReply): string | null => {
       const h = req.headers.authorization;
       const id = auth.verifyAccess(h?.startsWith("Bearer ") ? h.slice(7) : undefined);
@@ -444,6 +470,6 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     job.status = "done";
   }
 
-  return { config, hooks, routes, store, auth, consumeTicket: (t) => auth.consumeTicket(t),
+  return { config, hooks, routes, store, auth, audit, consumeTicket: (t) => auth.consumeTicket(t),
     health: async () => ({ db: (await db.query("SELECT 1 ok")).rows[0]?.ok === 1, utility_llm: llm?.name ?? null }) };
 }

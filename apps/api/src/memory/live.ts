@@ -43,7 +43,7 @@ export async function handleLiveTurn(store: MemoryStore, llm: UtilityLlm | null,
     .replace("{known}", view.knownIds.map((m) => `- ${m.id}: ${m.content}`).join("\n"))
     .replace("{recent}", args.recent.map((t) => `${t.role === "agent" ? "AGENT" : "USER"}: ${t.text}`).join("\n"))
     .replace("{last}", turn.text);
-  const r = await llm.json(prompt, { maxTokens: 400 });
+  const r = await llm.json(prompt, { maxTokens: 400, purpose: "live_command" });
   const actions = Array.isArray(r.obj.actions) ? r.obj.actions as { memory_id?: string; action?: string; new_content?: string | null }[] : [];
   const valid = new Set(view.knownIds.map((m) => m.id));
   for (const a of actions) {
@@ -97,7 +97,7 @@ export async function handleCapture(store: MemoryStore, llm: UtilityLlm | null, 
     .replace("{existing}", existing.map((m) => `- ${m.content}`).join("\n") || "- (empty)")
     .replace("{recent}", args.recent.map((t) => `${t.role === "agent" ? "COMPANION" : "USER"}: ${t.text}`).join("\n"))
     .replace("{last}", turn.text);
-  const r = await llm.json(prompt, { maxTokens: 300 });
+  const r = await llm.json(prompt, { maxTokens: 300, purpose: "capture" });
   if (r.obj.intent !== "note") return out;
   const items = (Array.isArray(r.obj.items) ? r.obj.items : []) as { kind?: unknown; content?: unknown }[];
   const status = turn.attribution === "primary" ? "active" as const : "candidate" as const;
