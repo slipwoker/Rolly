@@ -1,6 +1,6 @@
 /**
- * Home is the conversation: ROLLY's orb in the centre and one mic button. No text input — ROLLY is voice-only.
- * Idle: a short greeting under the orb. Live: the line being said right now; the notes button flips to a chat-style
+ * Home is the conversation: ROLLY's driving avatar in the centre and one mic button. No text input — ROLLY is voice-only.
+ * Idle: a short greeting under the avatar. Live: the line being said right now; the notes button flips to a chat-style
  * transcript. The session lives in VoiceProvider, so it keeps running while Progress/Personalisation are open.
  */
 import * as Haptics from "expo-haptics";
@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../src/api";
 import { fill, t } from "../src/i18n";
 import { Backdrop, Chip, CircleButton, IconTile, PressScale, Row, Sheet, TopBar, Txt, cardStyle } from "../src/ui/components";
-import { Orb } from "../src/ui/Orb";
+import { RollyAvatar } from "../src/ui/RollyAvatar";
 import { radius, spacing, useTheme } from "../src/ui/theme";
 import { MicButton, Waveform } from "../src/ui/VoiceParts";
 import type { VoiceState } from "../src/voice/controller";
@@ -36,7 +36,7 @@ export default function Home() {
   const c = useTheme();
   const v = useVoiceSession();
   const { width, height } = useWindowDimensions();
-  const compact = height < 740; // iPhone SE / mini: smaller idle orb, one-line recap
+  const compact = height < 740; // iPhone SE / mini: smaller idle avatar, one-line recap
   const [chat, setChat] = useState(false);
   const [menu, setMenu] = useState(false);
   const [name, setName] = useState<string | null>(null);
@@ -81,7 +81,7 @@ export default function Home() {
         ) : (
           <View style={s.stage}>
             <Pressable accessibilityRole="button" accessibilityLabel={v.active ? t.stop : t.start} onPress={v.active ? undefined : toggle} style={s.orbWrap}>
-              <Orb size={v.active ? Math.min(width * 0.74, 320) : compact ? Math.min(width * 0.4, 150) : Math.min(width * 0.56, 240)} state={v.state} />
+              <RollyAvatar size={v.active ? Math.min(width * 0.74, 320) : compact ? Math.min(width * 0.4, 150) : Math.min(width * 0.56, 240)} state={v.state} />
             </Pressable>
             {!v.active && v.state !== "error" ? (
               <Animated.View entering={FadeIn.duration(400)} style={[s.idle, compact ? { gap: spacing.md } : null]}>
@@ -172,7 +172,7 @@ function RecapLine({ icon, label, text, lines }: { icon: "clock" | "flag"; label
   );
 }
 
-/** Chat-style transcript: ROLLY on the start side with its orb, you on the end side in ink bubbles. */
+/** Chat-style transcript: ROLLY on the start side with its avatar, you on the end side in ink bubbles. */
 function Transcript() {
   const c = useTheme();
   const v = useVoiceSession();
@@ -182,7 +182,7 @@ function Transcript() {
       {v.captions.map((m, i) =>
         m.role === "agent" ? (
           <Animated.View key={i} entering={FadeInUp.duration(260)} style={s.agentRow}>
-            <View style={s.avatar}><Orb size={34} still /></View>
+            <View style={s.avatar}><RollyAvatar size={34} still /></View>
             <View style={[cardStyle(c), s.bubble, s.agentBubble]}><Txt variant="body">{m.text}</Txt></View>
           </Animated.View>
         ) : (
