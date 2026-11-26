@@ -1,0 +1,811 @@
+{
+    "id": "43f5fd8d-de62-40db-9319-e2d468e3f2fc",
+    "scenario": "agenda",
+    "lang": "he",
+    "status": "done",
+    "started": "2026-11-26T08:59:45.319Z",
+    "results": [
+        {
+            "label": "a1_leaves_things_open",
+            "ok": true,
+            "lang": "he",
+            "turns": [
+                {
+                    "label": "opener",
+                    "seq": 1,
+                    "text": "בוקר טוב. מה השם שלך וספר לי, לאן הנסיעה הזאת מובילה אותנו?",
+                    "audio_s": 5.46,
+                    "interrupted": false,
+                    "proactive": true
+                },
+                {
+                    "label": "reply1",
+                    "seq": 2,
+                    "text": "יוון זה תמיד רעיון מעולה, במיוחד אם תמצאו אי קצת שקט עם אוכל טוב.",
+                    "audio_s": 4.81,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 537,
+                    "user_said": "היי, קוראים לי דני, אני מתכנן טיול משפחתי ליוון בקיץ."
+                },
+                {
+                    "label": "reply2",
+                    "seq": 3,
+                    "text": "אתונה יכולה להיות קצת עמוסה מדי עם הילדים, האיים הרבה יותר רגועים.",
+                    "audio_s": 4.95,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 564,
+                    "user_said": "עוד לא החלטתי אם לטוס לאתונה או לאחד האיים."
+                },
+                {
+                    "label": "reply3",
+                    "seq": 4,
+                    "text": "לפעמים קל יותר פשוט לצאת לריצה קצרה בלי לחשוב על זה יותר מדי.",
+                    "audio_s": 4.18,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 495,
+                    "user_said": "וגם רציתי לחזור לרוץ פעמיים בשבוע, אבל אין לי כוח."
+                },
+                {
+                    "label": "reply4",
+                    "seq": 5,
+                    "text": "ביי דני, תהנה.",
+                    "audio_s": 1.53,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 415,
+                    "user_said": "טוב, הגעתי, נדבר, ביי."
+                }
+            ],
+            "transcripts": [
+                {
+                    "text": "היי, קוראים לי דני, אני מתכנן טיול משפחתי ליוון בקיץ.",
+                    "language": "he"
+                },
+                {
+                    "text": "עוד לא החלטת אם לטוס לאתונה או לאחד האיים.",
+                    "language": "he"
+                },
+                {
+                    "text": "וגם רציתי לחזור לרוץ פעמיים בשבוע, אבל אין לי כוח.",
+                    "language": "he"
+                },
+                {
+                    "text": "טוב, הגעתי, נדבר ביי.",
+                    "language": "he"
+                }
+            ],
+            "events": [
+                {
+                    "t": 430,
+                    "type": "session.created"
+                },
+                {
+                    "t": 430,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 739,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 959,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 6817,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 10536,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 10536,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 10536,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 10718,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 10908,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 15876,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 18857,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 18857,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 18857,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 19088,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 19224,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 24417,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 28095,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 28096,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 28096,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 28368,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 28408,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 32870,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 35336,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 35336,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 35336,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 35402,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 35413,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 40353,
+                    "type": "session.summary"
+                },
+                {
+                    "t": 40353,
+                    "type": "session.closed"
+                }
+            ],
+            "session_id": "f5712bda-336c-433d-a618-f537987ef7f0",
+            "summary": {
+                "type": "session.summary",
+                "session_id": "f5712bda-336c-433d-a618-f537987ef7f0",
+                "summary": {
+                    "summary": "הוא סיפר שהוא מתכנן טיול משפחתי ליוון בקיץ ועדיין לא החליט אם לטוס לאתונה או לאחד האיים. הוא גם ציין שרצה לחזור לרוץ פעמיים בשבוע, אך אין לו כוח לכך.",
+                    "progress": [],
+                    "method": "llm"
+                },
+                "stats": {
+                    "end_reason": "client_end",
+                    "duration_s": 37,
+                    "turns_user": 4,
+                    "turns_agent": 5,
+                    "interruptions": 0,
+                    "errors": 0,
+                    "audio_in_s": 36.9,
+                    "audio_out_s": 20.9,
+                    "server_reply_ms": [
+                        179,
+                        199,
+                        269,
+                        62
+                    ],
+                    "server_reply_ms_median": 179,
+                    "client_first_audio_ms": [],
+                    "client_first_audio_ms_median": null,
+                    "client_flush_ms": [],
+                    "audio_events": [],
+                    "notes": [
+                        {
+                            "kind": "style",
+                            "at_s": 28
+                        }
+                    ],
+                    "pod_metrics_median": {
+                        "llm_first_chunk_ms": 157.83567703329027,
+                        "tts_ttfa_ms": 123.93286393489689,
+                        "pipeline_ms": 477.77038300409913,
+                        "llm_ttft_ms": 58.67396597750485,
+                        "llm_total_ms": 318.08369408827275,
+                        "stt_ms": 140.09547396562994,
+                        "stt_queue_ms": 0.1297900453209877
+                    },
+                    "summary_ms": 3277
+                }
+            }
+        },
+        {
+            "label": "a2_paced_ride",
+            "ok": true,
+            "lang": "he",
+            "turns": [
+                {
+                    "label": "opener",
+                    "seq": 1,
+                    "text": "בוקר טוב דני. עם ילדים הייתי הולך על אי רגוע, אתונה נשמעת לי קצת עמוסה מדי.",
+                    "audio_s": 5.57,
+                    "interrupted": false,
+                    "proactive": true
+                },
+                {
+                    "label": "reply1",
+                    "seq": 2,
+                    "text": "האיים ביוון הם פשוט חלום, במיוחד אם אפשר פשוט לשבת מול הים כל היום. יש אי מסוים שחשבת עליו?",
+                    "audio_s": 7.24,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 507,
+                    "user_said": "האמת שאני נוטה לאי, נשמע לי רגוע יותר."
+                },
+                {
+                    "label": "reply2",
+                    "seq": 3,
+                    "text": "כרתים מטורפת, יש שם המון שטחים פתוחים וחוות שילדים בדרך כלל מתלהבים מהן.",
+                    "audio_s": 5.29,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 492,
+                    "user_said": "כן, אולי כרתים, יש שם גם מה לעשות עם הילדים."
+                },
+                {
+                    "label": "reply3",
+                    "seq": 5,
+                    "text": "אולי פשוט לצאת לריצה קצרה של עשר דקות, בלי לחץ בכלל.",
+                    "audio_s": 4.74,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 574,
+                    "user_said": "נכון. ומה לגבי הריצה, יש לך רעיון איך להתחיל?"
+                },
+                {
+                    "label": "reply4",
+                    "seq": 6,
+                    "text": "שמרתי לך את זה. אגב, יש לך תוכנית לארוחת צהריים היום?",
+                    "audio_s": 4.6,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 550,
+                    "user_said": "אוקיי, אני אנסה ביום ראשון בבוקר."
+                },
+                {
+                    "label": "reply5",
+                    "seq": 7,
+                    "text": "סבבה. אני תמיד חושב שארוחת צהריים טובה היא הדבר היחיד ששומר עליי רגוע ביום כזה.",
+                    "audio_s": 6.02,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 543,
+                    "user_said": "סבבה."
+                },
+                {
+                    "label": "reply6",
+                    "seq": 8,
+                    "text": "אני חושב שריצה של עשר דקות ביום ראשון היא הדרך הכי פחות מעצבנת להתחיל מחדש.",
+                    "audio_s": 5.15,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 418,
+                    "user_said": "טוב, הגעתי, ביי."
+                }
+            ],
+            "transcripts": [
+                {
+                    "text": "האמת שאני נוטה לאי, נשמע לי רגוע יותר.",
+                    "language": "he"
+                },
+                {
+                    "text": "כן, אולי כרתים, יש שם גם גם מה לעשות עם הילדים.",
+                    "language": "he"
+                },
+                {
+                    "text": "נכון.",
+                    "language": "he"
+                },
+                {
+                    "text": "ומה לגבי הריצה? יש לך רעיון איך להתחיל?",
+                    "language": "he"
+                },
+                {
+                    "text": "אוקיי, אני אנסה ביום ראשון בבוקר.",
+                    "language": "he"
+                },
+                {
+                    "text": "סבבה.",
+                    "language": "he"
+                },
+                {
+                    "text": "טוב, הגעתי, ביי.",
+                    "language": "he"
+                }
+            ],
+            "events": [
+                {
+                    "t": 520,
+                    "type": "session.created"
+                },
+                {
+                    "t": 520,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 779,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 1198,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 14618,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 17660,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 17660,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 17660,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 17798,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 18129,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 37318,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 40638,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 40638,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 40638,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 40954,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 41000,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 58499,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 59459,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 59459,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 59459,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 59555,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 59567,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 59837,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 59837,
+                    "type": "agent.interrupted"
+                },
+                {
+                    "t": 62937,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 62937,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 62937,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 63182,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 63289,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 82139,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 84900,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 84900,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 84900,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 85048,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 85262,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 104057,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 105062,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 105062,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 105062,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 105388,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 105515,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 121700,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 123338,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 123338,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 123338,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 123587,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 123685,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 132430,
+                    "type": "session.summary"
+                },
+                {
+                    "t": 132430,
+                    "type": "session.closed"
+                }
+            ],
+            "session_id": "64d257a7-a2e4-4aec-a322-9a7b6c38fb96",
+            "summary": {
+                "type": "session.summary",
+                "session_id": "64d257a7-a2e4-4aec-a322-9a7b6c38fb96",
+                "summary": {
+                    "summary": "הוא דיבר על החופשה המשפחתית ביוון והעדיף אי רגוע, עם כרתים כאפשרות שמתאימה גם לילדים. לגבי החזרה לריצה, הוא הסכים לנסות ריצה קצרה ביום ראשון בבוקר.",
+                    "progress": [
+                        "בחר באי רגוע על פני אתונה, וציין את כרתים כאפשרות.",
+                        "קבע לנסות ריצה קצרה ביום ראשון בבוקר."
+                    ],
+                    "method": "llm"
+                },
+                "stats": {
+                    "end_reason": "client_end",
+                    "duration_s": 129,
+                    "turns_user": 7,
+                    "turns_agent": 8,
+                    "interruptions": 1,
+                    "errors": 0,
+                    "audio_in_s": 128.7,
+                    "audio_out_s": 40.9,
+                    "server_reply_ms": [
+                        138,
+                        310,
+                        87,
+                        239,
+                        137,
+                        314,
+                        247
+                    ],
+                    "server_reply_ms_median": 239,
+                    "client_first_audio_ms": [],
+                    "client_first_audio_ms_median": null,
+                    "client_flush_ms": [],
+                    "audio_events": [],
+                    "notes": [
+                        {
+                            "kind": "plan",
+                            "at_s": 1
+                        },
+                        {
+                            "kind": "pacing_half",
+                            "at_s": 67
+                        },
+                        {
+                            "kind": "pacing_wrap",
+                            "at_s": 103
+                        },
+                        {
+                            "kind": "style",
+                            "at_s": 106
+                        },
+                        {
+                            "kind": "pacing_last",
+                            "at_s": 115
+                        }
+                    ],
+                    "pod_metrics_median": {
+                        "llm_first_chunk_ms": 171.91809602081776,
+                        "tts_ttfa_ms": 112.92131198570132,
+                        "pipeline_ms": 418.49031997844577,
+                        "llm_ttft_ms": 59.334143064916134,
+                        "llm_total_ms": 372.62551800813526,
+                        "stt_ms": 103.73273096047342,
+                        "stt_queue_ms": 0.2834390616044402
+                    },
+                    "summary_ms": 3486
+                }
+            }
+        }
+    ],
+    "user_id": "5a767f38-5df1-4593-8c88-ced902022737",
+    "error": null,
+    "state": {
+        "profile": {
+            "preferred_name": "דני",
+            "preferred_language": "he",
+            "addressing": {
+                "value": null,
+                "status": "unknown",
+                "evidence": {
+                    "examples": [
+                        {
+                            "at": "2026-11-26T08:59:57.060Z",
+                            "form": "masculine",
+                            "quote": "אני מתכנן",
+                            "session_id": "f5712bda-336c-433d-a618-f537987ef7f0"
+                        }
+                    ],
+                    "feminine": 0,
+                    "masculine": 1,
+                    "ignored_uncertain": 0
+                }
+            }
+        },
+        "memories": [
+            {
+                "kind": "action_item",
+                "status": "active",
+                "content": "לנסות ריצה קצרה ביום ראשון בבוקר.",
+                "confidence": 0.98,
+                "reason": "first_person_one_to_one",
+                "attribution": "primary"
+            },
+            {
+                "kind": "summary",
+                "status": "active",
+                "content": "הוא דיבר על החופשה המשפחתית ביוון והעדיף אי רגוע, עם כרתים כאפשרות שמתאימה גם לילדים. לגבי החזרה לריצה, הוא הסכים לנסות ריצה קצרה ביום ראשון בבוקר.",
+                "confidence": null
+            },
+            {
+                "kind": "name",
+                "status": "active",
+                "content": "דני",
+                "confidence": 0.98,
+                "reason": "first_person_one_to_one",
+                "attribution": "primary"
+            },
+            {
+                "kind": "fact",
+                "status": "active",
+                "content": "מתכנן טיול משפחתי ליוון בקיץ",
+                "confidence": 0.95,
+                "reason": "first_person_one_to_one",
+                "attribution": "primary"
+            },
+            {
+                "kind": "goal",
+                "status": "active",
+                "content": "לחזור לרוץ פעמיים בשבוע",
+                "confidence": 0.95,
+                "reason": "first_person_one_to_one",
+                "attribution": "primary"
+            },
+            {
+                "kind": "summary",
+                "status": "active",
+                "content": "הוא סיפר שהוא מתכנן טיול משפחתי ליוון בקיץ ועדיין לא החליט אם לטוס לאתונה או לאחד האיים. הוא גם ציין שרצה לחזור לרוץ פעמיים בשבוע, אך אין לו כוח לכך.",
+                "confidence": null
+            }
+        ],
+        "progress": [
+            {
+                "text": "קבע לנסות ריצה קצרה ביום ראשון בבוקר.",
+                "linked_to_goal": true
+            },
+            {
+                "text": "בחר באי רגוע על פני אתונה, וציין את כרתים כאפשרות.",
+                "linked_to_goal": false
+            }
+        ],
+        "goals": [
+            {
+                "content": "לחזור לרוץ פעמיים בשבוע",
+                "status": "active",
+                "state_note": "דני הסכים לנסות ריצה קצרה של עשר דקות ביום ראשון בבוקר, כצעד ראשון לחזרה לריצה פעמיים בשבוע.",
+                "next_step": "לבדוק אם יצא לריצה ביום ראשון ואיך הרגיש.",
+                "sessions_count": 2
+            }
+        ],
+        "tasks_open": [
+            "לנסות ריצה קצרה ביום ראשון בבוקר."
+        ],
+        "ideas": [],
+        "tasks_done": [],
+        "next_agenda": [
+            {
+                "why": "הוא התחייב לנסות, וכדאי לברר איך זה עבר לפני שמתכננים את הצעד הבא.",
+                "kind": "follow_up",
+                "take": "עשר דקות נשמעות כמו התחלה טובה—עדיף לסיים בתחושה שהיה קל מדי מאשר להפוך את היציאה למבחן.",
+                "topic": "הריצה הקצרה ביום ראשון",
+                "ref_id": "012d203d-647e-4717-b347-f74c5aed46e7"
+            },
+            {
+                "why": "האפשרות עלתה בהתלהבות, אבל עדיין לא הוחלט מתי ואיך.",
+                "kind": "follow_up",
+                "take": "כרתים נשמעת כמו פשרה מוצלחת: אי רגוע, אבל עם מספיק דברים לעשות עם הילדים.",
+                "topic": "כרתים עם הילדים",
+                "ref_id": null
+            },
+            {
+                "why": "זו שאלה קלילה שקשורה להעדפה שלו לאי רגוע ולחופשה עם הילדים.",
+                "kind": "fresh",
+                "take": "אני בעד חוף קטן ושקט על פני בריכה של מלון—הים נותן ליום תחושה של חופשה אמיתית.",
+                "topic": "חוף או בריכה בחופשה",
+                "ref_id": null
+            }
+        ],
+        "digest": null,
+        "scrub_pending": 0,
+        "sessions": [
+            {
+                "started_at": "2026-11-26T08:59:46.539Z",
+                "notes": [
+                    {
+                        "at_s": 28,
+                        "kind": "style"
+                    }
+                ],
+                "plan": {
+                    "ms": 4461,
+                    "method": "llm",
+                    "applied": [],
+                    "refused": [],
+                    "next_agenda": 3,
+                    "agenda_outcome": []
+                },
+                "lookahead_ms": 4472,
+                "reply_ms": 179
+            },
+            {
+                "started_at": "2026-11-26T09:00:32.861Z",
+                "notes": [
+                    {
+                        "at_s": 1,
+                        "kind": "plan"
+                    },
+                    {
+                        "at_s": 67,
+                        "kind": "pacing_half"
+                    },
+                    {
+                        "at_s": 103,
+                        "kind": "pacing_wrap"
+                    },
+                    {
+                        "at_s": 106,
+                        "kind": "style"
+                    },
+                    {
+                        "at_s": 115,
+                        "kind": "pacing_last"
+                    }
+                ],
+                "plan": {
+                    "ms": 4267,
+                    "method": "llm",
+                    "applied": [],
+                    "refused": [],
+                    "next_agenda": 3,
+                    "agenda_outcome": [
+                        {
+                            "kind": "follow_up",
+                            "outcome": "done"
+                        },
+                        {
+                            "kind": "goal_step",
+                            "outcome": "done"
+                        }
+                    ]
+                },
+                "lookahead_ms": 4280,
+                "reply_ms": 239
+            }
+        ],
+        "next_opener_instruction": "[journey_start - not said by the user] The ride has just started. Open now: a short hello for the morning using their name, then bring up \"הריצה הקצרה ביום ראשון\" in one short sentence with your own take (עשר דקות נשמעות כמו התחלה טובה—עדיף לסיים בתחושה שהיה קל מדי מאשר להפוך את היציאה למבחן.), in your own words. Under twenty words in total.",
+        "next_prompt_chars": 2779,
+        "next_prompt_memory_part": "## What you know about them\nTheir name: דני (you are Rolly). You do not know whether to address them as a man or a woman: phrase things without gendered second person (impersonal or plural forms), and never ask about it. If they tell you, follow it at once.\nמתכנן טיול משפחתי ליוון בקיץ\nA goal of theirs: לחזור לרוץ פעמיים בשבוע. Where it stands: דני הסכים לנסות ריצה קצרה של עשר דקות ביום ראשון בבוקר, כצעד ראשון לחזרה לריצה פעמיים בשבוע. Next step: לבדוק אם יצא לריצה ביום ראשון ואיך הרגיש.\nOpen tasks they asked you to keep: לנסות ריצה קצרה ביום ראשון בבוקר.\nLast time (earlier today): הוא דיבר על החופשה המשפחתית ביוון והעדיף אי רגוע, עם כרתים כאפשרות שמתאימה גם לילדים. לגבי החזרה לריצה, הוא הסכים לנסות ריצה קצרה ביום ראשון בבוקר.\n\nLocal time: Thursday 11:02 (morning).\n"
+    }
+}
