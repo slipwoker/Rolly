@@ -31,6 +31,72 @@ class _Session(_Original):
 
 
 ort.InferenceSession = _Session
+
+
+def _start_name_probe(bundle: str) -> None:
+    """Serve the Hebrew front end for names on 127.0.0.1:1921 (`POST /phonemize {"word": ...}`), in this process so that its
+    model also runs on the GPU.  The pipeline uses it to pin a name that the front end reads differently by position
+    (providers/modular/pronounce.py).  Any failure only switches the probe off."""
+    import json
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    state: dict = {}
+    lock = threading.Lock()
+
+    def load() -> None:
+        try:
+            sys.path.insert(0, root)
+            from blue_onnx import TextProcessor, load_cfgs
+            from providers.modular.pronounce import analyze
+            cfgs = load_cfgs(os.path.join(bundle, "onnx"), None)
+            fe = os.path.join(bundle, "frontend")
+            shipped = os.path.join(fe, "renikud", "model.onnx")
+            tp = TextProcessor(shipped if os.path.exists(shipped) else None, release=cfgs.get("blue_release"),
+                               frontend_dir=fe if os.path.isdir(fe) else None)
+            tp.phonemize("היי, מה קורה?", lang="he")  # builds the model now, not on the first name
+            state["tp"], state["analyze"] = tp, analyze
+            print("[blue_serve] name probe ready on 127.0.0.1:1921", flush=True)
+        except Exception as e:  # noqa: BLE001
+            print(f"[blue_serve] name probe off: {e!r}", flush=True)
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *a):  # quiet
+            pass
+
+        def _send(self, code: int, obj: dict) -> None:
+            data = json.dumps(obj, ensure_ascii=False).encode()
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def do_POST(self):  # noqa: N802
+            if self.path != "/phonemize" or "tp" not in state:
+                return self._send(503, {"error": "not ready"})
+            try:
+                word = str(json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}").get("word", ""))
+                if not (2 <= len(word) <= 12):
+                    return self._send(400, {"error": "word"})
+                with lock:
+                    result = state["analyze"](word, lambda t: state["tp"].phonemize(t, lang="he"))
+                self._send(200, result)
+            except Exception as e:  # noqa: BLE001
+                self._send(500, {"error": repr(e)[:200]})
+
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", 1921), Handler)
+    except OSError as e:
+        print(f"[blue_serve] name probe off: {e!r}", flush=True)
+        return
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    threading.Thread(target=load, daemon=True).start()
+
+
 script = sys.argv[1]
 sys.argv = [script] + sys.argv[2:]
+if "--bundle" in sys.argv and os.environ.get("ROLLY_NAME_PROBE", "1") == "1":
+    _start_name_probe(sys.argv[sys.argv.index("--bundle") + 1])
 runpy.run_path(script, run_name="__main__")

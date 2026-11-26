@@ -21,6 +21,8 @@ providers:
     vad_model: "${ROLLY_VAD_MODEL:-models/silero_vad.onnx}"
     max_history_turns: ${ROLLY_MAX_HISTORY_TURNS:-24}
     tts_merge_chars: ${ROLLY_TTS_MERGE_CHARS:-70}   # after the first piece, short sentences are spoken together up to this many characters (0 = one piece per sentence; 70 since 2026-11-26, P1-D37)
+    pronounce_url: "${ROLLY_PRON_URL:-}"   # the voice server's front end for names (infrastructure/blue_serve.py, port 1921); empty = off
+    pronounce_cache: "${ROLLY_PRON_CACHE:-}"
     level_gate_db: ${ROLLY_LEVEL_GATE_DB:-0}   # ignore voices this many dB quieter than the user's own (0 = off)
     vad:
       endpoint_silence_ms: ${ROLLY_ENDPOINT_SILENCE_MS:-544}

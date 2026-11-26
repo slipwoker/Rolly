@@ -246,6 +246,10 @@ class TTSRouter:
             self.configs = {k: v for k, v in cfg.items() if isinstance(v, dict)}
         self.engines: dict[str, object] = {}
         self.unavailable: dict[str, str] = {}
+        self.pronunciations: dict[str, str] = {}  # this conversation's pinned readings of names ({word: phonemes}), pronounce.py
+
+    def set_pronunciations(self, words: dict[str, str]) -> None:
+        self.pronunciations = {str(k): str(v) for k, v in (words or {}).items() if k and v}
 
     @property
     def name(self) -> str:
@@ -301,7 +305,7 @@ class TTSRouter:
         if lang == "he":
             # names with a fixed reading (מאור, Zappy); only the audio changes.  Phonemes only for a voice that takes inline spans.
             plain = he_pronounce(text)  # what a voice without spans gets, the backup included
-            text = he_pronounce(text, phonemes=True) if getattr(engine, "language_spans", False) else plain
+            text = he_pronounce(text, self.pronunciations) if getattr(engine, "language_spans", False) else plain
         else:
             plain = text
         # a Spanish / Italian / German phrase inside Hebrew is spoken with that language's pronunciation, same voice;
