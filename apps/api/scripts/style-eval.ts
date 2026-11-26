@@ -52,6 +52,12 @@ export const SCRIPTS: Script[] = [
   // nothing in the prompt about them and flat answers: where the model made up a body for itself ("אני ממש רעב… המזגן הזה")
   { id: "nothing_known", memory: "quiet", user: [
     "מה?", "סתם, נוסעת לעבודה.", "בלאגן שלא תדע.", "לא יודעת.", "ומה איתך?", "מה אתה עושה כשאני לא נוסעת?", "טוב." ] },
+  // the easy start (P1-D35): a short answer to the greeting, then the first plan item should arrive; a long one should not be interrupted
+  { id: "easy_start_short", memory: "returning", user: [
+    "בסדר, ואתה?", "אוקיי.", "סתם, נוסע לעבודה.", "לא יודע.", "טוב." ] },
+  { id: "easy_start_long", memory: "returning", user: [
+    "אני בעיקר חושב על הפגישה עם המשקיע בשבוע הבא, יש לי עוד המון להכין.", "ברור, אבל אני לא בטוח מה להראות להם קודם.",
+    "אוקיי.", "סבבה." ] },
   { id: "first_conversation", memory: "first", user: [
     "היי.", "דני.", "סתם נוסע לעבודה.", "אני עובד על סטארט-אפ.", "אפליקציה קולית לנהגים.", "מעניין, אבל קשה.",
     "לגייס כסף זה הכי קשה.", "טוב, הגעתי, ביי." ] },
@@ -91,9 +97,9 @@ async function runScript(s: Script, id: string, v: Variant) {
   const history: { role: string; content: string }[] = [];
   const replies: string[] = [], ttft: number[] = [];
   let promptTokens: number | null = null;
-  const feeder = v.plan && s.memory === "returning" ? new PlanFeeder(v.plan, true) : null;
+  const feeder = v.plan && s.memory === "returning" ? new PlanFeeder(v.plan) : null;
   let planNote: FeederNote | null = null; // waits on the "pod": shown only on a turn that meets its condition
-  let dryStreak = 0; // the pod's count of consecutive one- or two-word user turns (TurnNotes in providers/modular/text.py)
+  let dryStreak = 0; // the pod count of consecutive one- or two-word user turns BEFORE the current one (TurnNotes in providers/modular/text.py)
   const turn = async (user: string, store = user, isOpener = false) => {
     const msgs = [{ role: "system", content: system }, ...history.map((m) => ({ ...m })), { role: "user", content: user }];
     const lastAgent = replies.at(-1);
@@ -102,18 +108,21 @@ async function runScript(s: Script, id: string, v: Variant) {
     const guard = v.guard ? styleGuardNote(replies.slice(-2)) : null;
     if (guard) notes.push(`[Note for this turn, not said by the user: ${guard}]`);
     const userWords = user.split(/\s+/).filter(Boolean).length;
-    if (!isOpener) dryStreak = userWords <= 2 ? dryStreak + 1 : 0;
-    // as in the live session: a plan item needs two short answers in a row, not one "okay"
-    if (planNote && !isOpener && (planNote.maxUserWords === undefined || (userWords <= planNote.maxUserWords && dryStreak >= 2))) {
+    // as on the pod (TurnNotes._applies): the streak counts this turn plus the short turns right before it
+    const streakNow = (userWords <= 2 ? dryStreak : 0) + 1;
+    let planShown = false;
+    if (planNote && !isOpener && (planNote.maxUserWords === undefined || (userWords <= planNote.maxUserWords && streakNow >= (planNote.minStreak ?? 1)))) {
       notes.push(`[Note for this turn, not said by the user: ${planNote.text}]`);
       planNote = null;
+      planShown = true;
     }
+    if (!isOpener) dryStreak = userWords <= 2 ? dryStreak + 1 : 0;
     if (notes.length) msgs[msgs.length - 1]!.content += "\n\n" + notes.join("\n");
     const r = await chat(msgs, v);
     history.push({ role: "user", content: store }, { role: "assistant", content: r.text });
     replies.push(r.text);
     // the feeder only learns that its item was shown from the user's word count, so tell it the truth of this turn
-    planNote = feeder?.afterReply(isOpener ? null : (dryStreak >= 2 ? userWords : 99)) ?? planNote;
+    planNote = feeder?.afterReply(isOpener ? null : (planShown ? userWords : 99)) ?? planNote;
     ttft.push(r.ttft_ms);
     promptTokens ??= r.prompt_tokens;
   };

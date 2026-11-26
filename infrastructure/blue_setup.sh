@@ -36,6 +36,9 @@ snapshot_download("notmax123/BlueV3-onnx", local_dir="$BL/bundle",
 PYEOF
 "$PY" -c "import polyg2p" 2>/dev/null || uv pip install -q --python "$PY" --no-index --find-links "$BL/bundle/frontend" polyg2p==0.1.0
 mkdir -p "$BL/voice" && cp "$BL/bundle/voices/$VOICE.json" "$BL/voice/" || { say "voice $VOICE not in the bundle"; state failed; exit 1; }
+# the other voices of the bundle too: the default stays $VOICE, the rest only answer when a request names them
+# (the audition endpoint of the worker; 2026-11-26, after "adam" turned out to be read aloud as a word, not used as a voice)
+cp "$BL/bundle/voices/"*.json "$BL/voice/" 2>/dev/null || true
 
 # GPU provider.  onnxruntime-gpu 1.27-1.29 is built for CUDA 13 + cuDNN 9, this image ships CUDA 12: the matching
 # libraries come as pip wheels (the [cuda,cudnn] extras) and are put on the library path of the server process.

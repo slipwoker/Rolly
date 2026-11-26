@@ -141,15 +141,18 @@ describe("relay phone <-> rolly-api <-> pod", () => {
     const phone = new Phone();
     await phone.connect(`ws://127.0.0.1:${port}/v1/voice?dev_user=u-plan`);
     phone.send({ type: "session.start", language: "he" });
-    await phone.waitReply(0, 5000); // opener (carries plan item 0)
+    await phone.waitReply(0, 5000); // the easy opener: it carries no plan item
     for (let i = 0; i < 3; i++) { const end = await phone.say(speech(500)); await phone.waitReply(end - 1, 5000); } // "סתם", "כלום", "בסדר"
     phone.send({ type: "session.end" });
     await phone.waitFor(() => phone.closed, 5000, "closed");
     phone.stop();
     const notes = pod.notes.slice(before);
-    // after the opener: item 1, conditional on two short answers in a row
-    expect(notes[0]).toMatchObject({ turns: 1, max_user_words: 2, min_streak: 2 });
-    expect(notes[0]!.text).toContain("Bring up this now: ספורט. Your own take on it: הליכה קצרה");
+    // right after the opener: item 0, for a short first answer (up to six words, one is enough)
+    expect(notes[0]).toMatchObject({ turns: 1, max_user_words: 6, min_streak: 1 });
+    expect(notes[0]!.text).toContain("Bring up this now: הגיוס. Your own take on it: משקיע קטן");
+    // "סתם" is a short first answer, so the pod showed item 0; item 1 is queued the usual way: two short answers in a row
+    expect(notes[1]).toMatchObject({ turns: 1, max_user_words: 2, min_streak: 2 });
+    expect(notes[1]!.text).toContain("Bring up this now: ספורט. Your own take on it: הליכה קצרה");
     // "הבנתי אותך." then "צודק, נכון.": two agreeing openers in a row -> one style note, for one turn, unconditional
     const style = notes.filter((n) => n.text.includes("skip the opener"));
     expect(style).toHaveLength(1);

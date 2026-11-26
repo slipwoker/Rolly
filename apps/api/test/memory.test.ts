@@ -76,7 +76,9 @@ describe.skipIf(!process.env.CI && false)("memory policy with PostgreSQL", () =>
     expect(ctx.system_prompt).not.toContain("מהנדס תוכנה בגוגל");
     expect(view.candidates.map((c) => c.content)).toContain(ctx.confirm);
     expect(ctx.system_prompt).toContain("Address them in feminine forms");
-    expect(ctx.opener_instruction).toContain("what you talked about last time");
+    // the next ride starts easy, and not with the words the first one started with (the stored first turn of that ride)
+    expect(ctx.opener_instruction).toContain("one easy, light question about them");
+    expect(ctx.opener_instruction).toContain('Your last opening was "היי! מה השם?": open differently this time.');
   });
 
   it("clean one-to-one session -> active; confirmation and correction by voice; deletion in the app", async () => {

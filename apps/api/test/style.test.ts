@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { countBotSpeak, markStyle, styleGuardNote } from "../src/persona/style.ts";
-import { DRY_WORDS, PlanFeeder } from "../src/voice/planFeeder.ts";
+import { DRY_WORDS, FIRST_REPLY_WORDS, PlanFeeder } from "../src/voice/planFeeder.ts";
 
 describe("bot-speak is counted", () => {
   it("openers that agree, acknowledge or praise", () => {
@@ -46,18 +46,31 @@ describe("the style guard speaks only when there is something to stop", () => {
 
 describe("the plan is fed one item at a time", () => {
   const items = [{ topic: "הגיוס", take: "משקיע קטן" }, { topic: "ספורט", take: "הליכה קצרה" }, { topic: "פודקאסטים", kind: "fresh" }, { topic: "רואה החשבון", kind: "action_check" }];
-  it("the opener has the first item; the next waits on the pod for a dry turn and is shown once", () => {
+  it("the first item goes with the first SHORT answer after the easy opener; the next waits for a dry turn and is shown once", () => {
     const f = new PlanFeeder(items);
+    expect(f.shown).toEqual([]); // the opener carries no item
+    const first = f.afterReply(null)!; // after the opener: item 0, for a short first answer
+    expect(first).toMatchObject({ turns: 1, maxUserWords: FIRST_REPLY_WORDS, minStreak: 1 });
+    expect(first.text).toContain("Bring up this now: הגיוס. Your own take on it: משקיע קטן");
+    expect(f.afterReply(4)).toMatchObject({ maxUserWords: DRY_WORDS, minStreak: 2 }); // shown on the 4-word answer: item 1 is queued the usual way
     expect(f.shown).toEqual([0]);
-    const first = f.afterReply(null)!; // after the opener: queue item 1, conditionally
-    expect(first).toMatchObject({ turns: 1, maxUserWords: DRY_WORDS });
-    expect(first.text).toContain("Bring up this now: ספורט. Your own take on it: הליכה קצרה");
-    expect(f.afterReply(9)).toBeNull(); // a real answer: the item keeps waiting, nothing new is queued
+    expect(f.afterReply(9)).toBeNull(); // a real answer: item 1 keeps waiting, nothing new is queued
     expect(f.afterReply(12)).toBeNull();
-    const next = f.afterReply(1)!; // a one-word answer: the pod showed it; queue the following one
+    const next = f.afterReply(1)!; // a one-word answer: the pod showed item 1; queue the following one
     expect(f.shown).toEqual([0, 1]);
     expect(next.text).toContain("פודקאסטים");
     expect(next.text).not.toContain("take");
+  });
+  it("a long first answer means the user has their own topic: the first item then waits for the conversation to run dry", () => {
+    const f = new PlanFeeder(items);
+    f.afterReply(null);
+    const again = f.afterReply(18)!; // 18 words: the pod did not show it
+    expect(f.shown).toEqual([]);
+    expect(again).toMatchObject({ turns: 1, maxUserWords: DRY_WORDS, minStreak: 2 });
+    expect(again.text).toContain("הגיוס"); // the same item (the pod replaces the note with the same text)
+    expect(f.afterReply(7)).toBeNull(); // still waiting, nothing new
+    expect(f.afterReply(1)!.text).toContain("ספורט"); // a one-word answer: item 0 was shown, item 1 queued
+    expect(f.shown).toEqual([0]);
   });
   it("halfway through the ride the waiting item is sent at once, with the same text so the pod replaces it", () => {
     const f = new PlanFeeder(items);
@@ -65,14 +78,15 @@ describe("the plan is fed one item at a time", () => {
     const forced = f.afterReply(null, true)!;
     expect(forced.text).toBe(waiting.text);
     expect(forced.maxUserWords).toBeUndefined();
-    expect(f.remaining).toBe(2);
+    expect(f.remaining).toBe(3);
   });
   it("a task check is asked once, lightly; an empty plan does nothing", () => {
-    const f = new PlanFeeder([items[0]!, items[3]!]);
+    const f = new PlanFeeder([items[3]!, items[0]!]);
     expect(f.afterReply(null)!.text).toContain("Ask about it once, lightly");
+    expect(f.afterReply(1)!.text).toContain("הגיוס"); // shown, the next one queued
     expect(f.afterReply(1)).toBeNull(); // shown, nothing left
     expect(new PlanFeeder([]).afterReply(1)).toBeNull();
-    expect(new PlanFeeder([items[0]!]).afterReply(null)).toBeNull();
+    expect(new PlanFeeder([]).afterReply(null)).toBeNull();
   });
 });
 

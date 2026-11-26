@@ -51,9 +51,10 @@ describe("the system prompt stays small (P1-D24)", () => {
     expect(ctx.agenda.map((a) => a.topic)).toEqual(["הגיוס של לומה", "ספורט"]); // handed to the session, fed by notes
     expect(ctx.confirm).toBe("אולי גר בחיפה");
     expect(NOTE.confirm(ctx.confirm!)).toContain("אולי גר בחיפה");
-    // the first item, with its take, opens the ride
-    expect(ctx.opener_instruction).toContain('bring up "הגיוס של לומה"');
-    expect(ctx.opener_instruction).toContain("עדיף משקיע קטן שמאמין");
+    // the ride starts easy: no topic and no take in the opener; the first item arrives after the first short answer
+    expect(ctx.opener_instruction).not.toContain("הגיוס של לומה");
+    expect(ctx.opener_instruction).not.toContain("עדיף משקיע קטן שמאמין");
+    expect(ctx.opener_instruction).toContain("one easy, light question about them");
   });
 });
 
@@ -117,16 +118,27 @@ describe("what the prompt does say", () => {
     expect(ctx.agenda).toEqual([]);
   });
 
-  it("openers: the plan's first item, else last time, else something of its own; a task check asks lightly", () => {
+  it("openers: an easy start for a returning user, a question for a blank one, a plain sentence after a drop", () => {
     const withSummary = mem({ summaries: [{ content: "דובר על משהו.", createdAt: ago(1) }] });
-    expect(buildContext(withSummary, { language: "he", now }).opener_instruction).toContain("what you talked about last time");
+    const easy = buildContext(withSummary, { language: "he", now }).opener_instruction!;
+    expect(easy).toContain("one easy, light question about them: how their morning or day is going");
+    expect(easy).toContain("Do not bring up anything from before, nothing about yourself");
+    expect(easy).toContain("Under twelve words");
+    expect(easy).not.toContain("last time");
+    // a plan does not change that: its first item is fed after the first answer, not said in the opener
+    const withPlan = mem({ summaries: withSummary.summaries, agenda: { created_at: ago(1).toISOString(), session_id: null, items: [{ topic: "השיחה עם רואה החשבון", why: "", kind: "action_check", ref_id: null }] } });
+    const planned = buildContext(withPlan, { language: "he", now }).opener_instruction!;
+    expect(planned).toContain("one easy, light question");
+    expect(planned).not.toContain("רואה החשבון");
+    // the opening is not the one used last time
+    const varied = buildContext(mem({ ...withSummary, lastOpener: "בוקר טוב דני, איך הבוקר?" }), { language: "he", now }).opener_instruction!;
+    expect(varied).toContain('Your last opening was "בוקר טוב דני, איך הבוקר?": open differently this time.');
+    expect(easy).not.toContain("last opening");
     // nothing known: a question about them, never something about Rolly itself
     const blank = buildContext(mem(), { language: "he", now }).opener_instruction!;
     expect(blank).toContain("one light, specific question about them");
     expect(blank).toContain("nothing about yourself");
     expect(blank).not.toContain("bring up yourself");
-    const check = mem({ agenda: { created_at: ago(1).toISOString(), session_id: null, items: [{ topic: "השיחה עם רואה החשבון", why: "", kind: "action_check", ref_id: null }] } });
-    expect(buildContext(check, { language: "he", now }).opener_instruction).toContain("asking lightly whether it got done");
     expect(buildContext(withSummary, { language: "he", now, resume: [{ role: "user", text: "היי" }] }).opener_instruction).toContain("connection dropped");
     expect(buildContext(mem(), { language: "auto", now }).opener_instruction).toContain("Speak this opening in Hebrew.");
   });

@@ -36,6 +36,8 @@ export interface MemoryView {
   digest: string | null; // who this person is and what matters to them now
   historyDigest: string | null; // older conversations folded into one paragraph
   agenda: StoredAgenda | null; // the plan made after the previous conversation
+  /** how Rolly opened the previous ride (its first words), so the next opening is not the same */
+  lastOpener: string | null;
   sessionCount: number; // completed sessions with at least one user turn
 }
 
@@ -152,13 +154,11 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
       opener = tag + "The connection dropped a moment ago and is back. Pick the conversation up in one short sentence, the way a friend would after a call drops. No greeting, no explanation.";
     } else if (onboarding) {
       opener = tag + `The first ride together has just started. Open now: a short hello for the ${partOfDay} and one light, specific question (their name, or what this drive is for). Under fifteen words, nothing about yourself.`;
-    } else if (agenda[0]) {
-      const first = agenda[0];
-      opener = tag + `The ride has just started. Open now: ${hello}, then bring up "${clip(first.topic, 120)}" in one short sentence`
-        + (first.kind === "action_check" ? ", asking lightly whether it got done" : first.take ? ` with your own take (${clip(first.take, 200)}), in your own words` : ", as a remark or one specific question")
-        + ". Under twenty words in total.";
-    } else if (mem.summaries.length) {
-      opener = tag + `The ride has just started. Open now: ${hello}, then one short remark or specific question about what you talked about last time. Under twenty words in total.`;
+    } else if (agenda[0] || mem.summaries.length) {
+      // An easy start (P1-D35): a greeting and one light question about them. The plan's first item is NOT here: it comes
+      // after their first short answer (voice/planFeeder.ts). Opening straight on a topic felt like the start of a task.
+      const last = mem.lastOpener ? ` Your last opening was "${clip(mem.lastOpener, 100)}": open differently this time.` : "";
+      opener = tag + `The ride has just started. Open now: ${hello}, and one easy, light question about them: how their morning or day is going, or how the ride is starting. Do not bring up anything from before, nothing about yourself. Under twelve words in total.${last}`;
     } else {
       // nothing to pick up (first rides, or they cleared their memory): a question about them. "Something you bring up
       // yourself" made the small model invent a life of its own ("אני ממש רעב… המזגן הזה", 2026-11-26).
@@ -190,6 +190,6 @@ export function emptyMemory(): MemoryView {
   return {
     profile: { preferredName: null, preferredLanguage: null, interests: [], travelGoals: [], preferences: {}, addressing: { value: null, status: "unknown" } },
     goals: [], facts: [], summaries: [], openTopics: [], tasks: [], ideas: [], progress: [], candidates: [],
-    digest: null, historyDigest: null, agenda: null, sessionCount: 0,
+    digest: null, historyDigest: null, agenda: null, lastOpener: null, sessionCount: 0,
   };
 }

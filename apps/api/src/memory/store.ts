@@ -364,6 +364,9 @@ export class MemoryStore {
       candidates: candidates.map((m) => ({ id: m.id, content: m.content })),
       digest: scrubPending ? null : p.digest, historyDigest: scrubPending ? null : p.history_digest,
       agenda,
+      lastOpener: scrubPending ? null : (await this.db.query<{ text: string }>(
+        `SELECT t.text FROM turns t JOIN sessions s ON s.id=t.session_id
+         WHERE s.user_id=$1 AND s.user_turns>0 AND t.idx=0 AND t.role='agent' ORDER BY s.started_at DESC LIMIT 1`, [userId])).rows[0]?.text ?? null,
       sessionCount: Number(sc.rows[0]?.n ?? 0),
       knownIds: known,
       usedIds: [...facts, ...interests, ...preferences, ...openTopics, ...tasks, ...ideas].map((m) => m.id),
