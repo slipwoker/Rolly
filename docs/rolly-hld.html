@@ -22,14 +22,14 @@ figcaption{color:var(--mut);margin-top:12px;font-size:.9rem}
 <h1>Rolly – ארכיטקטורה ברמה גבוהה</h1>
 <p class="sub">מצב נוכחי (נובמבר 2026), לפי הקוד והקונפיגורציה בריפו</p>
 <figure style="margin:0"><div class="scroll" dir="ltr">
-<svg viewBox="0 0 1000 620" role="img" aria-label="HLD של Rolly: לקוחות (אפליקציית iOS ו-Android, Backoffice) מתחברים ל-rolly-api ול-rolly-voice ב-Render, שמעבירים את הקול ל-pod GPU ב-RunPod ומשתמשים ב-OpenAI">
+<svg viewBox="0 0 1000 480" role="img" aria-label="HLD של Rolly: לקוחות (אפליקציית iOS ו-Android, Backoffice, אתר) מתחברים ל-rolly-api ול-rolly-voice ב-Render, שמעבירים את הקול ל-pod GPU ב-RunPod ומשתמשים ב-OpenAI">
 <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
 
 <text class="g" x="20" y="24">CLIENTS</text>
 <text class="g" x="300" y="24">RENDER · FRANKFURT</text>
 <text class="g" x="720" y="24">RUNPOD · 1×L40S</text>
 
-<rect class="grp" x="295" y="32" width="370" height="430" rx="10"/>
+<rect class="grp" x="295" y="32" width="370" height="312" rx="10"/>
 <rect class="grp" x="715" y="32" width="270" height="430" rx="10"/>
 
 <!-- clients -->
@@ -39,8 +39,6 @@ figcaption{color:var(--mut);margin-top:12px;font-size:.9rem}
 <text class="t" x="34" y="140">Backoffice (web /admin)</text><text class="s" x="34" y="160">audit · costs · prompts</text><text class="s" x="34" y="176">session review · LLM judge · users</text>
 <rect class="box" fill="var(--c-client)" x="20" y="215" width="210" height="125" rx="8"/>
 <text class="t" x="34" y="239">Mobile app (iOS + Android)</text><text class="s" x="34" y="259">Expo SDK 58 + Router</text><text class="s" x="34" y="275">native rolly-audio (Swift / Kotlin)</text><text class="s" x="34" y="291">pairing · Conversation</text><text class="s" x="34" y="307">Progress · Personalisation</text><text class="s" x="34" y="323">Hebrew RTL</text>
-<rect class="box" fill="var(--c-client)" x="20" y="340" width="210" height="100" rx="8"/>
-<text class="t" x="34" y="364">Browser tester</text><text class="s" x="34" y="384">frontend/ · no build</text><text class="s" x="34" y="400">drive · blind eval</text><text class="s" x="34" y="416">telemetry dashboard</text>
 
 <!-- rolly-api -->
 <rect class="box" fill="var(--c-render)" x="315" y="50" width="330" height="205" rx="8"/>
@@ -58,12 +56,6 @@ figcaption{color:var(--mut);margin-top:12px;font-size:.9rem}
 <rect class="box" fill="var(--c-render)" x="315" y="280" width="330" height="48" rx="8"/>
 <text class="t" x="329" y="302">rolly-api-db  PostgreSQL 17</text><text class="s" x="329" y="318">users · memories · sessions · turns · audit</text>
 
-<!-- rolly-voice -->
-<rect class="box" fill="var(--c-render)" x="315" y="350" width="330" height="95" rx="8"/>
-<text class="t" x="329" y="374">rolly-voice  (Python / FastAPI, research tester)</text>
-<text class="s" x="329" y="394">sessions · memory · telemetry · blind eval</text>
-<text class="s" x="329" y="410">SQLite on 1 GB disk · selftest API</text>
-<text class="s" x="329" y="426">agents: A relay · B hybrid-api · D Realtime</text>
 
 <!-- GPU pod -->
 <rect class="box" fill="var(--c-gpu)" x="735" y="50" width="235" height="395" rx="8"/>
@@ -78,21 +70,19 @@ figcaption{color:var(--mut);margin-top:12px;font-size:.9rem}
 <text class="s" x="749" y="419">persistent volume: models, venvs</text>
 
 <!-- OpenAI -->
-<rect class="box" fill="var(--c-ext)" x="300" y="520" width="360" height="75" rx="8"/>
-<text class="t" x="314" y="544">OpenAI API</text>
-<text class="s" x="314" y="564">utility LLM gpt-6-luna + web search · transcribe</text>
-<text class="s" x="314" y="580">Realtime (agent D) · judge · summaries</text>
+<rect class="box" fill="var(--c-ext)" x="300" y="380" width="360" height="75" rx="8"/>
+<text class="t" x="314" y="404">OpenAI API</text>
+<text class="s" x="314" y="424">utility LLM gpt-6-luna + web search</text>
+<text class="s" x="314" y="440">judge · summaries · lookup</text>
 
 <!-- arrows -->
 <path class="ar" d="M230 71H315" marker-end="url(#a)"/><text class="al" x="236" y="63">POST</text>
 <path class="ar" d="M230 150H315" marker-end="url(#a)"/><text class="al" x="236" y="142">HTTPS</text>
 <path class="ar" d="M230 245H315" marker-start="url(#a)" marker-end="url(#a)"/><text class="al" x="234" y="237">WSS · HTTPS</text>
-<path class="ar" d="M230 390H315" marker-start="url(#a)" marker-end="url(#a)"/><text class="al" x="238" y="382">WSS /ws</text>
 <path class="ar" d="M480 255V280" marker-end="url(#a)"/><text class="al" x="488" y="272">SQL</text>
 <path class="ar" d="M645 150H735" marker-start="url(#a)" marker-end="url(#a)"/><text class="al" x="656" y="142">WSS</text><text class="al" x="656" y="170">relay</text>
-<path class="ar" d="M645 400H735" marker-start="url(#a)" marker-end="url(#a)"/><text class="al" x="656" y="392">WSS</text><text class="al" x="656" y="420">relay</text>
-<path class="ar" d="M645 225H690V545H660M645 435H690" marker-end="url(#a)"/><text class="al" x="696" y="500" transform="rotate(-90 696 500)">HTTPS</text>
+<path class="ar" d="M645 225H690V417H660" marker-end="url(#a)"/><text class="al" x="696" y="330" transform="rotate(-90 696 330)">HTTPS</text>
 </svg></div>
-<figcaption>ה-Backoffice הוא ממשק web בנתיב /admin שמוגש מ-rolly-api עצמו: ביקורת שיחות, עלויות, פרומפטים ושופט LLM. אפליקציית המובייל (iOS ו-Android) מדברת עם rolly-api, שמנהל זיכרון ופרסונה ומעביר את האודיו ב-WebSocket ל-pod ה-GPU, שמריץ VAD → STT → LLM → TTS. rolly-voice הוא המבחן הישן מהמחקר ומשתמש באותו pod. OpenAI משמש רק למשימות עזר (סיכומים, חיפוש, שיפוט) ולסוכנים B ו-D של הבוחן.</figcaption>
+<figcaption>ה-Backoffice הוא ממשק web בנתיב /admin שמוגש מ-rolly-api עצמו: ביקורת שיחות, עלויות, פרומפטים ושופט LLM. אפליקציית המובייל (iOS ו-Android) מדברת עם rolly-api, שמנהל זיכרון ופרסונה ומעביר את האודיו ב-WebSocket ל-pod ה-GPU, שמריץ VAD → STT → LLM → TTS. OpenAI משמש רק למשימות עזר (סיכומים, חיפוש, שיפוט, תמלול).</figcaption>
 </figure>
 </main>

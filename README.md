@@ -1,7 +1,10 @@
 # Rolly — voice-agent feasibility POC
 
+> **Research status:** the experiment is closed. Summary, what was not done and what was retired: [`docs/RESEARCH_CLOSEOUT.md`](docs/RESEARCH_CLOSEOUT.md).
+> The browser tester described below is retired as a product surface (code kept).
+>
 > **Starting product work?** Read `RESEARCH_HANDOFF.md` (state of the research, deployment, protocols, limitations) and
-> `docs/PHASE1_IMPLEMENTATION_PROMPT.md` (Phase 1 brief). Product work happens on branch `rolly-phase1`.
+> `docs/PHASE1_IMPLEMENTATION_PROMPT.md` (Phase 1 brief). Product work happens on `main` (Phase 1 branched from `rolly-phase1`; `rolly-api` deploys from `main`).
 
 A test platform for a proactive, interruptible Hebrew + English voice companion for people on the move, built to
 compare voice architectures under identical conditions and to estimate what they cost at scale.

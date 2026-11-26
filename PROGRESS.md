@@ -90,6 +90,8 @@ Still open: a listening verdict on BlueV3 in real conversation, the English voic
 
 ## Next actions (in order of value)
 
+> Historical list from 2026-11-25. Research closed on 2026-11-26: items 1 and 3 were not pursued, see `docs/RESEARCH_CLOSEOUT.md`.
+
 1. Blind human evaluation with native Hebrew speakers, including a Hebrew voice bake-off (B3, B4). This is now the main unknown.
 2. A trial over a mobile network and in a car; a recorded mixed Hebrew-English test set.
 3. Gemini Live baseline and 30-minute sessions on the commercial APIs (B1).

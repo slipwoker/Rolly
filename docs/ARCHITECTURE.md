@@ -1,5 +1,8 @@
 # Architecture of the test platform
 
+> Research-phase architecture. Retired as a product surface on 2026-11-26 (see `docs/RESEARCH_CLOSEOUT.md`); the current
+> architecture is the diagram in `docs/rolly-hld.html`. The provider interface and the pod pipeline below are still in use.
+
 ```
 +----------------------------------------------------+
 | BROWSER  (frontend/)                               |

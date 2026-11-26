@@ -1,9 +1,9 @@
 # Blockers and requests for human intervention
 
-Status on 2026-11-24 (end of session). The GPU and OpenAI baselines have been run. What still needs a person: evaluators (B3),
-the Hebrew voice decision (B4), a Google key (B1) and a price re-check (B5).
+Status on 2026-11-26: the research is closed (`docs/RESEARCH_CLOSEOUT.md`). The blind human evaluation (B3) and the Gemini baseline (B1)
+were not run; the vendor price re-check (B5) is still open. Phase 1 blockers are in `docs/PHASE1_BLOCKERS.md`.
 
-## B1 — Commercial realtime baselines  ·  RESOLVED for OpenAI; OPEN for Google
+## B1 — Commercial realtime baselines  ·  RESOLVED for OpenAI; Google NOT PURSUED (research closed 2026-11-26)
 
 2026-11-24: the OpenAI Realtime baseline was run from the rented GPU pod (this session's own network cannot open WebSockets), with
 the owner's key set as an environment variable on the pod. Results are in `BENCHMARKS.md` section 0. The pod has been terminated,
@@ -25,7 +25,7 @@ Housekeeping for the owner:
 - The environment's network access was changed to unrestricted during the session.
 - RunPod balance remaining: $46.34. No pods or volumes are left.
 
-## B3 — Human evaluators for the blind test  ·  OPEN
+## B3 — Human evaluators for the blind test  ·  NOT RUN (tester retired 2026-11-26; see docs/RESEARCH_CLOSEOUT.md)
 
 | | |
 |---|---|
@@ -50,7 +50,7 @@ Housekeeping for the owner:
 | Security / licensing | Supply-chain risk of a new package; BlueV3's training data is undocumented and its vocoder carries OpenRAIL-M use restrictions (`LICENSES.md`) |
 | Can work continue without it | Yes |
 
-## B5 — Vendor pricing pages could not be fetched  ·  OPEN (affects confidence, not execution)
+## B5 — Vendor pricing pages could not be fetched  ·  OPEN (affects confidence in the cost figures, not execution)
 
 GPU rental prices and OpenAI token prices in `config/pricing.yaml` come from search excerpts and third-party trackers because
 the vendor pages were blocked by this environment's network policy. They are marked `unverified` and should be re-checked

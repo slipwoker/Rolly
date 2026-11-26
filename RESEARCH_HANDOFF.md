@@ -1,5 +1,9 @@
 # ROLLY — Research handoff (state on 2026-11-25)
 
+> **Snapshot.** Written on 2026-11-25 and not updated since. Closeout and later changes: `docs/RESEARCH_CLOSEOUT.md`.
+> Known differences today: `render.yaml` and the pod follow `main`, not the research branch; the persona and memory now live in
+> `apps/api` (this document's "no accounts / no PostgreSQL" is no longer true); the browser tester is retired.
+
 This document is the factual starting point for product implementation. It describes what exists, what runs where,
 what was measured and what is known to be weak. No credentials are recorded here; where a secret exists, only its
 **name** and **where it lives** are given.

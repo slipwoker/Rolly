@@ -10,6 +10,8 @@ Status date: 2026-11-24. Executed in one working session: research, a working pr
 
 Not done at all: human evaluation. Nobody has listened to any audio produced in this POC.
 
+Later status (2026-11-26): the research is closed, see `docs/RESEARCH_CLOSEOUT.md`.
+
 ---
 
 ## 1. Executive summary
