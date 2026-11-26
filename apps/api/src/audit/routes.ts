@@ -31,7 +31,7 @@ const ui = (f: string) => readFileSync(resolve(UI_DIR, f), "utf8");
 
 export async function auditRoutes(app: FastifyInstance, d: AuditRouteDeps) {
   const { db, audit } = d;
-  const files = { html: ui("index.html"), js: ui("app.js"), css: ui("app.css") };
+  const files = { html: ui("index.html"), js: ui("app.js"), css: ui("app.css"), logoLight: ui("logo-light.svg"), logoDark: ui("logo-dark.svg") };
   const headers = (reply: FastifyReply, type: string) => reply
     .header("content-type", type).header("cache-control", "no-store").header("x-frame-options", "DENY")
     .header("referrer-policy", "no-referrer").header("x-content-type-options", "nosniff")
@@ -39,6 +39,8 @@ export async function auditRoutes(app: FastifyInstance, d: AuditRouteDeps) {
   app.get("/admin", async (_req, reply) => headers(reply, "text/html; charset=utf-8").send(files.html));
   app.get("/admin/app.js", async (_req, reply) => headers(reply, "text/javascript; charset=utf-8").send(files.js));
   app.get("/admin/app.css", async (_req, reply) => headers(reply, "text/css; charset=utf-8").send(files.css));
+  app.get("/admin/logo-light.svg", async (_req, reply) => headers(reply, "image/svg+xml").send(files.logoLight));
+  app.get("/admin/logo-dark.svg", async (_req, reply) => headers(reply, "image/svg+xml").send(files.logoDark));
 
   const guard = (req: FastifyRequest, reply: FastifyReply) => {
     if (d.isAdmin(req)) return true;

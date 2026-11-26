@@ -92,9 +92,28 @@
   // ------------------------------------------------------------------ API
   const filters = { days: Number(store.get("audit.days", "30")) || 30, selftest: store.get("audit.selftest", "0") === "1" };
   const status = (t) => { $("#status").textContent = t || ""; };
+  /**
+   * A token goes into an HTTP header, which takes Latin-1 only. Pasting can bring invisible characters along (direction
+   * marks, zero-width spaces, a line break), and typing with the Hebrew keyboard layout gives Hebrew letters: the browser
+   * then refuses the request before it is sent. Invisible characters and surrounding quotes are dropped; anything else
+   * outside printable ASCII is reported instead of stored.
+   */
+  const INVISIBLE = /[\s\u00ad\u061c\u180e\u200b-\u200f\u2028-\u202e\u2060-\u2069\ufeff]/g;
+  function cleanToken(raw) {
+    const t = String(raw || "").replace(INVISIBLE, "").replace(/^["'“”‘’]+|["'“”‘’]+$/g, "");
+    if (!t) return { error: "Enter the admin token." };
+    if (/[^\x21-\x7e]/.test(t)) {
+      return { error: /[\u0590-\u05ff]/.test(t)
+        ? "The token contains Hebrew letters: switch the keyboard to English and type it again, or paste it."
+        : "The token contains characters that cannot be part of it. Paste it again from the Render dashboard." };
+    }
+    return { token: t };
+  }
   async function api(path, opts = {}) {
-    const token = store.get("audit.token", "");
-    if (!token) { showLogin(); throw new Error("no token"); }
+    const stored = store.get("audit.token", "");
+    if (!stored) { showLogin(); throw new Error("no token"); }
+    const { token, error } = cleanToken(stored);
+    if (error) { store.tab("audit.token", null); showLogin(error); throw new Error("unauthorized"); }
     const r = await fetch(path, { ...opts, headers: { Authorization: `Bearer ${token}`, ...(opts.body ? { "Content-Type": "application/json" } : {}) } });
     if (r.status === 401) { store.tab("audit.token", null); showLogin("The token was not accepted."); throw new Error("unauthorized"); }
     const j = await r.json().catch(() => ({}));
@@ -116,7 +135,10 @@
   }
   $("#login-form").addEventListener("submit", (ev) => {
     ev.preventDefault();
-    store.tab("audit.token", $("#token").value.trim());
+    const { token, error } = cleanToken($("#token").value);
+    if (error) { showLogin(error); return; }
+    store.tab("audit.token", token);
+    $("#token").value = "";
     $("#login").hidden = true; $("#app").hidden = false;
     route();
   });

@@ -9,8 +9,9 @@
   --line: #e7e7e7;
   --axis: #c2c2c2;
   --ring: rgba(11, 11, 11, 0.10);
-  --accent: #2370cd;
-  --accent-wash: rgba(37, 125, 224, 0.10);
+  --accent: #7C3AED;
+  --accent-wash: #EFE7FD;
+  --on-accent: #FFFFFF;
   --s1: #257de0; --s2: #f47230; --s3: #00b894; --s4: #f2a600; --s5: #ee7fac; --s6: #008a17; --s7: #6a4ce2; --s8: #ec4647;
   --good: #0aac23; --good-ink: #006c10; --warn: #fbb315; --serious: #f18a59; --critical: #dc3c3d;
   --high-bg: #fdecec; --high-ink: #a32121; --med-bg: #fff4dc; --med-ink: #7a5200; --low-bg: #eef1f5; --low-ink: #4a5563;
@@ -21,7 +22,7 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --page: #0b0b0b; --surface: #191919; --surface-2: #222222; --ink: #efefef; --ink-2: #9c9c9c; --ink-3: #7d7d7d;
-    --line: #303030; --axis: #474747; --ring: rgba(255, 255, 255, 0.10); --accent: #519ced; --accent-wash: rgba(51, 140, 237, 0.16);
+    --line: #303030; --axis: #474747; --ring: rgba(255, 255, 255, 0.10); --accent: #A78BFA; --accent-wash: #2A2140; --on-accent: #0B0A0F;
     --s1: #338ced; --s2: #e76624; --s3: #00a888; --s4: #d28e05; --s5: #e24d8b; --s6: #0aac23; --s7: #9887ef; --s8: #eb6263;
     --good-ink: #53c556;
     --high-bg: #3a1616; --high-ink: #ff9a9a; --med-bg: #362a10; --med-ink: #f5c86a; --low-bg: #23272e; --low-ink: #aab4c2;
@@ -31,7 +32,7 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   --page: #0b0b0b; --surface: #191919; --surface-2: #222222; --ink: #efefef; --ink-2: #9c9c9c; --ink-3: #7d7d7d;
-  --line: #303030; --axis: #474747; --ring: rgba(255, 255, 255, 0.10); --accent: #519ced; --accent-wash: rgba(51, 140, 237, 0.16);
+  --line: #303030; --axis: #474747; --ring: rgba(255, 255, 255, 0.10); --accent: #A78BFA; --accent-wash: #2A2140; --on-accent: #0B0A0F;
   --s1: #338ced; --s2: #e76624; --s3: #00a888; --s4: #d28e05; --s5: #e24d8b; --s6: #0aac23; --s7: #9887ef; --s8: #eb6263;
   --good-ink: #53c556;
   --high-bg: #3a1616; --high-ink: #ff9a9a; --med-bg: #362a10; --med-ink: #f5c86a; --low-bg: #23272e; --low-ink: #aab4c2;
@@ -56,8 +57,14 @@ h3 { font-size: 13px; margin: 0 0 8px; font-weight: 650; color: var(--ink-2); te
 /* layout */
 .app { display: grid; grid-template-columns: 200px 1fr; min-height: 100vh; }
 .nav { position: sticky; top: 0; height: 100vh; padding: 18px 12px; border-right: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; gap: 18px; }
-.brand { font-weight: 700; display: flex; align-items: center; gap: 8px; padding: 0 8px; }
-.brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.brand { display: flex; align-items: center; gap: 9px; padding: 0 6px; color: var(--ink); }
+a.brand:hover { text-decoration: none; }
+.brand-mark { width: 34px; height: 34px; border-radius: 10px; overflow: hidden; flex: none; box-shadow: 0 2px 8px rgba(76, 29, 149, 0.18); }
+.brand-mark img { width: 100%; height: 100%; display: block; }
+.brand-word { font-family: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Varela Round", system-ui, sans-serif; font-weight: 800; font-size: 19px; letter-spacing: 0.04em; }
+.brand-tag { font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-wash); padding: 2px 7px; border-radius: 999px; letter-spacing: 0.02em; }
+.brand-login { padding: 0; margin-bottom: 4px; }
+.logo-dark { display: none !important; }
 .nav nav { display: flex; flex-direction: column; gap: 2px; }
 .nav nav a { color: var(--ink); padding: 7px 10px; border-radius: 7px; }
 .nav nav a:hover { background: var(--surface-2); text-decoration: none; }
@@ -76,7 +83,7 @@ textarea { width: 100%; min-height: 80px; resize: vertical; }
 button { font: inherit; cursor: pointer; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 6px 12px; }
 button:hover { background: var(--surface-2); }
 button:disabled { opacity: 0.5; cursor: default; }
-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 button.link { border: 0; background: none; padding: 0; color: var(--ink-2); }
 button.link:hover { color: var(--ink); text-decoration: underline; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -160,7 +167,7 @@ pre.block { white-space: pre-wrap; word-break: break-word; background: var(--sur
 .tabs button.on { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
 .stars { display: inline-flex; gap: 2px; }
 .stars button { border: 1px solid var(--line); width: 34px; padding: 4px 0; }
-.stars button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.stars button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .tagpick { display: flex; flex-wrap: wrap; gap: 6px; }
 .tagpick button { border-radius: 999px; padding: 2px 10px; font-size: 12px; }
 .tagpick button.on { background: var(--accent-wash); border-color: var(--accent); color: var(--accent); }
@@ -188,3 +195,11 @@ pre.block { white-space: pre-wrap; word-break: break-word; background: var(--sur
   .hbar { grid-template-columns: minmax(90px, 130px) 1fr 36px; }
   .turn { max-width: 100%; }
 }
+
+/* the night version of the mark in dark mode (same scopes as the dark tokens) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logo-light { display: none !important; }
+  :root:not([data-theme="light"]) .logo-dark { display: block !important; }
+}
+:root[data-theme="dark"] .logo-light { display: none !important; }
+:root[data-theme="dark"] .logo-dark { display: block !important; }
