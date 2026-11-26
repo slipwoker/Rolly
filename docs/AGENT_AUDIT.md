@@ -14,7 +14,7 @@ sent as a bearer token; the page itself is static and holds no secret.
 | **Conversations** | Every conversation with length, latency, bot-speak rate, score, judge, review, cost and flags. Filter by flag, user, prompt version, reviewed or not |
 | **Conversation** | Timeline of turns and the notes sent to the model, in time order, with per-turn latency, model first token, voice first audio and tokens; the exact prompt (persona version, memory part, opener, plan); every utility-model call; what was learned and what was injected; the LLM judge (run or re-run) and the owner's review (1-5, tags, note) |
 | **Prompts** | Each distinct persona text with the metrics of the conversations that used it (latency, bot-speak, agreeing openers, general wisdom, words per reply, score, judge, review). Name a version; compare two versions line by line |
-| **Costs** | Variable spend (utility-model tokens at list price + GPU time), cost per conversation minute, monthly run-rate with fixed costs, what the pod costs if it stays up; per day and purpose, per model, per user; the prices in use |
+| **Costs** | Fixed cost (the GPU pod per day, the monthly services) and variable cost (utility-model tokens at list price); how busy the pod was; cost per minute talked, all-in and marginal; monthly run-rate; variable spend per day and purpose, per model, per user; the prices in use |
 | **Model calls** | Every utility-model call: purpose, user, session, latency, tokens, cost, error. Filter by purpose and failures |
 | **Users** | Testers with their use, health score, memory state (active / unconfirmed), goals, how often they corrected Rolly's memory, cost |
 
@@ -25,7 +25,7 @@ Self-test users (`selftest …`) are hidden unless "Include self-tests" is ticke
 | Table | Contents | Personal? | Kept |
 |---|---|---|---|
 | `prompt_versions` | The fixed persona part of the system prompt (`core(language)`), one row per distinct text, with the build that first sent it | No | Always |
-| `session_audit` | Per conversation: persona hash, prompt sizes, memory ids injected, plan kinds, sampling; **personal text**: memory part of the prompt, opener, plan, note texts; quality metrics, flags, GPU cost, judge, the owner's review | Partly | Personal text: see below. The rest: until the conversation is deleted |
+| `session_audit` | Per conversation: persona hash, prompt sizes, memory ids injected, plan kinds, sampling; **personal text**: memory part of the prompt, opener, plan, note texts; quality metrics, flags, conversation length, judge, the owner's review | Partly | Personal text: see below. The rest: until the conversation is deleted |
 | `llm_calls` | Every utility-model call: purpose, model, ok/error, latency, prompt size, tokens (prompt, cached, completion, reasoning), cost | No text | Until the account is deleted |
 | `turns.meta` | Per agent turn: `reply_ms`, `llm_ttft_ms`, `tts_ttfa_ms`, `stt_ms`, `prompt_tokens`, `completion_tokens` | With the transcript | Transcript retention (30 days) |
 | `sessions.stats.usage` | The pod's raw usage: conversation-model tokens, characters spoken, audio transcribed | No | With the session |
@@ -63,13 +63,20 @@ on demand. It is a second opinion; the owner's review is the reference.
 $1.09/h, Render rolly-api $7 and PostgreSQL $6 per month. Override with `ROLLY_PRICING` (JSON merged over the defaults), e.g.
 
 ```
-ROLLY_PRICING={"gpu_usd_per_hour":0.79,"gpu_sessions_share":20,"models":{"gpt-6-luna":{"input":0.1,"cached":0.01,"output":0.5}}}
+ROLLY_PRICING={"gpu_usd_per_hour":0.79,"gpu_hours_per_day":24,"models":{"gpt-6-luna":{"input":0.1,"cached":0.01,"output":0.5}}}
 ```
 
-Each model call's cost is stored with the prices of its time. GPU cost of a conversation = its duration × hourly rate ÷
-`gpu_sessions_share` (1 by default: the pod serves a handful of testers). The pod is billed while it exists, used or not:
-"Pod if always on" shows that number next to the time conversations actually used. Calls of a model with no price are counted
-as "unpriced", never as free.
+**The GPU pod is a fixed cost.** It is billed by the hour while it exists, for one conversation, ten or none, so it is never
+charged to a conversation or a user. It counts as hourly rate × `gpu_hours_per_day` (24: always on) for every day of the range
+from the day of the first recorded conversation. Against it the backoffice shows:
+
+- **GPU busy**: minutes talked ÷ minutes the pod was up (with a handful of testers, well under 1 %);
+- **cost per minute talked, all-in**: everything spent ÷ minutes talked. It falls as use grows, since the pod costs the same;
+- **one more minute adds**: the marginal cost, utility-model API only;
+- **monthly run-rate**: pod per day × 30 + monthly services + API at the current pace.
+
+A conversation's own cost is its utility-model calls ("API cost"). Each call's cost is stored with the prices of its time. Calls
+of a model with no price are counted as "unpriced", never as free.
 
 ## API (admin token)
 
@@ -79,7 +86,8 @@ as "unpriced", never as free.
 ## Not done
 
 - Conversations before this deploy have no prompt snapshot or utility-call records; "Reassess" gives them metrics and flags.
-- The pod's GPU utilisation and uptime are not read (RunPod API); GPU cost is conversation time at the hourly rate.
+- The pod's real uptime is not read (RunPod API): the fixed cost assumes it is up `gpu_hours_per_day` hours on every day since
+  the first conversation. A day it was stopped is still counted.
 - No alerting (e.g. a message when a conversation is flagged high): the data is there, the channel is not.
 - The judge has not been calibrated against the owner's reviews; compare the two on the Prompts and Overview pages once there
   are some reviews.

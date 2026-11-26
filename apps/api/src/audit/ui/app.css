@@ -93,7 +93,7 @@ button.link:hover { color: var(--ink); text-decoration: underline; }
 .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 12px 14px; }
 .tile .k { color: var(--ink-2); font-size: 12px; }
 .tile .v { font-size: 22px; font-weight: 650; margin-top: 2px; letter-spacing: -0.01em; }
-.tile .sub { color: var(--ink-3); font-size: 12px; margin-top: 2px; }
+.tile .sub { color: var(--ink-3); font-size: 12px; margin-top: 2px; overflow-wrap: anywhere; }
 
 /* tables */
 .tablewrap { overflow-x: auto; margin: 0 -4px; }
