@@ -67,9 +67,6 @@
     "experiments": {
       "typedRoutes": false
     },
-    "owner": "zappy-technologies-ltd",
-    "android": {
-      "package": "com.zappy.rolly"
-    }
+    "owner": "zappy-technologies-ltd"
   }
 }
