@@ -13,8 +13,8 @@ import { buildServer } from "../src/server.ts";
 import type { UtilityLlm } from "../src/memory/llm.ts";
 import { Phone } from "../src/selftest/phone.ts";
 import { assess, type AuditTurn } from "../src/audit/quality.ts";
-import { loadPricing, parseUsage, priceOf, tokenCost, gpuCost, DEFAULT_PRICING } from "../src/audit/pricing.ts";
-import { costs, overview, byPrompt, type SessionRow } from "../src/audit/insights.ts";
+import { loadPricing, parseUsage, priceOf, tokenCost, gpuPerDay, DEFAULT_PRICING } from "../src/audit/pricing.ts";
+import { costs, dayKey, overview, byPrompt, type SessionRow } from "../src/audit/insights.ts";
 import { normalizeJudge } from "../src/audit/judge.ts";
 import { startFakePod, tone, type FakePod } from "./fakePod.ts";
 
@@ -58,7 +58,9 @@ describe("audit metrics (pure)", () => {
     // 1000 in (800 cached), 200 out at 0.10 / 0.01 / 0.50 per 1M
     expect(tokenCost(p, "gpt-6-luna", { prompt_tokens: 1000, cached_tokens: 800, completion_tokens: 200 })).toBeCloseTo((200 * 0.1 + 800 * 0.01 + 200 * 0.5) / 1e6, 12);
     expect(tokenCost(p, "mystery-model", { prompt_tokens: 10 })).toBeNull();
-    expect(gpuCost(p, 3600)).toBeCloseTo(1.09);
+    // the pod is a fixed cost per day, never per conversation
+    expect(gpuPerDay(p)).toBeCloseTo(1.09 * 24);
+    expect(gpuPerDay(loadPricing('{"gpu_hours_per_day": 10}'))).toBeCloseTo(10.9);
     expect(parseUsage({ prompt_tokens: 5, completion_tokens: 2, prompt_tokens_details: { cached_tokens: 3 }, completion_tokens_details: { reasoning_tokens: 1 } }))
       .toEqual({ prompt_tokens: 5, cached_tokens: 3, completion_tokens: 2, reasoning_tokens: 1 });
     const o = loadPricing('{"gpu_usd_per_hour": 0.79, "models": {"x": {"input": 1, "cached": 0.1, "output": 2}}}');
@@ -76,17 +78,26 @@ describe("audit metrics (pure)", () => {
       row("s3", { user_turns: 0, cost: { gpu_usd: 0.01 } })];
     const calls = [{ at: now, purpose: "summary", model: "gpt-6-luna", ok: true, ms: 900, cost_usd: 0.0008, prompt_tokens: 3000, completion_tokens: 400, cached_tokens: 0, session_id: "s1", user_id: "u1" },
       { at: now, purpose: "plan", model: "gpt-6-luna", ok: false, ms: 100, cost_usd: 0, prompt_tokens: null, completion_tokens: null, cached_tokens: null, session_id: "s1", user_id: "u1" }];
-    const o = overview(rows, calls, { timeZone: "Asia/Jerusalem", days: 7 });
+    // the service exists since today: one day of the fixed pod in the 7-day range, whatever the number of conversations
+    const fixed = { gpuPerDay: 26.16, gpuHoursPerDay: 24, firstDay: dayKey(now, "Asia/Jerusalem") };
+    const o = overview(rows, calls, { timeZone: "Asia/Jerusalem", days: 7, ...fixed });
     expect(o.kpis.conversations).toBe(2);
     expect(o.kpis.minutes).toBe(20);
-    expect(o.kpis.total_usd).toBeCloseTo(0.0008 + 0.37, 6);
+    expect(o.kpis.gpu_usd).toBeCloseTo(26.16, 6);
+    expect(o.kpis.total_usd).toBeCloseTo(0.0008 + 26.16, 6);
+    expect(o.kpis.api_usd_per_minute).toBeCloseTo(0.0008 / 20, 8);
+    expect(o.kpis.gpu_busy_share).toBeCloseTo(20 / (24 * 60), 4);
+    expect(o.daily.filter((d) => d.gpu_usd > 0)).toHaveLength(1);
     expect(o.daily).toHaveLength(7);
     expect(o.flags).toEqual([{ key: "slow", n: 1 }]);
     expect(o.insights.style.ack_rate).toBe(0.5);
     expect(o.insights.judge.naturalness).toBe(4);
-    const c = costs(rows, calls, { timeZone: "Asia/Jerusalem", days: 7, gpuUsdPerHour: 1.09, fixedMonthly: { a: 13 } });
+    const c = costs(rows, calls, { timeZone: "Asia/Jerusalem", days: 7, fixedMonthly: { a: 30 }, ...fixed });
     expect(c.by_purpose.find((p) => p.purpose === "plan")!.failures).toBe(1);
-    expect(c.totals.gpu_always_on_usd).toBeCloseTo(1.09 * 24 * 7, 1);
+    expect(c.totals).toMatchObject({ pod_days: 1, gpu_usd: 26.16, fixed_other_usd: 1 });
+    expect(c.totals.total_usd).toBeCloseTo(27.16, 2);
+    expect(c.by_user[0]).toMatchObject({ minutes: 20, minutes_share: 1, api_usd: 0.0008 });
+    expect(c.by_user[0]).not.toHaveProperty("gpu_usd");
     const bp = byPrompt(rows);
     expect(bp.find((p) => p.hash === "bbb")!.bot_speak_rate).toBe(1);
     expect(bp.find((p) => p.hash === "aaa")!.conversations).toBe(1);
@@ -186,7 +197,7 @@ describe("audit end to end", () => {
     expect(a.quality.turns_user).toBe(3);
     expect(a.quality.conv_llm).toMatchObject({ calls: 4, model: "fake-gemma" });
     expect(a.quality.reply_ms.n).toBe(3);
-    expect(a.cost.gpu_usd).toBeGreaterThan(0);
+    expect(a.cost).toEqual({ conversation_s: expect.any(Number) }); // no GPU share per conversation
     expect(a.judge).toMatchObject({ overall: 4, model: "gpt-6-luna" });
     // per-turn timings on agent turns
     const turns = (await db.query("SELECT role, meta FROM turns WHERE session_id=$1 AND role='agent' ORDER BY idx", [sid])).rows;
@@ -210,6 +221,12 @@ describe("audit end to end", () => {
     expect(page.headers["content-security-policy"]).toContain("script-src 'self'");
     expect(page.body).toContain("/admin/app.js");
     expect((await app.inject({ method: "GET", url: "/admin/app.js" })).statusCode).toBe(200);
+    for (const mode of ["light", "dark"]) {
+      const logo = await app.inject({ method: "GET", url: `/admin/logo-${mode}.svg` });
+      expect(logo.statusCode).toBe(200);
+      expect(logo.headers["content-type"]).toBe("image/svg+xml");
+      expect(logo.body).toContain('viewBox="112 150 800 800"');
+    }
     expect((await adminGet("/v1/admin/audit/overview", "")).statusCode).toBe(401);
     expect((await adminGet("/v1/admin/audit/overview", "wrong")).statusCode).toBe(401);
   });

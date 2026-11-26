@@ -9,7 +9,8 @@ import { z } from "zod";
 import type { Db } from "../db/index.ts";
 import type { UtilityLlm } from "../memory/llm.ts";
 import type { AuditRecorder } from "./recorder.ts";
-import { byPrompt, costs, overview, type CallRow, type SessionRow } from "./insights.ts";
+import { byPrompt, costs, dayKey, overview, type CallRow, type FixedCost, type SessionRow } from "./insights.ts";
+import { gpuPerDay } from "./pricing.ts";
 import { JUDGE_CRITERIA } from "./judge.ts";
 import { THRESHOLDS } from "./quality.ts";
 
@@ -30,7 +31,7 @@ const ui = (f: string) => readFileSync(resolve(UI_DIR, f), "utf8");
 
 export async function auditRoutes(app: FastifyInstance, d: AuditRouteDeps) {
   const { db, audit } = d;
-  const files = { html: ui("index.html"), js: ui("app.js"), css: ui("app.css") };
+  const files = { html: ui("index.html"), js: ui("app.js"), css: ui("app.css"), logoLight: ui("logo-light.svg"), logoDark: ui("logo-dark.svg") };
   const headers = (reply: FastifyReply, type: string) => reply
     .header("content-type", type).header("cache-control", "no-store").header("x-frame-options", "DENY")
     .header("referrer-policy", "no-referrer").header("x-content-type-options", "nosniff")
@@ -38,6 +39,8 @@ export async function auditRoutes(app: FastifyInstance, d: AuditRouteDeps) {
   app.get("/admin", async (_req, reply) => headers(reply, "text/html; charset=utf-8").send(files.html));
   app.get("/admin/app.js", async (_req, reply) => headers(reply, "text/javascript; charset=utf-8").send(files.js));
   app.get("/admin/app.css", async (_req, reply) => headers(reply, "text/css; charset=utf-8").send(files.css));
+  app.get("/admin/logo-light.svg", async (_req, reply) => headers(reply, "image/svg+xml").send(files.logoLight));
+  app.get("/admin/logo-dark.svg", async (_req, reply) => headers(reply, "image/svg+xml").send(files.logoDark));
 
   const guard = (req: FastifyRequest, reply: FastifyReply) => {
     if (d.isAdmin(req)) return true;
@@ -67,12 +70,18 @@ export async function auditRoutes(app: FastifyInstance, d: AuditRouteDeps) {
        WHERE c.at > now() - make_interval(days => $1::int) AND ($2::boolean OR NOT coalesce(${SELFTEST}, false))`, [days, selftest])).rows;
   }
 
+  /** the pod as a fixed cost per day, from the day of the first recorded session (the service did not exist before) */
+  async function fixed(): Promise<FixedCost> {
+    const first = (await db.query<{ t: Date | null }>("SELECT min(started_at) AS t FROM sessions")).rows[0]?.t ?? null;
+    return { gpuPerDay: gpuPerDay(audit.pricing), gpuHoursPerDay: audit.pricing.gpu_hours_per_day, firstDay: first ? dayKey(first, d.timeZone) : null };
+  }
+
   // ------------------------------------------------------------------ overview, insights
   app.get("/v1/admin/audit/overview", async (req, reply) => {
     if (!guard(req, reply)) return;
     const { days, selftest } = range(req);
     const [rows, calls] = [await sessionRows(days, selftest), await callRows(days, selftest)];
-    return { days, time_zone: d.timeZone, ...overview(rows, calls, { timeZone: d.timeZone, days }), thresholds: THRESHOLDS,
+    return { days, time_zone: d.timeZone, ...overview(rows, calls, { timeZone: d.timeZone, days, ...(await fixed()) }), thresholds: THRESHOLDS,
       utility_llm: d.llm?.name ?? null, build: audit.build };
   });
 
@@ -96,7 +105,7 @@ export async function auditRoutes(app: FastifyInstance, d: AuditRouteDeps) {
         user_turns: s.user_turns, onboarding: s.onboarding, duration_s: st.duration_s ?? null, reply_p50: qq.reply_ms?.p50 ?? null,
         bot_speak_rate: qq.style?.bot_speak_rate ?? null, interruptions: st.interruptions ?? null, score: qq.score ?? null,
         flags: s.flags ?? [], judge: s.judge?.overall ?? null, review: s.review_rating, prompt_hash: s.prompt_hash,
-        cost_usd: Math.round(((s.api_usd ?? 0) + (s.cost?.gpu_usd ?? 0)) * 1e6) / 1e6 };
+        api_usd: s.api_usd === null ? 0 : Math.round(s.api_usd * 1e6) / 1e6 };
     }), total: rows.length };
   });
 
@@ -198,7 +207,7 @@ export async function auditRoutes(app: FastifyInstance, d: AuditRouteDeps) {
     const { days, selftest } = range(req);
     const [rows, calls] = [await sessionRows(days, selftest), await callRows(days, selftest)];
     return { days, pricing: audit.pricing,
-      ...costs(rows, calls, { timeZone: d.timeZone, days, gpuUsdPerHour: audit.pricing.gpu_usd_per_hour, fixedMonthly: audit.pricing.fixed_monthly }) };
+      ...costs(rows, calls, { timeZone: d.timeZone, days, fixedMonthly: audit.pricing.fixed_monthly, ...(await fixed()) }) };
   });
 
   app.get("/v1/admin/audit/llm-calls", async (req, reply) => {
@@ -230,13 +239,13 @@ export async function auditRoutes(app: FastifyInstance, d: AuditRouteDeps) {
        WHERE u.deleted_at IS NULL AND ($1::boolean OR NOT coalesce(${SELFTEST}, false)) ORDER BY u.created_at`, [selftest])).rows;
     const rows = await sessionRows(days, selftest);
     const calls = await callRows(days, selftest);
-    const c = costs(rows, calls, { timeZone: d.timeZone, days, gpuUsdPerHour: audit.pricing.gpu_usd_per_hour, fixedMonthly: {} });
+    const c = costs(rows, calls, { timeZone: d.timeZone, days, fixedMonthly: {}, ...(await fixed()) });
     const cu = new Map(c.by_user.map((x) => [x.user_id, x]));
     return { users: users.map((u) => {
       const mine = rows.filter((s) => s.user_id === u.id && s.user_turns > 0);
       const scores = mine.map((s) => Number((s.quality as { score?: number } | null)?.score)).filter(Number.isFinite);
       return { ...u, conversations: mine.length, minutes: cu.get(u.id)?.minutes ?? 0, last_session_at: mine[0]?.started_at ?? null,
-        cost_usd: Math.round(((cu.get(u.id)?.api_usd ?? 0) + (cu.get(u.id)?.gpu_usd ?? 0)) * 1e6) / 1e6,
+        api_usd: cu.get(u.id)?.api_usd ?? 0,
         avg_score: scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null,
         flagged: mine.filter((s) => (s.flags ?? []).length).length,
         languages: [...new Set(mine.map((s) => s.language).filter(Boolean))] };

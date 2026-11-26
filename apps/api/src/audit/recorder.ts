@@ -15,7 +15,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
 import type { Db } from "../db/index.ts";
 import type { LlmPurpose, UtilityLlm } from "../memory/llm.ts";
-import { gpuCost, parseUsage, round6, tokenCost, type Pricing } from "./pricing.ts";
+import { parseUsage, round6, tokenCost, type Pricing } from "./pricing.ts";
 import { assess, type AuditTurn, type Quality } from "./quality.ts";
 import { judgeConversation, type JudgeResult } from "./judge.ts";
 
@@ -153,7 +153,8 @@ export class AuditRecorder {
       judge: s.judge,
     });
     const dur = typeof stats.duration_s === "number" ? stats.duration_s : 0;
-    const cost = { gpu_usd: round6(gpuCost(this.pricing, dur)), gpu_usd_per_hour: this.pricing.gpu_usd_per_hour, gpu_sessions_share: this.pricing.gpu_sessions_share };
+    // no GPU share here: the pod is a fixed cost (pricing.ts); a conversation's own cost is its utility-model calls
+    const cost = { conversation_s: dur };
     const q = { ...quality, score, flag_reasons: Object.fromEntries(flags.map((f) => [f.id, { severity: f.severity, why: f.why }])) };
     await this.db.query(
       `INSERT INTO session_audit(session_id, user_id, language, onboarding, quality, flags, cost) VALUES ($1,$2,$3,$4,$5,$6,$7)

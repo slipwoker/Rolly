@@ -5,12 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <title>Rolly Agent Audit</title>
+  <link rel="icon" type="image/svg+xml" href="/admin/logo-light.svg">
   <link rel="stylesheet" href="/admin/app.css">
 </head>
 <body>
   <div id="app" class="app">
     <aside class="nav" id="nav">
-      <div class="brand"><span class="dot" aria-hidden="true"></span>Rolly audit</div>
+      <a class="brand" href="#/overview" aria-label="Rolly audit, overview">
+        <span class="brand-mark" aria-hidden="true"><img class="logo-light" src="/admin/logo-light.svg" alt=""><img class="logo-dark" src="/admin/logo-dark.svg" alt=""></span>
+        <span class="brand-word">ROLLY</span><span class="brand-tag">audit</span>
+      </a>
       <nav aria-label="Sections">
         <a href="#/overview" data-route="overview">Overview</a>
         <a href="#/sessions" data-route="sessions">Conversations</a>
@@ -45,9 +49,10 @@
   </div>
   <div id="login" class="login" hidden>
     <form id="login-form" class="card login-card">
-      <h1>Rolly agent audit</h1>
+      <div class="brand brand-login" aria-hidden="true"><span class="brand-mark"><img class="logo-light" src="/admin/logo-light.svg" alt=""><img class="logo-dark" src="/admin/logo-dark.svg" alt=""></span><span class="brand-word">ROLLY</span><span class="brand-tag">audit</span></div>
+      <h1>Agent audit</h1>
       <p class="muted">Owner access. The admin token stays in this browser tab only.</p>
-      <label>Admin token <input type="password" id="token" autocomplete="off" required></label>
+      <label>Admin token <input type="password" id="token" autocomplete="off" autocapitalize="off" spellcheck="false" dir="ltr" lang="en" required></label>
       <button type="submit" class="primary">Open</button>
       <p class="error" id="login-error" hidden></p>
     </form>
