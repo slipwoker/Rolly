@@ -162,6 +162,8 @@ class ModularProvider(VoiceProvider):
         self.tts.set_pronunciations(pins)
         if pins:
             print(f"[pron] {self.ctx.session_id[:8]}: {pins}", flush=True)
+            if getattr(self, "_emit", None):  # shows in the session's metrics (stats.pod_metrics_count.name_pinned)
+                await self.emit(base.METRIC, name="name_pinned", value_ms=float(len(pins)))
 
     async def set_pronunciations(self, words: dict) -> None:
         """The caller changed how a name is said (the user corrected it): from the next piece of speech on."""
