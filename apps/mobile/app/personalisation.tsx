@@ -7,6 +7,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { api, forgetDevice } from "../src/api";
 import { inputAlign, isRTL, t } from "../src/i18n";
+import { stateView } from "../src/whatsapp";
 import { Backdrop, Button, Card, Chip, CircleButton, IconTile, TopBar, Txt } from "../src/ui/components";
 import { radius, spacing, type, useTheme } from "../src/ui/theme";
 
@@ -22,9 +23,11 @@ export default function Personalisation() {
   const [me, setMe] = useState<Me | null>(null);
   const [mems, setMems] = useState<Memory[]>([]);
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
+  const [wa, setWa] = useState<{ available: boolean; state: string } | null>(null);
   const load = useCallback(() => {
     api<Me>("/v1/me").then(setMe).catch(() => {});
     api<{ memories: Memory[] }>("/v1/memories").then((r) => setMems(r.memories)).catch(() => {});
+    api<{ available: boolean; state: string }>("/v1/whatsapp").then(setWa).catch(() => setWa(null)); // the row only shows when the server has WhatsApp
   }, []);
   useFocusEffect(load);
   // coming back from the browser after the Google consent page
@@ -125,6 +128,15 @@ export default function Personalisation() {
                     ? <Button icon="x" label={t.disconnect} onPress={() => confirmDanger(t.disconnect, () => act(() => api("/v1/integrations/google", { method: "DELETE" })))} />
                     : google.status === "not_connected" ? <Button variant="primary" icon="link" label={t.connect} onPress={connectGoogle} />
                     : <View style={[s.badge, { backgroundColor: c.accentSoft }]}><Txt variant="micro" tone="accent">{t.soon}</Txt></View>}
+                </View>
+              ) : null}
+              {wa?.available ? (
+                <View style={s.service}>
+                  <View style={{ flex: 1 }}>
+                    <Txt variant="body">{t.waService}</Txt>
+                    <Txt variant="caption" tone={stateView(wa.state).warn ? "danger" : "dim"}>{t[stateView(wa.state).text]}</Txt>
+                  </View>
+                  <Button icon="message-circle" variant={wa.state === "connected" ? "secondary" : "primary"} label={t.open} onPress={() => router.push("/whatsapp")} />
                 </View>
               ) : null}
               {spotify ? (
