@@ -1,0 +1,5 @@
+*.db
+*.db-*
+wa-gateway
+waspike
+qr.png

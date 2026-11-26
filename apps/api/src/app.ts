@@ -23,6 +23,8 @@ import { runTool, type Connections } from "./integrations/tools.ts";
 import { realHttp } from "./integrations/http.ts";
 import * as googleApi from "./integrations/google.ts";
 import { seal, unseal, signState, verifyState } from "./integrations/crypto.ts";
+import { GatewayError, httpGateway } from "./whatsapp/gateway.ts";
+import { WhatsAppFlow } from "./whatsapp/flow.ts";
 import { AuditRecorder } from "./audit/recorder.ts";
 import { loadPricing } from "./audit/pricing.ts";
 import { auditRoutes } from "./audit/routes.ts";
@@ -38,6 +40,9 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
   // the backoffice audit (src/audit/): every utility-model call is recorded with its purpose, tokens and cost
   const audit = new AuditRecorder(db, loadPricing(), { build: config.build, log: (msg, e) => console.error(msg, String(e).slice(0, 300)) });
   const llm: UtilityLlm | null = rawLlm ? audit.wrapLlm(rawLlm) : null;
+  // WhatsApp through the private gateway: reading and sending by voice (docs/WHATSAPP_GATEWAY.md); off unless configured
+  const gateway = config.whatsapp ? httpGateway(config.whatsapp) : null;
+  const wa = gateway && llm ? new WhatsAppFlow(gateway, llm, { tz: config.timezone }) : null;
   /** the LLM judge after each conversation (ROLLY_AUDIT_JUDGE=off to disable) */
   const autoJudge = async (sessionId: string, userTurns: number) => {
     if (!llm || !config.auditJudge || userTurns < 2) return;
@@ -104,13 +109,14 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       const { language, chosen } = resolveLanguage(start, view.profile.preferredLanguage);
       if (chosen === "he" || chosen === "en") await store.updateProfile(userId, { preferred_language: chosen });
       const lookup = config.webLookup && Boolean(llm?.search);
-      const built = buildContext(view, { language, journey: { ...start.journey, proactive }, timeZone: config.timezone, resume, lookup,
+      const whatsapp = wa ? await wa.linked(userId) : false;
+      const built = buildContext(view, { language, journey: { ...start.journey, proactive }, timeZone: config.timezone, resume, lookup, whatsapp,
         tools: { calendar: Boolean(googleCfg), music: Boolean(config.spotify) } });
       await store.startSession(sessionId, userId, built.language, built.onboarding, new Date());
       await store.markUsed(view.usedIds);
       sessionAgenda.set(sessionId, built.agenda);
       await audit.recordPrompt({ sessionId, userId, language: built.language, onboarding: built.onboarding, systemPrompt: built.system_prompt,
-        persona: core(built.language, { lookup, tools: { calendar: Boolean(googleCfg), music: Boolean(config.spotify) } }), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })),
+        persona: core(built.language, { lookup, whatsapp, tools: { calendar: Boolean(googleCfg), music: Boolean(config.spotify) } }), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })),
         memoryIds: view.usedIds, sampling: config.llmSampling });
       const foreign = practiceLanguage(view);
       return {
@@ -136,6 +142,9 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     // the model said it is checking something online (P1-D34): search, within the user's daily allowance
     async lookup(args) {
       return audit.run({ userId: args.userId, sessionId: args.sessionId }, async () => {
+        // WhatsApp first: the same marker is used for it, so the user's words decide (whatsapp/flow.ts); null = a web question
+        const viaWhatsApp = wa ? await wa.handle(args).catch(() => null) : null;
+        if (viaWhatsApp) return viaWhatsApp;
         const refuse = (reason: "unavailable" | "limit") => ({ message: lookupMessage({ ok: false, reason, ms: 0 }), ok: false, reason });
         if (!config.webLookup || !llm?.search) return refuse("unavailable");
         const used = (await db.query<{ n: number }>("SELECT count(*)::int n FROM llm_calls WHERE user_id=$1 AND purpose IN ('lookup','tool') AND at > now() - interval '24 hours'", [args.userId])
@@ -147,6 +156,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       });
     },
     async finalize(args) {
+      wa?.endSession(args.sessionId, args.userId);
       const p = audit.run({ userId: args.userId, sessionId: args.sessionId }, () => finalizeSession(args));
       finalizing.set(args.sessionId, p);
       try { return await p; } finally { setTimeout(() => finalizing.delete(args.sessionId), 60_000); }
@@ -380,10 +390,42 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     });
     app.delete("/v1/me", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
+      await gateway?.unlink(id).catch(() => {}); // the WhatsApp link and everything stored for it leave with the account
       const rt = await connections.googleRefresh(id).catch(() => null);
       if (rt) await googleApi.revoke(realHttp, rt); // withdraw Google access too, not only our copy of the token
       await store.deleteAccount(id);
       return { deleted: true };
+    });
+
+    // ---------------------------------------------------------- WhatsApp (linked through the private gateway)
+    // Linking from the phone that runs the app needs a pairing CODE typed in WhatsApp (a QR cannot be scanned from the same
+    // screen); "qr" exists for tests and for a second screen. Personal accounts only for now (docs/WHATSAPP_GATEWAY.md).
+    app.get("/v1/whatsapp", async (req, reply) => {
+      const id = user(req, reply); if (!id) return;
+      if (!gateway) return { available: false };
+      const s = await gateway.status(id).catch(() => null);
+      return { available: true, state: s?.state ?? "unavailable" };
+    });
+    app.post("/v1/whatsapp/link", async (req, reply) => {
+      const id = user(req, reply); if (!id) return;
+      if (!gateway) return reply.code(404).send({ error: "whatsapp is not available" });
+      const b = parse(z.object({ mode: z.enum(["qr", "code"]), phone: z.string().regex(/^\+?[0-9 \-]{8,20}$/).optional(),
+        /** the app showed the terms (unofficial connection, the number can be restricted by WhatsApp) and the user accepted */ consent: z.literal(true) }), req.body, reply); if (!b) return;
+      try { wa?.forget(id); return reply.code(202).send(await gateway.link(id, b.mode, b.phone, b.consent)); }
+      catch (e) { return reply.code(e instanceof GatewayError && e.status >= 400 && e.status < 500 ? e.status : 502).send({ error: e instanceof GatewayError ? e.message : "link failed" }); }
+    });
+    app.get("/v1/whatsapp/link", async (req, reply) => {
+      const id = user(req, reply); if (!id) return;
+      if (!gateway) return reply.code(404).send({ error: "whatsapp is not available" });
+      wa?.forget(id);
+      return reply.send(await gateway.status(id).catch(() => ({ state: "unavailable" })));
+    });
+    app.delete("/v1/whatsapp", async (req, reply) => {
+      const id = user(req, reply); if (!id) return;
+      if (!gateway) return reply.code(404).send({ error: "whatsapp is not available" });
+      await gateway.unlink(id).catch(() => {});
+      wa?.forget(id);
+      return { state: "unlinked" };
     });
 
     // ---------------------------------------------------------- owner / admin
@@ -391,6 +433,12 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       if (!admin(req, reply)) return;
       const b = parse(z.object({ label: z.string().max(80).optional() }), req.body, reply); if (!b) return;
       return { user_id: await store.createUser(b.label ?? null) };
+    });
+    // WhatsApp gateway health for the owner: counts by state, live connections, stored messages (no user data)
+    app.get("/v1/admin/whatsapp", async (req, reply) => {
+      if (!admin(req, reply)) return;
+      if (!gateway) return { available: false };
+      return gateway.stats().then((s) => ({ available: true, ...s })).catch(() => reply.code(502).send({ available: true, error: "gateway unreachable" }));
     });
     app.get("/v1/admin/users", async (req, reply) => {
       if (!admin(req, reply)) return;
