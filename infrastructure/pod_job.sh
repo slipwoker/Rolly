@@ -25,6 +25,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 # job 17 (2026-11-26): restart the worker for the lookup fix (a request is reported as soon as the marker is written, so a
 # reply cut off right after "checking" no longer loses it) and for waiting plan topics skipping turns where the user asked
 # a question (P1-D38).  Only the worker restarts.
+# job 18 (2026-11-26): restart the worker for the name מאור given to BlueV3 as phonemes (it said "Me-or"). Only the worker restarts.
 # Back to the old voices: ROLLY_BLUE_VOICE=daniel ROLLY_BLUE_SPEED=1.2 ROLLY_TTS_EN_ENGINE=sherpa.
 pkill -f "zonos3-server" 2>/dev/null || true
 if bash infrastructure/blue_setup.sh; then

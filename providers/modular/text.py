@@ -220,16 +220,20 @@ class TurnNotes:
         return len(self._notes)
 
 
-# Hebrew words the voice front end reads wrongly without vowels.  Applied only to the text sent to a Hebrew voice
-# (history and transcripts keep the plain spelling).  Value: vocalised spelling with the intended reading.
-#   זאפי (the owner's company, "Zappy"): read as "zaffy" because an unmarked פ in the middle is read as f.  The vocalised
-#   spelling זַאפִּי did not fix it for the owner's ear; written in Latin letters the Hebrew voice says it right
-#   (listening samples, 2026-11-26: the owner chose "Zappy" and מָאוֹר).
-#   מאור (a first name, "Ma-or"): read as "Me-or" without vowels.
+# Hebrew words the voice front end reads wrongly.  Applied only to the text sent to a Hebrew voice (history and transcripts
+# keep the plain spelling).  Value: the spelling to speak instead.
+#   זאפי (the owner's company, "Zappy"): read as "zaffy" because an unmarked פ in the middle is read as f.  Written in Latin
+#   letters the Hebrew voice says it right (listening samples, 2026-11-26).
+#   מאור (a first name, "Ma-or"): the front end ignores vowel marks and reads it "Me-or" alone and at the end of a sentence
+#   ("תודה מאור!", "בכיף, מאור."), "Ma-or" elsewhere (the owner, 26.11: "he calls me meor, not maor").  It is therefore
+#   given as phonemes, in an inline span that the front end passes on unchanged (BlueV3 only, see PHONEME_WORDS).
 HE_PRONUNCIATION: dict[str, str] = {
     "זאפי": "Zappy",
-    "מאור": "מָאוֹר",
+    "מאור": "מָאוֹר",  # for a voice that reads vowel marks (the backup voice); BlueV3 gets PHONEME_WORDS instead
 }
+# words given to a voice that takes inline phoneme spans as phonemes: word -> (phonemes, how each prefix letter is said)
+PHONEME_WORDS: dict[str, str] = {"מאור": "maʔˈoʁ"}
+_PREFIX_PHONEMES = {"": "", "ו": "ve", "ה": "ha", "ב": "be", "ל": "le", "מ": "mi", "ש": "ʃe", "כ": "ke"}
 _HE_LETTER = "א-ת"
 
 
@@ -239,10 +243,20 @@ def _he_pattern(word: str) -> re.Pattern:
 
 
 _HE_PATTERNS = [(_he_pattern(w), v) for w, v in HE_PRONUNCIATION.items()]
+_PHONEME_PATTERNS = [(_he_pattern(w), ph) for w, ph in PHONEME_WORDS.items()]
 
 
-def he_pronounce(text: str) -> str:
-    """Replace words from HE_PRONUNCIATION with their vocalised reading, keeping any prefix letters."""
+def he_pronounce(text: str, phonemes: bool = False) -> str:
+    """Replace words from HE_PRONUNCIATION with their reading, keeping any prefix letters.  With `phonemes` (a voice that
+    takes inline `<he>…</he>` phoneme spans) the names in PHONEME_WORDS are given as phonemes."""
+    if phonemes:  # first: the plain respelling below would otherwise take the word
+        for pat, ph in _PHONEME_PATTERNS:
+            def sub(m, ph=ph):
+                pre = m.group(1)
+                if not all(c in _PREFIX_PHONEMES for c in pre):
+                    return m.group(0)
+                return "<he>" + "".join(_PREFIX_PHONEMES[c] for c in pre) + ph + "</he>"
+            text = pat.sub(sub, text)
     for pat, v in _HE_PATTERNS:
         # a Hebrew prefix letter before a word written in Latin letters takes a hyphen, as in written Hebrew ("ב-Zappy")
         joiner = "-" if v[:1].isascii() and v[:1].isalpha() else ""
