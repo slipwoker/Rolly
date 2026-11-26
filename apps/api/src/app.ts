@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { Config } from "./config.ts";
 import { createPool, migrate } from "./db/index.ts";
 import { Auth, RateLimiter, adminOk, secretOk } from "./auth.ts";
-import { buildContext } from "./persona/promptBuilder.ts";
+import { buildContext, resolveLanguage } from "./persona/promptBuilder.ts";
 import { openAiLlm, type UtilityLlm } from "./memory/llm.ts";
 import { MemoryStore } from "./memory/store.ts";
 import { summarizeSession, type SummaryResult } from "./memory/summarizer.ts";
@@ -56,14 +56,18 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       }
       const view = await store.memoryView(userId);
       const proactive = start.proactive ?? true;
-      const built = buildContext(view, { language: start.language ?? null, journey: { ...start.journey, proactive }, timeZone: config.timezone, resume });
+      const { language, chosen } = resolveLanguage(start, view.profile.preferredLanguage);
+      if (chosen === "he" || chosen === "en") await store.updateProfile(userId, { preferred_language: chosen });
+      const built = buildContext(view, { language, journey: { ...start.journey, proactive }, timeZone: config.timezone, resume });
       await store.startSession(sessionId, userId, built.language, built.onboarding, new Date());
       await store.markUsed(view.usedIds);
       sessionAgenda.set(sessionId, built.agenda);
       return {
         onboarding: built.onboarding, pacingScale: pacingScales.get(userId),
+        plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })), confirm: built.confirm,
         ctx: { session_id: sessionId, user_id: userId, language: built.language, system_prompt: built.system_prompt,
-          opener_instruction: built.opener_instruction, proactive, journey: start.journey ?? {}, profile: built.profile, options: {} },
+          opener_instruction: built.opener_instruction, proactive, journey: start.journey ?? {}, profile: built.profile,
+          options: { llm: config.llmSampling } },
       };
     },
     async onUserTurn(args) {
@@ -77,7 +81,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       try { return await p; } finally { setTimeout(() => finalizing.delete(args.sessionId), 60_000); }
     },
   };
-  async function finalizeSession({ userId, sessionId, turns, stats, endReason, describe }: Parameters<SessionHooks["finalize"]>[0]) {
+  async function finalizeSession({ userId, sessionId, turns, stats, endReason, describe, language }: Parameters<SessionHooks["finalize"]>[0]) {
       const visible = turns.filter((t) => !t.text.startsWith("["));
       let summary: SummaryResult | null = null;
       let policy: Awaited<ReturnType<MemoryStore["applySummary"]>> | null = null;
@@ -86,7 +90,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
         const t0 = Date.now();
         summary = await summarizeSession(llm, visible, { openTopics: view.openTopics, known: view.knownIds, candidates: view.candidates });
         stats.summary_ms = Date.now() - t0;
-        policy = await store.applySummary(userId, sessionId, summary, visible);
+        policy = await store.applySummary(userId, sessionId, summary, visible, { languageDetected: language === "auto" });
         await store.learnAddressing(userId, sessionId, visible);
       }
       await store.finishSession({ sessionId, userId, turns: visible, summary, stats, endReason, describe, policy });
@@ -112,8 +116,10 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       goals: goals.map((g) => ({ id: g.id, content: g.content, state: [g.state_note, g.next_step ? `next: ${g.next_step}` : null].filter(Boolean).join(" ") || null })),
       tasks: tasks.map((t) => ({ id: t.id, content: t.content })), agenda: had,
     });
-    const res = await store.applyPlan(userId, sessionId, plan, turns, progressIds);
-    if (!plan.next_agenda.length) await store.saveAgenda(userId, sessionId, fallbackAgenda(await store.memoryView(userId)));
+    // what opened this ride and was not taken up must not open the next one as well
+    const openedSkipped = had[0] && plan.agenda_outcome.find((o) => o.index === 0)?.outcome === "skipped" ? had[0].topic : null;
+    const res = await store.applyPlan(userId, sessionId, plan, turns, progressIds, openedSkipped);
+    if (!plan.next_agenda.length) await store.saveAgenda(userId, sessionId, fallbackAgenda(await store.memoryView(userId)), openedSkipped);
     const scrubbed = await scrub(userId);
     const cons = await consolidate(store, llm, userId).catch((e) => ({ digest: false, history: false, skipped: String(e).slice(0, 120) }));
     await store.addSessionStats(sessionId, {
@@ -235,6 +241,12 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       const id = user(req, reply); if (!id) return;
       return (await store.deleteProgress(id, (req.params as { id: string }).id)) ? { ok: true } : reply.code(404).send({ error: "not found" });
     });
+    // delete one conversation and everything that was learned from it
+    app.delete("/v1/sessions/:id", async (req, reply) => {
+      const id = user(req, reply); if (!id) return;
+      const r = await store.deleteSession(id, (req.params as { id: string }).id);
+      return r ? r : reply.code(404).send({ error: "not found" });
+    });
     app.get("/v1/export", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
       return store.exportAll(id);
@@ -261,6 +273,12 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       if (!admin(req, reply)) return;
       await store.deleteAccount((req.params as { id: string }).id);
       return { deleted: true };
+    });
+    app.delete("/v1/admin/users/:id/sessions/:sid", async (req, reply) => {
+      if (!admin(req, reply)) return;
+      const { id, sid } = req.params as { id: string; sid: string };
+      const r = await store.deleteSession(id, sid);
+      return r ? r : reply.code(404).send({ error: "not found" });
     });
     app.post("/v1/admin/users/:id/pairing-code", async (req, reply) => {
       if (!admin(req, reply)) return;
@@ -330,7 +348,8 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       next_agenda: view.agenda?.items ?? [], digest: view.digest, scrub_pending: (await store.scrubQueue(uid)).length,
       sessions: (await db.query("SELECT started_at, stats->'notes' AS notes, stats->'plan' AS plan, stats->'lookahead_ms' AS lookahead_ms, stats->'server_reply_ms_median' AS reply_ms FROM sessions WHERE user_id=$1 ORDER BY started_at", [uid])).rows,
       next_opener_instruction: buildContext(view, { timeZone: config.timezone }).opener_instruction,
-      addressing_section_in_next_prompt: buildContext(view, { timeZone: config.timezone, language: "he" }).system_prompt.split("\n\n").find((s) => s.startsWith("How to address")) ?? null };
+      next_prompt_chars: buildContext(view, { timeZone: config.timezone, language: "he" }).system_prompt.length,
+      next_prompt_memory_part: buildContext(view, { timeZone: config.timezone, language: "he" }).system_prompt.split("\n\n").slice(-2).join("\n\n") };
   };
   async function runSelftest(job: { scenario: string; lang: "he" | "en"; status: string; results: unknown[]; user_id: string | null }) {
     const uid = job.user_id ?? await store.createUser(`selftest ${new Date().toISOString()}`);

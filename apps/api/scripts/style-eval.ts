@@ -90,6 +90,7 @@ async function runScript(s: Script, id: string, v: Variant) {
   let promptTokens: number | null = null;
   const feeder = v.plan && s.memory === "returning" ? new PlanFeeder(v.plan, true) : null;
   let planNote: FeederNote | null = null; // waits on the "pod": shown only on a turn that meets its condition
+  let dryStreak = 0; // the pod's count of consecutive one- or two-word user turns (TurnNotes in providers/modular/text.py)
   const turn = async (user: string, store = user, isOpener = false) => {
     const msgs = [{ role: "system", content: system }, ...history.map((m) => ({ ...m })), { role: "user", content: user }];
     const lastAgent = replies.at(-1);
@@ -98,7 +99,9 @@ async function runScript(s: Script, id: string, v: Variant) {
     const guard = v.guard ? styleGuardNote(replies.slice(-2)) : null;
     if (guard) notes.push(`[Note for this turn, not said by the user: ${guard}]`);
     const userWords = user.split(/\s+/).filter(Boolean).length;
-    if (planNote && !isOpener && (planNote.maxUserWords === undefined || userWords <= planNote.maxUserWords)) {
+    if (!isOpener) dryStreak = userWords <= 2 ? dryStreak + 1 : 0;
+    // as in the live session: a plan item needs two short answers in a row, not one "okay"
+    if (planNote && !isOpener && (planNote.maxUserWords === undefined || (userWords <= planNote.maxUserWords && dryStreak >= 2))) {
       notes.push(`[Note for this turn, not said by the user: ${planNote.text}]`);
       planNote = null;
     }
@@ -106,7 +109,8 @@ async function runScript(s: Script, id: string, v: Variant) {
     const r = await chat(msgs, v);
     history.push({ role: "user", content: store }, { role: "assistant", content: r.text });
     replies.push(r.text);
-    planNote = feeder?.afterReply(isOpener ? null : userWords) ?? planNote;
+    // the feeder only learns that its item was shown from the user's word count, so tell it the truth of this turn
+    planNote = feeder?.afterReply(isOpener ? null : (dryStreak >= 2 ? userWords : 99)) ?? planNote;
     ttft.push(r.ttft_ms);
     promptTokens ??= r.prompt_tokens;
   };

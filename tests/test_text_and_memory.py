@@ -215,8 +215,12 @@ def test_pipeline_adds_caller_notes_to_the_turn_only():
 
 def test_hebrew_pronunciation_fixes_zappy_only_as_a_word():
     from providers.modular.text import he_pronounce
-    assert he_pronounce("עובדים על זאפי") == "עובדים על זַאפִּי"
-    assert he_pronounce("בזאפי, ולזאפי.") == "בזַאפִּי, ולזַאפִּי."
-    assert he_pronounce("זאפי?") == "זַאפִּי?"
+    # the owner's pick from listening samples (2026-11-26): "Zappy" in Latin letters, מָאוֹר with vowels
+    assert he_pronounce("עובדים על זאפי") == "עובדים על Zappy"
+    assert he_pronounce("בזאפי, ולזאפי.") == "ב-Zappy, ול-Zappy."
+    assert he_pronounce("זאפי?") == "Zappy?"
     assert he_pronounce("זאפיות") == "זאפיות"  # a longer word is left alone
     assert he_pronounce("Zappy is fine") == "Zappy is fine"
+    assert he_pronounce("בוקר טוב מאור, מה קורה עם זאפי?") == "בוקר טוב מָאוֹר, מה קורה עם Zappy?"
+    assert he_pronounce("אמרתי למאור") == "אמרתי למָאוֹר"
+    assert he_pronounce("מאוד מאורגן, יש מאורות") == "מאוד מאורגן, יש מאורות"  # other words that contain the letters

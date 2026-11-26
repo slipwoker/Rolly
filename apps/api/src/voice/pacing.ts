@@ -12,7 +12,7 @@ export type PacingEvent = "half" | "wrap" | "last";
 export interface PacingNote { event: PacingEvent; text: string; turns: number }
 
 export const PACING_NOTES: Record<PacingEvent, { text: string; turns: number }> = {
-  half: { turns: 2, text: "About half of the ride is over. If the current topic has run its course, move on to the next item of your plan with a short, natural bridge. If the user is clearly into the current topic, stay with it." },
+  half: { turns: 1, text: "About half of the ride is over. If the current topic has run its course, bring up something new and concrete with a short, natural bridge." },
   wrap: { turns: 3, text: "About three minutes of the ride are left. Start wrapping up over your next turns: bring the current topic to a point, say the one takeaway and the next step in a short sentence. Do not open a new topic. Do not say goodbye yet." },
   last: { turns: 2, text: "The ride is about to end. In one short sentence, name the main takeaway or the next step, and that you will pick it up next time. If the user keeps talking, keep going with them; say goodbye only when they do." },
 };

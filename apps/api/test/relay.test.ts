@@ -12,14 +12,17 @@ let pod: FakePod, app: FastifyInstance, port: number;
 const finalized: { turns: SessionTurn[]; stats: Record<string, unknown>; endReason: string }[] = [];
 
 beforeAll(async () => {
-  pod = await startFakePod({ script: ["שלום", "מה נשמע", "רגע", "שקט", "עוד חמש דקות אני מגיע", "תרשום לי משהו"], token: "test-key" });
+  pod = await startFakePod({ script: ["שלום", "מה נשמע", "רגע", "שקט", "עוד חמש דקות אני מגיע", "תרשום לי משהו", "סתם", "כלום", "בסדר"], token: "test-key",
+    // a "model" that falls back on bot-speak, for the style guard
+    replyText: (t) => ({ "סתם": "הבנתי אותך.", "כלום": "צודק, נכון.", "בסדר": "בלי טעינה בבית זה לא שווה." } as Record<string, string>)[t] });
   const config = { ...loadConfig({ ROLLY_GPU_API_KEY: "test-key", ROLLY_GPU_WORKER_URL: pod.url, ROLLY_DEV_AUTH: "1" } as NodeJS.ProcessEnv), port: 0 };
   const hooks: SessionHooks = {
     async prepare(userId, sessionId, start) {
       const b = buildContext(emptyMemory(), { language: start.language ?? "he" });
       // "u-pace": a 20-minute ride compressed to 1.2 seconds
       const pace = userId === "u-pace";
-      return { onboarding: b.onboarding, pacingScale: pace ? 0.001 : undefined, ctx: { session_id: sessionId, user_id: userId, language: b.language, system_prompt: b.system_prompt,
+      const plan = userId === "u-plan" ? [{ topic: "הגיוס", take: "משקיע קטן" }, { topic: "ספורט", take: "הליכה קצרה" }] : undefined;
+      return { onboarding: b.onboarding, pacingScale: pace ? 0.001 : undefined, plan, confirm: userId === "u-plan" ? "אולי גר בחיפה" : null, ctx: { session_id: sessionId, user_id: userId, language: b.language, system_prompt: b.system_prompt,
         opener_instruction: b.opener_instruction, proactive: true, journey: pace ? { duration_min: 20 } : {}, profile: b.profile, options: {} } };
     },
     async onUserTurn({ turn }) { return turn.text.includes("תרשום") ? { text: "NOTE-FROM-HOOK", turns: 1 } : undefined; },
@@ -113,5 +116,34 @@ describe("relay phone <-> rolly-api <-> pod", () => {
     expect(f.turns.filter((t) => t.role === "user").map((t) => t.text)).toEqual(["עוד חמש דקות אני מגיע", "תרשום לי משהו"]);
     // a session without an expected length gets no pacing notes
     expect((finalized[0]!.stats.notes as unknown[]).length).toBe(0);
+  }, 30_000);
+
+  it("after Rolly's replies: the next plan item waits on the pod for a dry turn, the style guard and the confirm note go out once", async () => {
+    const before = pod.notes.length;
+    const phone = new Phone();
+    await phone.connect(`ws://127.0.0.1:${port}/v1/voice?dev_user=u-plan`);
+    phone.send({ type: "session.start", language: "he" });
+    await phone.waitReply(0, 5000); // opener (carries plan item 0)
+    for (let i = 0; i < 3; i++) { const end = await phone.say(speech(500)); await phone.waitReply(end - 1, 5000); } // "סתם", "כלום", "בסדר"
+    phone.send({ type: "session.end" });
+    await phone.waitFor(() => phone.closed, 5000, "closed");
+    phone.stop();
+    const notes = pod.notes.slice(before);
+    // after the opener: item 1, conditional on two short answers in a row
+    expect(notes[0]).toMatchObject({ turns: 1, max_user_words: 2, min_streak: 2 });
+    expect(notes[0]!.text).toContain("Bring up this now: ספורט. Your own take on it: הליכה קצרה");
+    // "הבנתי אותך." then "צודק, נכון.": two agreeing openers in a row -> one style note, for one turn, unconditional
+    const style = notes.filter((n) => n.text.includes("skip the opener"));
+    expect(style).toHaveLength(1);
+    expect(style[0]).toMatchObject({ turns: 1 });
+    expect(style[0]!.max_user_words).toBeUndefined();
+    // the unconfirmed item is offered once, on a quiet turn
+    const confirm = notes.filter((n) => n.text.includes("אולי גר בחיפה"));
+    expect(confirm).toHaveLength(1);
+    expect(confirm[0]).toMatchObject({ max_user_words: 2, min_streak: 1 });
+    // a clean reply brings no style note; nothing of this is in the transcript
+    const f = finalized.at(-1)!;
+    expect((f.stats.notes as { kind: string }[]).map((n) => n.kind).filter((k) => k === "style")).toHaveLength(1);
+    expect(f.turns.map((t) => t.text).join(" ")).not.toContain("Bring up this now");
   }, 30_000);
 });

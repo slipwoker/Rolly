@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { adaptAgenda, fallbackAgenda, normalizeAgendaItems, normalizePlan, type StoredAgenda } from "../src/memory/plan.ts";
-import { BUDGET, sameStatement, score, selectWithinBudget, type Selectable } from "../src/memory/select.ts";
-import { buildContext, emptyMemory, type MemoryView } from "../src/persona/promptBuilder.ts";
-import { LEAD, NOTES } from "../src/persona/phase1Sections.ts";
+import { sameStatement, score, selectWithinBudget, type Selectable } from "../src/memory/select.ts";
 
 const DAY = 86_400_000;
 const now = new Date("2026-11-26T08:00:00Z");
@@ -48,6 +46,15 @@ describe("the plan for a ride", () => {
     expect(plan.agenda_outcome).toEqual([{ index: 0, outcome: "done" }]);
     expect(plan.next_agenda[0]!.ref_id).toBe("g1");
   });
+  it("what opened the last ride and was not taken up does not open this one", () => {
+    const again = { ...stored(), opened_with: "הפגישה עם הלקוח" };
+    expect(adaptAgenda(again, { minutes: null, now }).map((i) => i.topic)).toEqual(["רשימת עשרה לקוחות", "להתקשר לרואה החשבון", "הפגישה עם הלקוח"]);
+    expect(adaptAgenda({ ...stored(), opened_with: "משהו אחר" }, { minutes: 10, now })[0]!.topic).toBe("הפגישה עם הלקוח");
+  });
+  it("a take is kept with its item", () => {
+    expect(normalizeAgendaItems([{ topic: "הגיוס", take: "עדיף משקיע קטן שמאמין", kind: "follow_up" }, { topic: "ספורט" }])).toMatchObject([{ take: "עדיף משקיע קטן שמאמין" }, { topic: "ספורט" }]);
+    expect(normalizeAgendaItems([{ topic: "ספורט" }])[0]).not.toHaveProperty("take");
+  });
   it("without a model there is still a plan: open topic, a goal's next step, one task", () => {
     const items = fallbackAgenda({
       openTopics: ["איך להתחיל ללמוד איטלקית"], tasks: [{ id: "t1", content: "להתקשר לרואה החשבון" }],
@@ -55,72 +62,6 @@ describe("the plan for a ride", () => {
     });
     expect(items.map((i) => [i.kind, i.ref_id])).toEqual([["follow_up", null], ["goal_step", "g1"], ["action_check", "t1"]]);
     expect(fallbackAgenda({ openTopics: [], tasks: [], goals: [] })).toEqual([]);
-  });
-});
-
-describe("the plan, goals, tasks and ideas in the prompt", () => {
-  const mem = (patch: Partial<MemoryView> = {}): MemoryView => ({ ...emptyMemory(), sessionCount: 3, ...patch });
-  const full = mem({
-    agenda: stored(),
-    goals: [
-      { id: "g1", kind: "goal", content: "מעבר לעבודה עצמאית", status: "active", stateNote: "יש ארבעה לקוחות אפשריים ברשימה.", nextStep: "להשלים לעשרה" },
-      { id: "g2", kind: "travel_goal", content: "ללמוד איטלקית", status: "paused", stateNote: null, nextStep: "למצוא פודקאסט" },
-    ],
-    tasks: [{ id: "t1", content: "להתקשר לרואה החשבון", createdAt: ago(3) }], ideas: ["ניוזלטר שבועי ללקוחות"],
-    digest: "דני, יועץ שעובר לעצמאות.", historyDigest: "בעבר דובר על עזיבת העבודה.", summaries: [{ content: "דובר על רשימת הלקוחות.", createdAt: ago(1) }],
-  });
-
-  it("puts the plan right before LEAD, numbered, and tells the model it is a plan, not a script", () => {
-    const ctx = buildContext(full, { language: "he", journey: { duration_min: 20 }, now });
-    const p = ctx.system_prompt;
-    expect(ctx.agenda.map((a) => a.topic)).toEqual(["הפגישה עם הלקוח", "רשימת עשרה לקוחות"]); // 20 minutes: two items
-    expect(p).toContain("## Your plan for this ride");
-    expect(p).toContain("1. הפגישה עם הלקוח (נשאר פתוח)");
-    expect(p).toContain("2. רשימת עשרה לקוחות");
-    expect(p).not.toContain("להתקשר לרואה החשבון [ask once");
-    expect(p).toContain("It is a plan, not a script");
-    expect(p.indexOf("## Your plan for this ride")).toBeGreaterThan(p.indexOf("## Current journey"));
-    expect(p.trimEnd().endsWith(LEAD)).toBe(true);
-    expect(ctx.opener_instruction).toContain('first item of your plan for this ride ("הפגישה עם הלקוח")');
-  });
-  it("a task check in the plan is marked 'ask once, lightly'", () => {
-    const p = buildContext(full, { language: "he", now }).system_prompt;
-    expect(p).toContain("3. להתקשר לרואה החשבון [ask once, lightly; if it is not done, do not push]");
-  });
-  it("shows where each goal stands, paused goals without a push, tasks with their age, ideas and digests", () => {
-    const p = buildContext(full, { language: "he", now }).system_prompt;
-    expect(p).toContain("- מעבר לעבודה עצמאית Where it stands: יש ארבעה לקוחות אפשריים ברשימה. Next step: להשלים לעשרה");
-    expect(p).toContain("- ללמוד איטלקית (on hold for now: do not push it)");
-    expect(p).not.toContain("למצוא פודקאסט"); // no next step for a paused goal
-    expect(p).toContain("- להתקשר לרואה החשבון (3 days ago)");
-    expect(p).toContain("Ideas the user asked you to keep:\n- ניוזלטר שבועי ללקוחות");
-    expect(p).toContain("In short: דני, יועץ שעובר לעצמאות.");
-    expect(p).toContain("- (earlier conversations) בעבר דובר על עזיבת העבודה.");
-    expect(p).toContain(NOTES);
-  });
-  it("no plan in the first conversation, after a dropped connection, or when none is stored", () => {
-    expect(buildContext({ ...full, sessionCount: 0 }, { language: "he", now }).system_prompt).not.toContain("## Your plan for this ride");
-    expect(buildContext(full, { language: "he", now, resume: [{ role: "user", text: "היי" }] }).system_prompt).not.toContain("## Your plan for this ride");
-    const none = buildContext(mem({ summaries: full.summaries }), { language: "he", now });
-    expect(none.system_prompt).not.toContain("## Your plan for this ride");
-    expect(none.opener_instruction).toContain("unresolved thing from your memory");
-  });
-  it("stays within the prompt budget with every section full, however long the stored text is", () => {
-    const long = (n: number, chars: number) => { const each = Math.floor(chars / n); return Array.from({ length: n }, (_, i) => `פריט ${i} ` + "מ".repeat(Math.max(1, each - 8))); };
-    const big = mem({
-      agenda: stored(), goals: Array.from({ length: BUDGET.goals.maxItems }, (_, i) => ({ id: `g${i}`, kind: "goal" as const, content: "מטרה " + "א".repeat(60), status: "active" as const, stateNote: "ב ".repeat(400), nextStep: "ג ".repeat(300) })),
-      facts: long(BUDGET.facts.maxItems, BUDGET.facts.maxChars), openTopics: long(BUDGET.openTopics.maxItems, BUDGET.openTopics.maxChars), ideas: long(BUDGET.ideas.maxItems, BUDGET.ideas.maxChars),
-      tasks: long(BUDGET.tasks.maxItems, BUDGET.tasks.maxChars).map((c, i) => ({ id: `t${i}`, content: c, createdAt: ago(i) })),
-      summaries: Array.from({ length: 6 }, () => ({ content: "ס ".repeat(900), createdAt: ago(2) })), progress: long(8, 640),
-      candidates: long(9, 540).map((c, i) => ({ id: `c${i}`, content: c })), digest: "ד ".repeat(2000), historyDigest: "ה ".repeat(2000),
-      profile: { ...emptyMemory().profile, preferredName: "דני", interests: long(BUDGET.interests.maxItems, BUDGET.interests.maxChars), preferences: { a: "ב".repeat(BUDGET.preferences.maxChars) } },
-    });
-    const fixed = buildContext(mem(), { language: "he", now }).system_prompt.length;
-    const p = buildContext(big, { language: "he", journey: { duration_min: 40 }, now }).system_prompt;
-    // the memory part with the plan: at most ~7,200 characters, mostly Hebrew at about 2.5 characters per token, so about
-    // 2,700 tokens on top of the fixed instructions (~2,300): the whole prompt stays near 5,000 tokens of the model's 16k window
-    expect(p.length - fixed).toBeLessThan(7_200);
-    expect(fixed).toBeLessThan(9_000);
   });
 });
 

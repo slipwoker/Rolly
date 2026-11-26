@@ -68,11 +68,15 @@ describe.skipIf(!process.env.CI && false)("memory policy with PostgreSQL", () =>
     expect(view.candidates.map((c) => c.content)).toContain("מהנדס תוכנה בגוגל");
     const ctx = buildContext(view, { language: "he" });
     expect(ctx.onboarding).toBe(false);
-    expect(ctx.system_prompt).toContain("תוכנית ללימוד ספרדית"); // continuity: open topic
-    expect(ctx.system_prompt).toContain("הוחלט להתחיל ללמוד ספרדית בנסיעות"); // progress
-    expect(ctx.system_prompt).toMatch(/Not confirmed[\s\S]*מהנדס תוכנה בגוגל/);
-    expect(ctx.system_prompt).toContain("feminine (נקבה)");
-    expect(ctx.opener_instruction).toContain("unresolved thing from your memory");
+    // continuity: the last conversation is in the prompt; the open topic is kept for the plan of the next ride
+    expect(ctx.system_prompt).toContain("Last time (earlier today): נועה רוצה להשתמש בנסיעות כדי ללמוד ספרדית.");
+    expect(view.openTopics).toContain("תוכנית ללימוד ספרדית");
+    expect(view.progress).toContain("הוחלט להתחיל ללמוד ספרדית בנסיעות");
+    // unconfirmed items never appear in the prompt; one is offered for a "shall I remember this?" note
+    expect(ctx.system_prompt).not.toContain("מהנדס תוכנה בגוגל");
+    expect(view.candidates.map((c) => c.content)).toContain(ctx.confirm);
+    expect(ctx.system_prompt).toContain("Address them in feminine forms");
+    expect(ctx.opener_instruction).toContain("what you talked about last time");
   });
 
   it("clean one-to-one session -> active; confirmation and correction by voice; deletion in the app", async () => {
@@ -223,7 +227,7 @@ describe.skipIf(!process.env.CI && false)("memory policy with PostgreSQL", () =>
     expect((await store.progress(uid))[0]).toMatchObject({ text: "הוחלט להתחיל מרשימת לקוחות", goal_id: goal.id });
     expect(view.agenda!.items.map((i) => i.kind)).toEqual(["goal_step", "fresh"]);
     const ctx = buildContext(view, { language: "he", journey: { duration_min: 10 } });
-    expect(ctx.system_prompt).toContain("Where it stands: הוחלט להתחיל מרשימת לקוחות אפשריים.");
+    expect(ctx.system_prompt).toContain("A goal of theirs: לעבור לעבודה עצמאית. Where it stands: הוחלט להתחיל מרשימת לקוחות אפשריים.");
     expect(ctx.agenda.map((i) => i.topic)).toEqual(["רשימת עשרה לקוחות"]); // a 10-minute ride: one item
 
     // second conversation: someone else in the car says it is done -> the note is updated, the status is not
@@ -416,5 +420,47 @@ describe.skipIf(!process.env.CI && false)("memory policy with PostgreSQL", () =>
     expect(third.prompts[0]).toContain("- שיחה מספר 2");
     expect(third.prompts[0]).not.toContain("- שיחה מספר 1\n");
     expect(third.prompts[0]).toContain("what was already folded in");
+  });
+
+  it("deleting a conversation removes its transcript and what was learned from it, but not what the user confirmed", async () => {
+    if (!available) return;
+    const uid = await store.createUser("del-session");
+    const keep = crypto.randomUUID(), bad = crypto.randomUUID();
+    for (const sid of [keep, bad]) await store.startSession(sid, uid, "he", false, new Date());
+    const good = [u("אני גר בחיפה")];
+    await store.applySummary(uid, keep, normalize({ summary: "דובר על חיפה.", facts: [item("גר בחיפה", "אני גר בחיפה")] }), good);
+    await store.finishSession({ sessionId: keep, userId: uid, turns: good, summary: normalize({ summary: "דובר על חיפה." }), stats: {}, endReason: "client_end", describe: {} });
+    // a conversation recognised in the wrong language: garbage summary, topic, progress, a candidate, and one thing the user later confirmed
+    const garbled = [u("I can't wait now"), u("the rest of the army")];
+    await store.applySummary(uid, bad, normalize({
+      summary: "נאמר I can't wait now.", unresolved_topics: ["מה הכוונה ב-I can't wait now"], progress: ["לא ברור"],
+      facts: [item("משרת בצבא", "the rest of the army", { confidence: 0.4 })], preferences: [item("רוצה שרולי יהיה יוזם", "the rest of the army")],
+    }), garbled);
+    await store.finishSession({ sessionId: bad, userId: uid, turns: garbled, summary: normalize({ summary: "נאמר I can't wait now." }), stats: {}, endReason: "client_end", describe: {} });
+    const pref = (await store.memories(uid, { kinds: ["preference"], status: ["active", "candidate"] }))[0]!;
+    if (pref.status === "candidate") expect(await store.confirmCandidate(uid, pref.id, "app")).toBe(true);
+    else await db.query("UPDATE memories SET provenance = provenance || '{\"confirmed\": true}' WHERE id=$1", [pref.id]);
+
+    expect(await store.deleteSession(uid, "not-a-uuid")).toBeNull();
+    expect(await store.deleteSession(await store.createUser("other"), bad)).toBeNull(); // someone else's conversation
+    const r = await store.deleteSession(uid, bad);
+    expect(r).toMatchObject({ deleted: true, progress: 1 });
+    const left = (await store.memories(uid, { status: ["active", "candidate"] })).map((m) => `${m.kind}:${m.content}`);
+    expect(left.sort()).toEqual(["fact:גר בחיפה", "preference:רוצה שרולי יהיה יוזם", "summary:דובר על חיפה."].sort());
+    expect(JSON.stringify(await store.exportAll(uid))).not.toContain("I can't wait now");
+    expect((await store.sessions(uid)).map((s) => s.id)).toEqual([keep]);
+    expect((await store.memoryView(uid)).openTopics).toEqual([]);
+  });
+
+  it("the profile language is learned only from a conversation whose language was detected", async () => {
+    if (!available) return;
+    const uid = await store.createUser("lang");
+    const sid = crypto.randomUUID();
+    await store.startSession(sid, uid, "en", false, new Date());
+    const t = [u("hello there")];
+    await store.applySummary(uid, sid, normalize({ summary: "x", language: "en" }), t); // fixed language: says nothing about the user
+    expect((await store.profile(uid)).preferred_language).toBeNull();
+    await store.applySummary(uid, sid, normalize({ summary: "y", language: "en" }), t, { languageDetected: true });
+    expect((await store.profile(uid)).preferred_language).toBe("en");
   });
 });

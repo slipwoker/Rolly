@@ -68,3 +68,24 @@ leaving tool connections (web search, Gmail, Calendar, Spotify/YouTube) and lear
   (`goals`, `tasks`, `agenda` on `POST /v1/admin/selftest`). `rolly-api` deploys from `main`, so these run after the merge.
 - Whether the conversation model actually follows the plan and the pacing notes: unknown until then.
 - Opener latency with the longer prompt. The new Progress screen on a device.
+
+## 2026-11-26 (later): the owner's morning conversations, and a prompt diet
+
+**Found in production data** (owner's sessions 25.11 22:37 - 26.11 08:14, read from the database):
+- All five ran as "English": the app took the conversation language from the iPhone's system language, so Hebrew speech was
+  "translated" by the English recogniser ("the rest of the army", "Oh, lay", "you" on noise). Fix in PR #10 (P1-D23).
+- Bot-speak in the 08:09 conversation (26 replies): 12 opened by agreeing or acknowledging, 8 general-wisdom sentences, 3 apologies,
+  3 promises to "talk differently", nothing concrete. The same opener four rides in a row. 10 interruptions in 4.5 minutes.
+- The owner chose the pronunciation from six voice samples: "Zappy" in Latin letters, מָאוֹר.
+
+**Built** (P1-D24): lean persona with a hard cap, plan and rare rules as notes, style guard, takes, conditional notes and per-session
+sampling on the pod, `scripts/style-eval.ts` + `scripts/style-fixtures.ts`.
+
+**Measured** against the real conversation model, text only (111 replies per variant): see P1-D24. In short: prompt 2,480 → 773
+tokens, agreeing openers 27 % → 5 %, clean replies 62 % → 83 %, shorter replies; general wisdom not improved (17 % → 14 %).
+
+**Tests**: API 86, mobile 5, Python 25 passed / 3 skipped.
+
+**Not yet run**: any of this through the real pod with voice (needs the merges and the pod commit); a ride by the owner in Hebrew;
+the takes as the stronger model actually writes them (the evaluation used hand-written ones); whether fewer habits also *feels*
+more human to the owner — the counts measure habits, not charm.

@@ -31,10 +31,11 @@ export class PlanFeeder {
 
   get remaining(): number { return Math.max(0, this.items.length - this.next); }
 
-  private text(item: PlanItem, now: boolean): string {
+  /** The same text whether the item waits for a dry turn or is sent at once: the pod replaces a note with the same text. */
+  private text(item: PlanItem): string {
     const take = item.take ? ` Your own take on it: ${item.take}` : "";
     const how = item.kind === "action_check" ? "Ask about it once, lightly; if it is not done, do not push." : "Say it in your own words, as one short statement.";
-    return `${now ? "Move on to this now" : "They gave you little: bring up this now"}: ${item.topic}.${take} ${how}`;
+    return `Bring up this now: ${item.topic.replace(/[.]+$/, "")}.${take} ${how}`;
   }
 
   /**
@@ -54,10 +55,10 @@ export class PlanFeeder {
       this.shown.push(this.next);
       this.next++;
       this.waiting = false;
-      return { text: this.text(item, true), turns: 1 };
+      return { text: this.text(item), turns: 1 };
     }
     if (this.waiting) return null;
     this.waiting = true;
-    return { text: this.text(item, false), turns: 1, maxUserWords: DRY_WORDS };
+    return { text: this.text(item), turns: 1, maxUserWords: DRY_WORDS };
   }
 }

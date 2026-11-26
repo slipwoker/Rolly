@@ -2,196 +2,92 @@
  "main": {
   "prompt": "main"
  },
- "main+guard": {
-  "prompt": "main",
-  "guard": true
- },
- "lean_a": {
-  "prompt": "lean_a"
- },
- "lean_b": {
-  "prompt": "lean_b"
- },
- "lean_a_notakes": {
-  "prompt": "lean_a_notakes"
- },
- "lean_a+guard": {
-  "prompt": "lean_a",
-  "guard": true
- },
- "lean_b+guard": {
-  "prompt": "lean_b",
-  "guard": true
- },
- "lean_a+guard+pp": {
-  "prompt": "lean_a",
-  "guard": true,
-  "sampling": {
-   "temperature": 0.8,
-   "presence_penalty": 0.5
-  }
- },
- "lean_a+guard+rp": {
-  "prompt": "lean_a",
-  "guard": true,
-  "sampling": {
-   "temperature": 0.7,
-   "repetition_penalty": 1.1
-  }
- },
- "lean_c": {
-  "prompt": "lean_c"
- },
- "lean_c+guard": {
-  "prompt": "lean_c",
-  "guard": true
- },
- "lean_c+guard+pp": {
-  "prompt": "lean_c",
-  "guard": true,
-  "sampling": {
-   "temperature": 0.8,
-   "presence_penalty": 0.5
-  }
- },
- "lean_c+guard+rp": {
-  "prompt": "lean_c",
-  "guard": true,
-  "sampling": {
-   "temperature": 0.7,
-   "repetition_penalty": 1.1
-  }
- },
- "lean_c+guard+t80": {
-  "prompt": "lean_c",
-  "guard": true,
-  "max_tokens": 80
- },
- "lean_d": {
-  "prompt": "lean_d",
-  "plan": [
-   {
-    "topic": "הגיוס של לומה",
-    "take": "עדיף משקיע קטן אחד שמאמין מאשר לרדוף חודשים אחרי קרן גדולה."
-   },
-   {
-    "topic": "למצוא זמן לספורט",
-    "take": "עשרים דקות הליכה אחרי הנסיעה שוות יותר ממנוי לחדר כושר שלא מגיעים אליו."
-   },
-   {
-    "topic": "משהו קליל: פודקאסטים בנסיעה, מעשירים או סתם רעש רקע",
-    "take": "אתה בצד של שקט."
-   }
-  ]
- },
- "lean_d+guard": {
-  "prompt": "lean_d",
+ "lean": {
+  "prompt": "lean",
   "guard": true,
   "plan": [
    {
     "topic": "הגיוס של לומה",
-    "take": "עדיף משקיע קטן אחד שמאמין מאשר לרדוף חודשים אחרי קרן גדולה."
+    "take": "עדיף משקיע קטן אחד שמאמין מאשר לרדוף חודשים אחרי קרן גדולה.",
+    "kind": "follow_up"
    },
    {
     "topic": "למצוא זמן לספורט",
-    "take": "עשרים דקות הליכה אחרי הנסיעה שוות יותר ממנוי לחדר כושר שלא מגיעים אליו."
+    "take": "עשרים דקות הליכה אחרי הנסיעה שוות יותר ממנוי לחדר כושר שלא מגיעים אליו.",
+    "kind": "follow_up"
    },
    {
-    "topic": "משהו קליל: פודקאסטים בנסיעה, מעשירים או סתם רעש רקע",
-    "take": "אתה בצד של שקט."
-   }
-  ]
- },
- "lean_d+guard+rp": {
-  "prompt": "lean_d",
-  "guard": true,
-  "plan": [
-   {
-    "topic": "הגיוס של לומה",
-    "take": "עדיף משקיע קטן אחד שמאמין מאשר לרדוף חודשים אחרי קרן גדולה."
-   },
-   {
-    "topic": "למצוא זמן לספורט",
-    "take": "עשרים דקות הליכה אחרי הנסיעה שוות יותר ממנוי לחדר כושר שלא מגיעים אליו."
-   },
-   {
-    "topic": "משהו קליל: פודקאסטים בנסיעה, מעשירים או סתם רעש רקע",
-    "take": "אתה בצד של שקט."
+    "topic": "פודקאסטים בנסיעה, מעשירים או סתם רעש רקע",
+    "take": "אתה בצד של שקט.",
+    "kind": "fresh"
    }
   ],
-  "sampling": {
-   "temperature": 0.7,
-   "repetition_penalty": 1.1
-  }
+  "sampling": {}
  },
- "lean_d+guard+rp105": {
-  "prompt": "lean_d",
+ "lean-no-guard": {
+  "prompt": "lean",
+  "plan": [
+   {
+    "topic": "הגיוס של לומה",
+    "take": "עדיף משקיע קטן אחד שמאמין מאשר לרדוף חודשים אחרי קרן גדולה.",
+    "kind": "follow_up"
+   },
+   {
+    "topic": "למצוא זמן לספורט",
+    "take": "עשרים דקות הליכה אחרי הנסיעה שוות יותר ממנוי לחדר כושר שלא מגיעים אליו.",
+    "kind": "follow_up"
+   },
+   {
+    "topic": "פודקאסטים בנסיעה, מעשירים או סתם רעש רקע",
+    "take": "אתה בצד של שקט.",
+    "kind": "fresh"
+   }
+  ]
+ },
+ "lean-default-sampling": {
+  "prompt": "lean",
   "guard": true,
   "plan": [
    {
     "topic": "הגיוס של לומה",
-    "take": "עדיף משקיע קטן אחד שמאמין מאשר לרדוף חודשים אחרי קרן גדולה."
+    "take": "עדיף משקיע קטן אחד שמאמין מאשר לרדוף חודשים אחרי קרן גדולה.",
+    "kind": "follow_up"
    },
    {
     "topic": "למצוא זמן לספורט",
-    "take": "עשרים דקות הליכה אחרי הנסיעה שוות יותר ממנוי לחדר כושר שלא מגיעים אליו."
+    "take": "עשרים דקות הליכה אחרי הנסיעה שוות יותר ממנוי לחדר כושר שלא מגיעים אליו.",
+    "kind": "follow_up"
    },
    {
-    "topic": "משהו קליל: פודקאסטים בנסיעה, מעשירים או סתם רעש רקע",
-    "take": "אתה בצד של שקט."
+    "topic": "פודקאסטים בנסיעה, מעשירים או סתם רעש רקע",
+    "take": "אתה בצד של שקט.",
+    "kind": "fresh"
+   }
+  ]
+ },
+ "lean-warmer": {
+  "prompt": "lean",
+  "guard": true,
+  "plan": [
+   {
+    "topic": "הגיוס של לומה",
+    "take": "עדיף משקיע קטן אחד שמאמין מאשר לרדוף חודשים אחרי קרן גדולה.",
+    "kind": "follow_up"
+   },
+   {
+    "topic": "למצוא זמן לספורט",
+    "take": "עשרים דקות הליכה אחרי הנסיעה שוות יותר ממנוי לחדר כושר שלא מגיעים אליו.",
+    "kind": "follow_up"
+   },
+   {
+    "topic": "פודקאסטים בנסיעה, מעשירים או סתם רעש רקע",
+    "take": "אתה בצד של שקט.",
+    "kind": "fresh"
    }
   ],
   "sampling": {
    "temperature": 0.7,
    "repetition_penalty": 1.05
-  }
- },
- "lean_e+guard": {
-  "prompt": "lean_e",
-  "guard": true,
-  "plan": [
-   {
-    "topic": "הגיוס של לומה",
-    "take": "עדיף משקיע קטן אחד שמאמין מאשר לרדוף חודשים אחרי קרן גדולה."
-   },
-   {
-    "topic": "למצוא זמן לספורט",
-    "take": "עשרים דקות הליכה אחרי הנסיעה שוות יותר ממנוי לחדר כושר שלא מגיעים אליו."
-   },
-   {
-    "topic": "משהו קליל: פודקאסטים בנסיעה, מעשירים או סתם רעש רקע",
-    "take": "אתה בצד של שקט."
-   }
-  ],
-  "sampling": {
-   "temperature": 0.7,
-   "repetition_penalty": 1.05
-  }
- },
- "lean_e+guard+ban": {
-  "prompt": "lean_e",
-  "guard": true,
-  "plan": [
-   {
-    "topic": "הגיוס של לומה",
-    "take": "עדיף משקיע קטן אחד שמאמין מאשר לרדוף חודשים אחרי קרן גדולה."
-   },
-   {
-    "topic": "למצוא זמן לספורט",
-    "take": "עשרים דקות הליכה אחרי הנסיעה שוות יותר ממנוי לחדר כושר שלא מגיעים אליו."
-   },
-   {
-    "topic": "משהו קליל: פודקאסטים בנסיעה, מעשירים או סתם רעש רקע",
-    "take": "אתה בצד של שקט."
-   }
-  ],
-  "sampling": {
-   "temperature": 0.7,
-   "repetition_penalty": 1.05,
-   "bad_words": [
-    "לפעמים",
-    " לפעמים"
-   ]
   }
  }
 }

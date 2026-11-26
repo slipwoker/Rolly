@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyObservations, confirm, emptyEvidence, observe, type AddressingRecord } from "../src/memory/addressing.ts";
-import { addressingSection } from "../src/persona/phase1Sections.ts";
+import { addressingLine } from "../src/persona/core.ts";
 
 const fresh = (): AddressingRecord => ({ value: null, status: "unknown", evidence: emptyEvidence() });
 const feed = (rec: AddressingRecord, texts: string[], attribution: "primary" | "uncertain" = "primary") =>
@@ -68,10 +68,10 @@ describe("addressing state machine", () => {
   });
 });
 
-describe("addressing prompt section", () => {
-  it("neutral instructions while unknown, none for English", () => {
-    expect(addressingSection({ value: null, status: "unknown" }, "he")).toContain("Never ask about their gender");
-    expect(addressingSection({ value: "feminine", status: "inferred" }, "he")).toContain("feminine");
-    expect(addressingSection({ value: "feminine", status: "confirmed" }, "en")).toBeNull();
+describe("addressing line in the prompt", () => {
+  it("neutral wording while unknown, the form once known, nothing for English", () => {
+    expect(addressingLine({ value: null, status: "unknown" }, "he")).toContain("never ask about it");
+    expect(addressingLine({ value: "feminine", status: "inferred" }, "he")).toContain("feminine");
+    expect(addressingLine({ value: "feminine", status: "confirmed" }, "en")).toBeNull();
   });
 });

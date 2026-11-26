@@ -13,6 +13,9 @@ import {
 } from "@rolly/contracts";
 import { PodSession, type PodAudio } from "./podClient.ts";
 import { Pacer, parseRemainingMinutes } from "./pacing.ts";
+import { PlanFeeder, type PlanItem } from "./planFeeder.ts";
+import { styleGuardNote } from "../persona/style.ts";
+import { NOTE } from "../persona/core.ts";
 import { StreamResampler } from "./resampler.ts";
 
 export const END_MARKER = "<end_session/>";
@@ -41,6 +44,10 @@ export interface PreparedSession {
   onboarding: boolean;
   /** compress pacing time (server-side self-tests only); 1 or absent = real time */
   pacingScale?: number;
+  /** the plan for this ride; item 0 is already in the opener, the rest are fed by notes when the conversation runs dry */
+  plan?: PlanItem[];
+  /** something unconfirmed to ask about once, when a quiet moment comes */
+  confirm?: string | null;
 }
 
 /** Something to tell the conversation model on its next turn(s) through the pod's note channel. */
@@ -94,6 +101,11 @@ export class VoiceSession {
   private maxTimer: NodeJS.Timeout | null = null;
   private pacer: Pacer | null = null;
   private paceTimer: NodeJS.Timeout | null = null;
+  private feeder: PlanFeeder | null = null;
+  private confirm: string | null = null;
+  /** Rolly's completed replies, for the style guard */
+  private replies: string[] = [];
+  private lastUserWords: number | null = null;
   private language: string = "auto";
   private describe: Record<string, unknown> = {};
   private done: Promise<void>;
@@ -169,19 +181,44 @@ export class VoiceSession {
     // pacing: nudges for the model when the ride has an expected length (or the user says how long is left)
     const minutes = Number((prepared.ctx.journey as { duration_min?: unknown }).duration_min) || null;
     this.pacer = new Pacer(Date.now(), minutes, prepared.pacingScale ?? 1);
+    if (prepared.plan?.length) this.feeder = new PlanFeeder(prepared.plan, prepared.ctx.proactive && !!prepared.ctx.opener_instruction);
+    this.confirm = prepared.confirm ?? null;
     this.paceTimer = setInterval(() => this.pace(), 1000);
     this.log("session started", { onboarding: prepared.onboarding, language: prepared.ctx.language, minutes });
   }
 
   private pace() {
     if (this.closing || !this.pacer) return;
-    for (const n of this.pacer.due(Date.now())) this.note(`pacing_${n.event}`, n.text, n.turns);
+    for (const n of this.pacer.due(Date.now())) {
+      // halfway: the next item of the plan, if one is left, instead of a general nudge
+      const item = n.event === "half" ? this.feeder?.afterReply(null, true) : null;
+      if (item) this.note("plan_halfway", item.text, item.turns);
+      else this.note(`pacing_${n.event}`, n.text, n.turns);
+    }
+  }
+
+  /**
+   * After each completed reply of Rolly: what should the model be told before its next turn?
+   *  - style guard: it fell back on bot-speak (agreeing openers, general wisdom, promises);
+   *  - the next item of the plan, held on the pod until the user gives a one-word answer twice in a row;
+   *  - once per ride, on a quiet turn: whether to remember something unconfirmed.
+   */
+  private afterReply(text: string, proactive: boolean) {
+    this.replies.push(text);
+    const guard = styleGuardNote(this.replies.slice(-2));
+    if (guard) this.note("style", guard, 1);
+    const item = this.feeder?.afterReply(proactive ? null : this.lastUserWords);
+    if (item) this.note("plan", item.text, item.turns, item.maxUserWords !== undefined ? { maxUserWords: item.maxUserWords, minStreak: 2 } : undefined);
+    if (this.confirm && this.replies.length === 3) {
+      this.note("confirm", NOTE.confirm(this.confirm), 1, { maxUserWords: 2, minStreak: 1 });
+      this.confirm = null;
+    }
   }
 
   /** A note for the model's next turn(s). It does not interrupt speech and is not part of the transcript. */
-  private note(kind: string, text: string, turns: number) {
+  private note(kind: string, text: string, turns: number, when?: { maxUserWords: number; minStreak?: number }) {
     if (this.closing || !this.pod) return;
-    this.pod.note(text, turns);
+    this.pod.note(text, turns, when);
     this.stats.notes.push({ kind, at_s: Math.round((Date.now() - this.startedAt.getTime()) / 1000) });
   }
 
@@ -267,6 +304,7 @@ export class VoiceSession {
             ...(a.why ? { uncertain_because: a.why } : {}),
           });
           const turn = this.turns[this.turns.length - 1]!;
+          this.lastUserWords = text.split(/\s+/).filter(Boolean).length;
           // "עוד רבע שעה אני מגיע": the user's own statement resets the clock (only from a turn with no hint of another speaker)
           if (a.attribution === "primary" && this.pacer) {
             const left = parseRemainingMinutes(text);
@@ -302,6 +340,7 @@ export class VoiceSession {
         const text = String(d.text ?? this.agentPartial.get(rid) ?? "").replace(END_MARKER, "").trim();
         this.stats.turns_agent++;
         if (text) this.addTurn("agent", text, null, "primary", { proactive: this.proactiveRids.has(rid), rid });
+        if (text && !this.closing) this.afterReply(text, this.proactiveRids.has(rid));
         this.agentPartial.delete(rid);
         if (!this.closing) this.send({ type: "agent.turn_done", seq, text });
         break;
