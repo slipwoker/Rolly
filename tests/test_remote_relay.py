@@ -72,3 +72,25 @@ async def test_relay_is_refused_without_the_token(worker):
     with pytest.raises(Exception):
         await p.start(_ctx(), emit)
     await p.close()
+
+
+@pytest.mark.asyncio
+async def test_worker_accepts_a_note_and_keeps_the_session_going(worker):
+    """`{"type":"note"}` is taken by the worker without starting or breaking a turn (a provider without a note channel ignores it)."""
+    import json
+
+    import websockets
+
+    from providers.remote import session_urls
+    ws_url, _ = session_urls(worker)
+    async with websockets.connect(ws_url, additional_headers={"Authorization": "Bearer relay-test-key"}, max_size=None) as ws:
+        await ws.send(json.dumps({"type": "start", "ctx": {"session_id": "n1", "user_id": "noa", "language": "en", "system_prompt": "test",
+                                                           "opener_instruction": None, "proactive": False}}))
+        assert json.loads(await asyncio.wait_for(ws.recv(), timeout=10))["type"] == "ready"
+        await ws.send(json.dumps({"type": "note", "text": "About three minutes are left.", "turns": 3}))
+        await ws.send(json.dumps({"type": "note"}))  # malformed: no text, no turns
+        await ws.send(b"\x00\x00" * 320)  # the session still takes audio afterwards
+        await ws.send(json.dumps({"type": "close"}))
+        with pytest.raises(websockets.ConnectionClosed):
+            while True:
+                await asyncio.wait_for(ws.recv(), timeout=10)

@@ -12,6 +12,10 @@ import {
   type ClientMessage, type ClientSessionStart, type PodSessionContext, type ServerMessage,
 } from "@rolly/contracts";
 import { PodSession, type PodAudio } from "./podClient.ts";
+import { Pacer, parseRemainingMinutes } from "./pacing.ts";
+import { PlanFeeder, type PlanItem } from "./planFeeder.ts";
+import { styleGuardNote } from "../persona/style.ts";
+import { NOTE } from "../persona/core.ts";
 import { StreamResampler } from "./resampler.ts";
 
 export const END_MARKER = "<end_session/>";
@@ -38,13 +42,22 @@ export interface SessionTurn {
 export interface PreparedSession {
   ctx: PodSessionContext;
   onboarding: boolean;
+  /** compress pacing time (server-side self-tests only); 1 or absent = real time */
+  pacingScale?: number;
+  /** the plan for this ride; item 0 is already in the opener, the rest are fed by notes when the conversation runs dry */
+  plan?: PlanItem[];
+  /** something unconfirmed to ask about once, when a quiet moment comes */
+  confirm?: string | null;
 }
+
+/** Something to tell the conversation model on its next turn(s) through the pod's note channel. */
+export interface TurnNote { text: string; turns: number }
 
 /** The memory layer. A fixed-user implementation exists for the first slice and tests. */
 export interface SessionHooks {
   prepare(userId: string, sessionId: string, start: ClientSessionStart): Promise<PreparedSession>;
   /** called for every final user turn while the session runs (live corrections, explicit addressing requests) */
-  onUserTurn?(args: { userId: string; sessionId: string; turn: SessionTurn; recent: SessionTurn[] }): Promise<void>;
+  onUserTurn?(args: { userId: string; sessionId: string; turn: SessionTurn; recent: SessionTurn[] }): Promise<TurnNote | void>;
   /** called at the end; returns the summary that is sent to the phone */
   finalize(args: { userId: string; sessionId: string; turns: SessionTurn[]; stats: Record<string, unknown>; endReason: string;
     describe: Record<string, unknown>; language: string; startedAt: Date }): Promise<unknown>;
@@ -86,6 +99,13 @@ export class VoiceSession {
   private playbackUntil = 0;
   private endTimer: NodeJS.Timeout | null = null;
   private maxTimer: NodeJS.Timeout | null = null;
+  private pacer: Pacer | null = null;
+  private paceTimer: NodeJS.Timeout | null = null;
+  private feeder: PlanFeeder | null = null;
+  private confirm: string | null = null;
+  /** Rolly's completed replies, for the style guard */
+  private replies: string[] = [];
+  private lastUserWords: number | null = null;
   private language: string = "auto";
   private describe: Record<string, unknown> = {};
   private done: Promise<void>;
@@ -96,6 +116,8 @@ export class VoiceSession {
     reply_ms: [] as number[], interrupt_detect_ms: [] as number[], client_first_audio_ms: [] as number[],
     client_flush_ms: [] as number[], audio_events: [] as Record<string, unknown>[], pod_metrics: {} as Record<string, number[]>,
     pong_rtt_ms: [] as number[],
+    /** notes sent to the conversation model: pacing nudges and memory hints (what, and when in the session) */
+    notes: [] as { kind: string; at_s: number }[],
   };
 
   constructor(
@@ -156,7 +178,48 @@ export class VoiceSession {
     });
     const maxMs = (this.opts.maxMinutes ?? 90) * 60_000;
     this.maxTimer = setTimeout(() => this.close("max_duration"), maxMs);
-    this.log("session started", { onboarding: prepared.onboarding, language: prepared.ctx.language });
+    // pacing: nudges for the model when the ride has an expected length (or the user says how long is left)
+    const minutes = Number((prepared.ctx.journey as { duration_min?: unknown }).duration_min) || null;
+    this.pacer = new Pacer(Date.now(), minutes, prepared.pacingScale ?? 1);
+    if (prepared.plan?.length) this.feeder = new PlanFeeder(prepared.plan, prepared.ctx.proactive && !!prepared.ctx.opener_instruction);
+    this.confirm = prepared.confirm ?? null;
+    this.paceTimer = setInterval(() => this.pace(), 1000);
+    this.log("session started", { onboarding: prepared.onboarding, language: prepared.ctx.language, minutes });
+  }
+
+  private pace() {
+    if (this.closing || !this.pacer) return;
+    for (const n of this.pacer.due(Date.now())) {
+      // halfway: the next item of the plan, if one is left, instead of a general nudge
+      const item = n.event === "half" ? this.feeder?.afterReply(null, true) : null;
+      if (item) this.note("plan_halfway", item.text, item.turns);
+      else this.note(`pacing_${n.event}`, n.text, n.turns);
+    }
+  }
+
+  /**
+   * After each completed reply of Rolly: what should the model be told before its next turn?
+   *  - style guard: it fell back on bot-speak (agreeing openers, general wisdom, promises);
+   *  - the next item of the plan, held on the pod until the user gives a one-word answer twice in a row;
+   *  - once per ride, on a quiet turn: whether to remember something unconfirmed.
+   */
+  private afterReply(text: string, proactive: boolean) {
+    this.replies.push(text);
+    const guard = styleGuardNote(this.replies.slice(-2));
+    if (guard) this.note("style", guard, 1);
+    const item = this.feeder?.afterReply(proactive ? null : this.lastUserWords);
+    if (item) this.note("plan", item.text, item.turns, item.maxUserWords !== undefined ? { maxUserWords: item.maxUserWords, minStreak: 2 } : undefined);
+    if (this.confirm && this.replies.length === 3) {
+      this.note("confirm", NOTE.confirm(this.confirm), 1, { maxUserWords: 2, minStreak: 1 });
+      this.confirm = null;
+    }
+  }
+
+  /** A note for the model's next turn(s). It does not interrupt speech and is not part of the transcript. */
+  private note(kind: string, text: string, turns: number, when?: { maxUserWords: number; minStreak?: number }) {
+    if (this.closing || !this.pod) return;
+    this.pod.note(text, turns, when);
+    this.stats.notes.push({ kind, at_s: Math.round((Date.now() - this.startedAt.getTime()) / 1000) });
   }
 
   // ------------------------------------------------------------ phone -> pod
@@ -241,7 +304,14 @@ export class VoiceSession {
             ...(a.why ? { uncertain_because: a.why } : {}),
           });
           const turn = this.turns[this.turns.length - 1]!;
+          this.lastUserWords = text.split(/\s+/).filter(Boolean).length;
+          // "עוד רבע שעה אני מגיע": the user's own statement resets the clock (only from a turn with no hint of another speaker)
+          if (a.attribution === "primary" && this.pacer) {
+            const left = parseRemainingMinutes(text);
+            if (left !== null) { this.pacer.setRemaining(left, Date.now()); this.stats.notes.push({ kind: `time_left_${left}`, at_s: Math.round((Date.now() - this.startedAt.getTime()) / 1000) }); }
+          }
           this.hooks.onUserTurn?.({ userId: this.userId, sessionId: this.sessionId, turn, recent: this.turns.slice(-8) })
+            .then((n) => { if (n) this.note("memory", n.text, n.turns); })
             .catch((e) => this.log("onUserTurn failed", { error: String(e).slice(0, 200) }));
         }
         this.send({ type: "user.transcript", text: String(d.text ?? ""), final, language: (d.language as string) ?? null });
@@ -270,6 +340,7 @@ export class VoiceSession {
         const text = String(d.text ?? this.agentPartial.get(rid) ?? "").replace(END_MARKER, "").trim();
         this.stats.turns_agent++;
         if (text) this.addTurn("agent", text, null, "primary", { proactive: this.proactiveRids.has(rid), rid });
+        if (text && !this.closing) this.afterReply(text, this.proactiveRids.has(rid));
         this.agentPartial.delete(rid);
         if (!this.closing) this.send({ type: "agent.turn_done", seq, text });
         break;
@@ -325,6 +396,7 @@ export class VoiceSession {
     this.endReason = reason;
     if (this.endTimer) clearTimeout(this.endTimer);
     if (this.maxTimer) clearTimeout(this.maxTimer);
+    if (this.paceTimer) clearInterval(this.paceTimer);
     this.pod?.close();
     let summary: unknown = null;
     const stats = this.summaryStats();
@@ -354,7 +426,7 @@ export class VoiceSession {
       audio_in_s: +(s.audio_in_bytes / 2 / INPUT_SAMPLE_RATE).toFixed(1), audio_out_s: +(s.audio_out_bytes / 2 / OUTPUT_SAMPLE_RATE).toFixed(1),
       server_reply_ms: s.reply_ms, server_reply_ms_median: med(s.reply_ms),
       client_first_audio_ms: s.client_first_audio_ms, client_first_audio_ms_median: med(s.client_first_audio_ms),
-      client_flush_ms: s.client_flush_ms, audio_events: s.audio_events,
+      client_flush_ms: s.client_flush_ms, audio_events: s.audio_events, notes: s.notes,
       pod_metrics_median: Object.fromEntries(Object.entries(s.pod_metrics).map(([k, v]) => [k, med(v)])),
     };
   }

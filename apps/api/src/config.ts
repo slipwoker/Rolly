@@ -20,6 +20,8 @@ export interface Config {
   enrollmentKey: string | null;
   /** at most this many (non-deleted) users can exist; enrollment stops there */
   maxUsers: number;
+  /** sampling for the conversation model, sent to the pod per session (`ctx.options.llm`); chosen with scripts/style-eval.ts */
+  llmSampling: Record<string, number>;
   /** development only: accept `?dev_user=<id>` on the voice socket without a ticket. Refused when NODE_ENV=production. */
   devAuth: boolean;
   timezone: string;
@@ -29,6 +31,22 @@ function req(env: NodeJS.ProcessEnv, name: string, fallback?: string): string {
   const v = env[name] ?? fallback;
   if (v === undefined || v === "") throw new Error(`missing environment variable ${name}`);
   return v;
+}
+
+/**
+   * No override by default: the pod's own settings (temperature 0.6) stay. Measured on 111 replies per setting
+   * (benchmarks/results/style_eval_20261126.json): temperature 0.7 with repetition penalty 1.05 was not better than the
+   * default within the noise, and a hard word ban produced broken Hebrew words. The channel stays for later tuning
+   * (ROLLY_LLM_SAMPLING, a JSON object) without redeploying the pod.
+   */
+export const DEFAULT_SAMPLING: Record<string, number> = {};
+
+function parseSampling(raw: string | undefined): Record<string, number> {
+  if (!raw) return { ...DEFAULT_SAMPLING };
+  try {
+    const o = JSON.parse(raw) as Record<string, unknown>;
+    return Object.fromEntries(Object.entries(o).filter(([, v]) => typeof v === "number" && Number.isFinite(v))) as Record<string, number>;
+  } catch { return { ...DEFAULT_SAMPLING }; }
 }
 
 /** names of required settings that are missing (the service starts anyway and reports them on /healthz) */
@@ -60,6 +78,7 @@ export function loadConfig(env = process.env): Config {
     adminToken: env.ROLLY_ADMIN_TOKEN || null,
     enrollmentKey: env.ROLLY_ENROLLMENT_KEY || null,
     maxUsers: Number(env.ROLLY_MAX_USERS ?? 5),
+    llmSampling: parseSampling(env.ROLLY_LLM_SAMPLING),
     transcriptRetentionDays: Number(env.ROLLY_TRANSCRIPT_RETENTION_DAYS ?? 30),
     candidateTtlDays: Number(env.ROLLY_CANDIDATE_TTL_DAYS ?? 14),
     maxSessionMinutes: Number(env.ROLLY_MAX_SESSION_MINUTES ?? 90),

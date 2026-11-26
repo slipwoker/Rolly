@@ -30,7 +30,7 @@ function greeting(name: string | null): string {
   return name ? `${base}, ${name}` : base;
 }
 
-interface Progress { goals: { content: string }[]; action_items: { content: string }[]; sessions: { summary: string | null }[] }
+interface Progress { goals: { content: string }[]; action_items: { content: string }[]; sessions: { summary: string | null }[]; next_up?: { topic: string }[] }
 
 export default function Home() {
   const c = useTheme();
@@ -46,7 +46,8 @@ export default function Home() {
     api<{ preferred_name: string | null }>("/v1/me").then((m) => setName(m.preferred_name)).catch(() => {});
     api<Progress>("/v1/progress").then((p) => setRecap({
       last: p.sessions.find((x) => x.summary)?.summary ?? null,
-      next: p.action_items[0]?.content ?? p.goals[0]?.content ?? null,
+      // what ROLLY plans to bring up on this ride; before there is a plan, the first open task or goal
+      next: p.next_up?.[0]?.topic ?? p.action_items[0]?.content ?? p.goals[0]?.content ?? null,
     })).catch(() => {});
   }, []));
 

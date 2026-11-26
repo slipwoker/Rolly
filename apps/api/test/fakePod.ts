@@ -11,6 +11,7 @@ import { packPodAudio } from "../src/voice/podClient.ts";
 export interface FakePod {
   url: string;
   starts: Record<string, unknown>[]; // ctx of every session start
+  notes: { text: string; turns: number; max_user_words?: number; min_streak?: number }[]; // notes received on the note channel
   close(): Promise<void>;
 }
 
@@ -28,8 +29,11 @@ export function tone(ms: number, rate: number, amp = 0.3, freq = 300): Buffer {
   return b;
 }
 
-export async function startFakePod(opts: { script: string[]; token?: string; replyMs?: number; language?: string }): Promise<FakePod> {
+export async function startFakePod(opts: { script: string[]; token?: string; replyMs?: number; language?: string;
+  /** what the "model" answers to a given user line (default: "Reply to: <line>") */
+  replyText?: (userText: string) => string | undefined }): Promise<FakePod> {
   const starts: Record<string, unknown>[] = [];
+  const notes: FakePod["notes"] = [];
   const server: Server = createServer((_req, res) => { res.writeHead(404); res.end(); });
   const wss = new WebSocketServer({ noServer: true });
   let line = 0;
@@ -63,6 +67,7 @@ export async function startFakePod(opts: { script: string[]; token?: string; rep
         if (!isBinary) {
           const msg = JSON.parse(m.toString());
           if (msg.type === "close") ws.close();
+          if (msg.type === "note") notes.push({ text: String(msg.text), turns: Number(msg.turns), max_user_words: msg.max_user_words, min_streak: msg.min_streak });
           return;
         }
         const pcm = m as Buffer;
@@ -85,7 +90,7 @@ export async function startFakePod(opts: { script: string[]; token?: string; rep
             if (ref === null) ref = level;
             const text = opts.script[line++] ?? "(no more lines)";
             ev("user.transcript", { text, final: true, language: opts.language ?? "he", level_db: level, ref_level_db: ref, barge_in: false });
-            lastRid = reply(`Reply to: ${text}`);
+            lastRid = reply(opts.replyText?.(text) ?? `Reply to: ${text}`);
           }
         }
       });
@@ -94,7 +99,7 @@ export async function startFakePod(opts: { script: string[]; token?: string; rep
   await new Promise<void>((r) => server.listen(0, "127.0.0.1", () => r()));
   const port = (server.address() as { port: number }).port;
   return {
-    url: `http://127.0.0.1:${port}/v1`, starts,
+    url: `http://127.0.0.1:${port}/v1`, starts, notes,
     close: () => new Promise((r) => { wss.clients.forEach((c) => c.terminate()); server.close(() => r()); }),
   };
 }
