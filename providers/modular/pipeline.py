@@ -495,7 +495,7 @@ class ModularProvider(VoiceProvider):
             t_llm = time.monotonic()
 
             async def produce() -> None:
-                chunker = SentenceChunker()
+                chunker = SentenceChunker(merge_chars=int(self.config.get("tts_merge_chars") or 0))
                 shown = MarkerFilter()  # the end and lookup markers never reach the text shown on the phone
                 first_chunk = True
                 try:

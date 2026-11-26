@@ -329,3 +329,58 @@ def test_the_pods_voices_are_the_ones_the_owner_chose(monkeypatch):
     from providers.modular.tts import BlueTTS
     assert "bluev3:jonathan:speed1" in BlueTTS(en).name and "bluev3:ariel:speed1" in BlueTTS(he).name
 
+
+def _pcm(parts, rate=44100):
+    """parts: list of ("sil", ms) or ("tone", ms) -> PCM16 bytes"""
+    import numpy as np
+    out = []
+    for kind, ms in parts:
+        n = int(rate * ms / 1000)
+        out.append((np.zeros(n) if kind == "sil" else 0.3 * np.sin(2 * np.pi * 220 * np.arange(n) / rate)))
+    return (np.clip(np.concatenate(out), -1, 1) * 32767).astype("<i2").tobytes()
+
+
+def _silent_edges_ms(pcm: bytes, rate=44100, thresh=0.006):
+    import numpy as np
+    x = np.abs(np.frombuffer(pcm, dtype="<i2").astype(float) / 32768)
+    idx = np.where(x > thresh)[0]
+    return idx[0] / rate * 1000, (len(x) - idx[-1]) / rate * 1000, len(x) / rate * 1000
+
+
+def test_a_piece_loses_the_silence_it_starts_and_ends_with_and_gets_a_fixed_gap():
+    from providers.modular.shape import PieceShaper
+    raw = _pcm([("sil", 150), ("tone", 600), ("sil", 300), ("tone", 500), ("sil", 400)])  # a pause INSIDE the piece too
+    sh = PieceShaper(44100, gap_ms=150, lead_ms=20)
+    # fed in odd-sized chunks, like the network delivers it
+    out = b"".join(sh.feed(raw[i:i + 4801]) for i in range(0, len(raw), 4801)) + sh.finish()
+    lead, trail, total = _silent_edges_ms(out)
+    assert lead <= 30                       # a few ms of the leading silence stay, so the first sound is not abrupt
+    assert abs(trail - 150) <= 12           # exactly the fixed gap, not the model's 400 ms
+    assert abs(total - (20 + 600 + 300 + 500 + 150)) <= 25  # the pause inside the piece is untouched
+    assert len(out) % 2 == 0
+
+
+def test_the_shaper_never_cuts_speech_and_handles_empty_and_silent_pieces():
+    from providers.modular.shape import PieceShaper
+    raw = _pcm([("tone", 300)])
+    sh = PieceShaper(44100)
+    out = sh.feed(raw) + sh.finish()
+    assert len(out) >= len(raw)  # all of the speech, plus the gap
+    assert PieceShaper(44100).finish() == b""                       # nothing spoken, nothing added
+    sh2 = PieceShaper(44100); assert sh2.feed(_pcm([("sil", 500)])) != b"x" and sh2.finish() == b""  # only silence: nothing to say
+
+
+def test_short_sentences_are_kept_together_after_the_first_piece_when_merging_is_on():
+    text = "בוקר טוב מאור. עם ילדים הייתי הולך על אי רגוע. אתונה נשמעת לי עמוסה. ככה זה."
+    def pieces(**kw):
+        c = SentenceChunker(**kw); out = []
+        for ch in text:
+            out += c.feed(ch)
+        return out + c.flush()
+    plain = pieces()
+    assert plain[0] == "בוקר טוב מאור." and len(plain) >= 4  # a piece per sentence, as before
+    merged = pieces(merge_chars=70)
+    assert merged[0] == "בוקר טוב מאור."                         # the first piece is still early
+    assert len(merged) == 2 and merged[1].count(".") >= 3         # the rest together, one synthesis
+    assert " ".join(merged) == " ".join(plain)                    # the same words
+
