@@ -16,7 +16,7 @@ const day = 86_400_000;
 
 /** The same made-up user as the baseline: a founder who asked Rolly to be less robotic. */
 const returning: MemoryView = {
-  ...emptyMemory(), sessionCount: 4,
+  ...emptyMemory(), sessionCount: 4, lastOpener: "בוקר טוב דני, איך הבוקר?",
   profile: { ...emptyMemory().profile, preferredName: "דני", preferredLanguage: "he",
     preferences: { "noted 1": "מעדיף שלא כל שיחה תהיה רצינית; גם משהו קטן ומשעשע מתאים.", "noted 2": "רוצה שרולי יהיה יוזם ויציע עצות.", "noted 3": "רוצה שיחה אותנטית, פחות רובוטית." },
     addressing: { value: "masculine", status: "inferred" } },

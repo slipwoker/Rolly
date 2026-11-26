@@ -243,7 +243,7 @@ export class VoiceSession {
     // pacing: nudges for the model when the ride has an expected length (or the user says how long is left)
     const minutes = Number((prepared.ctx.journey as { duration_min?: unknown }).duration_min) || null;
     this.pacer = new Pacer(Date.now(), minutes, prepared.pacingScale ?? 1);
-    if (prepared.plan?.length) this.feeder = new PlanFeeder(prepared.plan, prepared.ctx.proactive && !!prepared.ctx.opener_instruction);
+    if (prepared.plan?.length) this.feeder = new PlanFeeder(prepared.plan);
     this.confirm = prepared.confirm ?? null;
     this.paceTimer = setInterval(() => this.pace(), 1000);
     this.log("session started", { onboarding: prepared.onboarding, language: prepared.ctx.language, minutes });
@@ -272,7 +272,7 @@ export class VoiceSession {
     const guard = styleGuardNote(this.replies.slice(-2));
     if (guard) this.note("style", guard, 1);
     const item = this.feeder?.afterReply(proactive ? null : this.lastUserWords);
-    if (item) this.note("plan", item.text, item.turns, item.maxUserWords !== undefined ? { maxUserWords: item.maxUserWords, minStreak: 2 } : undefined);
+    if (item) this.note("plan", item.text, item.turns, item.maxUserWords !== undefined ? { maxUserWords: item.maxUserWords, minStreak: item.minStreak ?? 2 } : undefined);
     if (this.confirm && this.replies.length === 3) {
       this.note("confirm", NOTE.confirm(this.confirm), 1, { maxUserWords: 2, minStreak: 1 });
       this.confirm = null;
