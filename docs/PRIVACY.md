@@ -58,3 +58,9 @@ Session resumption on Google's Live API stores session state server-side, which 
 - No rate limiting or abuse protection on the WebSocket.
 - Prompt-injection through user speech can alter the agent's behaviour within a session; memory writes go through the summariser,
   which reduces but does not remove the risk of poisoned long-term memory.
+
+## Connected services (calendar, mail, music)
+
+- **Google (calendar + mail)** is read only (`calendar.readonly`, `gmail.readonly`). The refresh token is stored encrypted (AES-256-GCM) in `integrations`, deleted on disconnect or account deletion, and revoked at Google at that moment. Rolly never sends, replies, accepts or changes anything.
+- When the user asks about their calendar or mail, only the events (title, time, place) or at most five messages (sender, subject, Google's snippet, never full bodies) needed for that one question are fetched and sent to the utility model to be put into a spoken answer. Nothing from mail or calendar is written to memory or the transcript store beyond what the user hears Rolly say.
+- **Spotify** uses the app's own credentials to search the public catalogue; no user account is connected and no user data is sent except the search words.
