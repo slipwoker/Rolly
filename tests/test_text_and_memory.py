@@ -311,7 +311,7 @@ def test_the_pods_voices_are_the_ones_the_owner_chose(monkeypatch):
     """P1-D36: Hebrew `ariel` and English `jonathan`, both BlueV3 at speed 1.0, from the same voice server; Piper is the English
     fallback; without the pod's switch the English voice stays what it was."""
     from providers.registry import ProviderRegistry
-    for k in ("ROLLY_BLUE_VOICE", "ROLLY_BLUE_SPEED", "ROLLY_BLUE_VOICE_EN", "ROLLY_BLUE_SPEED_EN", "ROLLY_TTS_EN_ENGINE", "ROLLY_TTS_HE_ENGINE"):
+    for k in ("ROLLY_BLUE_VOICE", "ROLLY_BLUE_SPEED", "ROLLY_BLUE_VOICE_EN", "ROLLY_BLUE_SPEED_EN", "ROLLY_TTS_EN_ENGINE", "ROLLY_TTS_HE_ENGINE", "ROLLY_BLUE_STREAM", "ROLLY_TTS_MERGE_CHARS"):
         monkeypatch.delenv(k, raising=False)
     path = os.path.join(os.path.dirname(__file__), "..", "config", "providers.yaml")
     plain = ProviderRegistry(path).entries["modular-selfhosted"]["tts"]
@@ -328,6 +328,16 @@ def test_the_pods_voices_are_the_ones_the_owner_chose(monkeypatch):
     # the engines the router builds name the voice and the speed
     from providers.modular.tts import BlueTTS
     assert "bluev3:jonathan:speed1" in BlueTTS(en).name and "bluev3:ariel:speed1" in BlueTTS(he).name
+    # P1-D37, chosen in two blind listenings: a whole piece in one synthesis, short sentences kept together; no trimming, no cap
+    for v in (he, en):
+        b = BlueTTS(v)
+        assert (b.stream, b.trim, b.pause_cap_ms) == (False, False, 0)
+    assert tts_cfg_merge(path) == 70
+
+
+def tts_cfg_merge(path):
+    from providers.registry import ProviderRegistry
+    return int(ProviderRegistry(path).entries["modular-selfhosted"]["tts_merge_chars"])
 
 
 def _pcm(parts, rate=44100):
