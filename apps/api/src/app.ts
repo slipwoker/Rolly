@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { Config } from "./config.ts";
 import { createPool, migrate } from "./db/index.ts";
 import { Auth, RateLimiter, adminOk, secretOk } from "./auth.ts";
-import { buildContext, resolveLanguage } from "./persona/promptBuilder.ts";
+import { buildContext, practiceLanguage, resolveLanguage } from "./persona/promptBuilder.ts";
 import { openAiLlm, type UtilityLlm } from "./memory/llm.ts";
 import { MemoryStore } from "./memory/store.ts";
 import { summarizeSession, type SummaryResult } from "./memory/summarizer.ts";
@@ -78,12 +78,13 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       await audit.recordPrompt({ sessionId, userId, language: built.language, onboarding: built.onboarding, systemPrompt: built.system_prompt,
         persona: core(built.language), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })),
         memoryIds: view.usedIds, sampling: config.llmSampling });
+      const foreign = practiceLanguage(view);
       return {
         onboarding: built.onboarding, pacingScale: pacingScales.get(userId),
         plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })), confirm: built.confirm,
         ctx: { session_id: sessionId, user_id: userId, language: built.language, system_prompt: built.system_prompt,
           opener_instruction: built.opener_instruction, proactive, journey: start.journey ?? {}, profile: built.profile,
-          options: { llm: config.llmSampling } },
+          options: { llm: config.llmSampling, ...(foreign ? { speech: { foreign_language: foreign } } : {}) } },
       };
     },
     async onUserTurn(args) {
@@ -109,7 +110,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
         summary = await summarizeSession(llm, visible, { openTopics: view.openTopics, known: view.knownIds, candidates: view.candidates });
         stats.summary_ms = Date.now() - t0;
         policy = await store.applySummary(userId, sessionId, summary, visible, { languageDetected: language === "auto" });
-        await store.learnAddressing(userId, sessionId, visible);
+        await store.learnAddressing(userId, sessionId, visible, summary.user_gender);
       }
       await store.finishSession({ sessionId, userId, turns: visible, summary, stats, endReason, describe, policy });
       if (notes) await audit.saveNotes(sessionId, notes);
@@ -271,6 +272,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     app.delete("/v1/sessions/:id", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
       const r = await store.deleteSession(id, (req.params as { id: string }).id);
+      if (r?.memories) void scrub(id); // what was learned from it must also leave summaries, notes and the plan
       return r ? r : reply.code(404).send({ error: "not found" });
     });
     app.get("/v1/export", async (req, reply) => {
@@ -304,6 +306,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       if (!admin(req, reply)) return;
       const { id, sid } = req.params as { id: string; sid: string };
       const r = await store.deleteSession(id, sid);
+      if (r?.memories) void scrub(id);
       return r ? r : reply.code(404).send({ error: "not found" });
     });
     // keep a memory as confirmed by the user (optionally reworded), e.g. before deleting the conversation it came from

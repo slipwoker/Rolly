@@ -476,6 +476,47 @@ describe.skipIf(!process.env.CI && false)("memory policy with PostgreSQL", () =>
     expect(Object.values((await store.memoryView(uid)).profile.preferences).sort()).toEqual(["מעדיף שיחה טבעית, פחות רובוטית", "רוצה שרולי יציע עצות"]);
   });
 
+  it("removing an unconfirmed second name note (e.g. with its conversation) leaves the confirmed name in the profile", async () => {
+    if (!available) return;
+    const uid = await store.createUser("name-kept");
+    const real = await store.addMemory(uid, { kind: "name", content: "מאור", status: "active", confidence: 1, provenance: { source: "correction", confirmed: true } });
+    await store.updateProfile(uid, { preferred_name: "מאור" });
+    const sid = crypto.randomUUID();
+    await store.startSession(sid, uid, "en", false, new Date());
+    await store.addMemory(uid, { kind: "name", content: "הוא רוצה שיקראו לו מאור, ולא Meor.", status: "candidate", confidence: 0.9,
+      provenance: { source: "summarizer", session_id: sid, confirmed: false }, sessionId: sid });
+    await store.finishSession({ sessionId: sid, userId: uid, turns: [u("it's Maor")], summary: normalize({ summary: "תיקון השם." }), stats: {}, endReason: "client_end", describe: {} });
+    expect(await store.deleteSession(uid, sid)).toMatchObject({ deleted: true, memories: 1 });
+    expect((await store.profile(uid)).preferred_name).toBe("מאור");
+    // removing the only name does clear it
+    expect(await store.deleteMemory(uid, real, "app")).toBe(true);
+    expect((await store.profile(uid)).preferred_name).toBeNull();
+  });
+
+  it("addressing is also learned from the phrases the summariser picks, when they stand word for word in a turn the user said", async () => {
+    if (!available) return;
+    const uid = await store.createUser("gender-from-summary");
+    const sid = crypto.randomUUID();
+    await store.startSession(sid, uid, "he", false, new Date());
+    // none of these forms is in the word list
+    const t = [u("אני רוצה להתכונן מה אני אורזת"), u("אני בכלל צמחונית"), u("אתה לא יודע לאן אני טסה"), { ...u("אני נוסעת מחר"), attribution: "uncertain" as const }];
+    expect((await store.learnAddressing(uid, sid, t)).status).toBe("unknown");
+    const r = await store.learnAddressing(uid, sid, t, { form: "feminine", quotes: ["אני אורזת", "אני בכלל צמחונית", "אני טסה"] });
+    expect(r).toMatchObject({ value: "feminine", status: "inferred" });
+    expect(r.evidence.feminine).toBe(3);
+    // applied again (the same session): nothing is counted twice
+    expect((await store.learnAddressing(uid, sid, t, { form: "feminine", quotes: ["אני אורזת", "אני בכלל צמחונית", "אני טסה"] })).evidence.feminine).toBe(3);
+
+    // phrases that are not in the transcript, or only in a turn that may be someone else's, change nothing
+    const uid2 = await store.createUser("gender-not-verified");
+    const sid2 = crypto.randomUUID();
+    await store.startSession(sid2, uid2, "he", false, new Date());
+    const r2 = await store.learnAddressing(uid2, sid2, t, { form: "masculine", quotes: ["אני מהנדס", "אני נוסעת מחר", "משהו שלא נאמר"] });
+    expect(r2).toMatchObject({ value: null, status: "unknown" });
+    expect(r2.evidence.masculine).toBe(0);
+    expect(r2.evidence.ignored_uncertain).toBe(1);
+  });
+
   it("the profile language is learned only from a conversation whose language was detected", async () => {
     if (!available) return;
     const uid = await store.createUser("lang");

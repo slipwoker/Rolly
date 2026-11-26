@@ -36,6 +36,89 @@ def dominant_language(text: str, default: str = "en") -> str:
     return "he" if h >= l * 0.5 and h > 0 else "en"
 
 
+_LATIN_WORD = re.compile(r"[A-Za-z\u00c0-\u024f']+")
+SHORT_FOREIGN_WORDS = 8
+
+
+def speech_language(text: str, hint: str | None = None, default: str = "en") -> str:
+    """Which voice speaks a piece of a reply.
+
+    Hebrew letters always go to the Hebrew voice: the English voice spells them out ("Hebrew letter alef, Hebrew letter
+    zayin...").  That happened on 2026-11-26 with `אז נגיד "Un café, por favor".`, which has more Latin letters than
+    Hebrew ones and was sent to the English voice.  A short phrase in Latin letters inside a Hebrew conversation also
+    stays with the Hebrew voice (it reads Latin words as words), so the voice does not change in the middle of a reply.
+    """
+    h, latin = len(_HEB.findall(text)), _LATIN_WORD.findall(text)
+    if h:
+        return "he"
+    if not latin:
+        return hint if hint in ("he", "en") else default
+    if hint == "he" and len(latin) <= SHORT_FOREIGN_WORDS:
+        return "he"
+    return "en"
+
+
+# -- a phrase in another language, spoken with that language's pronunciation -----------------------------------------
+# The Hebrew voice (BlueV3) also speaks Spanish, Italian and German in the same voice when a phrase is wrapped in a
+# language tag (<es>…</es>).  Unmarked Latin text is read with English pronunciation ("por favor" came out "por
+# fay-vor"; measured on the pod, 2026-11-26).  The words below are common, and none of them is an English word.
+FOREIGN_LANGS = ("es", "it", "de")
+_FOREIGN_WORDS = {
+    "es": set("""hola gracias por  buenos buenas días dias tardes noches señor señora cómo como está estás estoy
+        dónde donde qué que cuánto cuanto cuesta quiero quisiera tengo tiene tienes puedo puede hablo habla hablas español
+        inglés baño cuenta cerveza agua mucho muchas muchos muy bien adiós adios hasta luego mañana perdón perdon disculpe
+        siento  eres   usted nosotros llamo llamas nombre para  cuatro cinco también pero porque cuando aquí
+        allí ahora hoy amigo amiga bueno buena vamos salud aeropuerto estación habitación comida desayuno calle izquierda
+        derecha ayuda necesito gusta encantado igualmente nada  claro vale leche """.split()),
+    "it": set("""ciao grazie prego buongiorno buonasera buonanotte arrivederci per favore piacere scusi scusa sta stai sono
+        sei dove quanto costa vorrei posso parlo parla italiano inglese bagno conto birra acqua molto bene domani oggi
+        adesso perché quando qui anche  lei noi chiamo tavolo  quattro cinque sì allora amico amica buono buona
+        andiamo salute aeroporto stazione colazione sinistra destra aiuto bisogno tutto niente certo  gli della delle
+        degli che non più mille caffè""".split()),
+    "de": set("""hallo danke bitte guten gute morgen abend nacht tschüss auf wiedersehen wie geht ich du bist ist wieviel
+        kostet möchte spreche sprechen deutsch englisch toilette rechnung bier wasser sehr schlecht heute jetzt warum wann
+        auch aber und nicht ein eine einen das der zwei drei vier fünf ja nein freund prost flughafen bahnhof zimmer
+        frühstück rechts hilfe brauche alles nichts heiße entschuldigung vielen dank""".split()),
+}
+_FOREIGN_CHARS = {"es": "¿¡ñ", "it": "àèìòù", "de": "äöüß"}
+_ENGLISH_WORDS = set("""the and is are you your my i to of in on for with this that it good morning hello hi thanks thank
+    please what where how do not yes okay ok let go we at be have has was will can new one two three music play list
+    playlist focus work day time app phone email call meeting start stop cool nice love like more from by or as an all up
+    out about get just so but if when who why coffee water beer bathroom it's i'm don't""".split())
+# Latin words with spaces or commas between them, with Spanish opening marks and a closing ? or !
+_LATIN_RUN = re.compile(r"[¿¡]?[A-Za-z\u00c0-\u024f][A-Za-z\u00c0-\u024f'’-]*(?:[ ,]+[¿¡]?[A-Za-z\u00c0-\u024f][A-Za-z\u00c0-\u024f'’-]*)*[?!.]?")
+
+
+def foreign_language(phrase: str, hint: str | None = None) -> str | None:
+    """The language a phrase in Latin letters should be pronounced in, or None for English / unknown (read as today).
+
+    `hint` is the language the user is practising, when the caller knows it: a phrase of two words or more that is
+    not recognisably English then goes to that language.
+    """
+    words = [w.lower().strip("'’-") for w in _LATIN_WORD.findall(phrase)]
+    if not words:
+        return None
+    english = sum(w in _ENGLISH_WORDS for w in words)
+    best, score = None, 0
+    for lang in FOREIGN_LANGS:
+        n = sum(w in _FOREIGN_WORDS[lang] for w in words) + 2 * sum(ch in phrase for ch in _FOREIGN_CHARS[lang])
+        if n > score:
+            best, score = lang, n
+    if best and score > english:
+        return best
+    if hint in FOREIGN_LANGS and len(words) >= 2 and english == 0:
+        return hint
+    return None
+
+
+def mark_foreign(text: str, hint: str | None = None) -> str:
+    """Wrap Spanish, Italian and German phrases in the voice model's language tags; everything else is unchanged."""
+    def wrap(m: re.Match) -> str:
+        lang = foreign_language(m.group(0), hint)
+        return f"<{lang}>{m.group(0)}</{lang}>" if lang else m.group(0)
+    return _LATIN_RUN.sub(wrap, text)
+
+
 _QUESTION_END = re.compile(r"\?[\s\"'”’»)\]]*$")
 
 

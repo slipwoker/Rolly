@@ -3,7 +3,8 @@ import time
 from memory.context import END_MARKER, build_context, seed_store
 from memory.store import MemoryStore
 from memory.summarizer import _extract_json, fallback_summary, persist_summary
-from providers.modular.text import SentenceChunker, clean_for_speech, dominant_language, user_wants_to_end
+from providers.modular.text import (SentenceChunker, clean_for_speech, dominant_language, foreign_language, he_pronounce,
+                                    mark_foreign, speech_language, user_wants_to_end)
 
 
 def test_chunker_releases_first_clause_early_and_whole_sentences_after():
@@ -224,3 +225,58 @@ def test_hebrew_pronunciation_fixes_zappy_only_as_a_word():
     assert he_pronounce("בוקר טוב מאור, מה קורה עם זאפי?") == "בוקר טוב מָאוֹר, מה קורה עם Zappy?"
     assert he_pronounce("אמרתי למאור") == "אמרתי למָאוֹר"
     assert he_pronounce("מאוד מאורגן, יש מאורות") == "מאוד מאורגן, יש מאורות"  # other words that contain the letters
+
+
+def test_hebrew_letters_never_go_to_the_english_voice():
+    # the piece the live pipeline cut on 2026-11-26: more Latin letters than Hebrew ones
+    chunks = []
+    c = SentenceChunker()
+    for ch in 'אז נגיד "Un café, por favor". נשמע לך קל מדי?':
+        chunks += c.feed(ch)
+    chunks += c.flush()
+    assert chunks == ['אז נגיד "Un café, por favor".', "נשמע לך קל מדי?"]
+    assert dominant_language(chunks[0]) == "en"  # the old routing
+    assert [speech_language(x, "he") for x in chunks] == ["he", "he"]
+    assert speech_language(chunks[0], None) == "he"  # also when the conversation's language is detected
+    assert speech_language("My friend שרה said hi", "en") == "he"
+
+
+def test_a_short_foreign_phrase_keeps_the_hebrew_voice_in_a_hebrew_conversation():
+    assert speech_language("¿Buenos días?", "he") == "he"
+    assert speech_language("Un café, por favor.", "he") == "he"
+    # English conversations and long English passages use the English voice
+    assert speech_language("Good morning, how was the drive?", "en") == "en"
+    assert speech_language("Good morning.", None) == "en"
+    assert speech_language("This is a much longer answer that the model gave entirely in English for some reason.", "he") == "en"
+    assert speech_language("123", "he") == "he" and speech_language("...", None, "en") == "en"
+
+
+def test_a_spanish_italian_or_german_phrase_is_marked_for_its_own_pronunciation():
+    assert mark_foreign('אז נגיד "Un café, por favor".') == 'אז נגיד "<es>Un café, por favor</es>".'
+    assert mark_foreign("אוקיי, ננסה. ¿Buenos días? ככה זה נשמע לי.") == "אוקיי, ננסה. <es>¿Buenos días?</es> ככה זה נשמע לי."
+    assert mark_foreign("אומרים שם Quanto costa? וגם Grazie mille.") == "אומרים שם <it>Quanto costa?</it> וגם <it>Grazie mille.</it>"
+    assert mark_foreign("בגרמנית זה Guten Morgen, vielen Dank.") == "בגרמנית זה <de>Guten Morgen, vielen Dank.</de>"
+    assert foreign_language("¿Dónde está el baño?") == "es"
+
+
+def test_english_names_and_tech_words_are_left_as_they_are():
+    for text in ["אני עובד על Zappy כבר שנה.", "תנסה משהו של Bonobo,", "אולי איזה Lo-fi או טכנו עמוק", "ב-Da Enzo יש תור",
+                 "הוא אמר לי good morning ואז הלך.", "שים לי את זה ב-todo list", "טסים ל-Los Angeles", "תעשה לי favor",
+                 "זה ה-playlist של Daft Punk", "נשתמש ב-Socket.io", "בלי Latin בכלל"]:
+        assert mark_foreign(text) == text, text
+    # the names with a fixed reading are not touched either
+    assert mark_foreign(he_pronounce("בוקר טוב מאור, מה עם זאפי?")) == he_pronounce("בוקר טוב מאור, מה עם זאפי?")
+
+
+def test_the_language_the_user_is_practising_decides_unclear_phrases():
+    assert foreign_language("Me encanta viajar") is None  # no word the list knows
+    assert foreign_language("Me encanta viajar", "es") == "es"
+    assert foreign_language("Me llamo Rolly") == "es"
+    assert mark_foreign("תגידי Me encanta viajar ותראי", "es") == "תגידי <es>Me encanta viajar</es> ותראי"
+    # one unknown word, English, or an unsupported hint: unchanged
+    assert foreign_language("Bonobo", "es") is None
+    assert foreign_language("good morning", "es") is None
+    assert foreign_language("Me encanta viajar", "fr") is None
+    # a clear phrase wins over the hint
+    assert foreign_language("Grazie mille", "es") == "it"
+

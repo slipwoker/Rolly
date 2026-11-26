@@ -85,11 +85,29 @@ export function attributionFor(d: Record<string, unknown>): { attribution: "prim
   return { attribution: "primary" };
 }
 
+/**
+ * Every conversation numbers its agent turns from a range of its own.
+ *
+ * They used to start at 1 in every conversation. The phone's audio player remembers which turn numbers were cut off
+ * (to drop their late audio) and, in the builds installed in November 2026, keeps that list for as long as the app is
+ * open. So a reply whose number had been interrupted in an EARLIER conversation was shown as text and never spoken
+ * (owner's phone, 2026-11-26 11:27: replies 4 and 7 were silent; 4 had been cut off at 11:18 and 7 at 11:14).
+ * With a range per conversation no number is ever seen twice by one app. The value still fits the 4 bytes it has
+ * in an audio frame.
+ */
+let lastSeqBase = 0;
+export function seqBase(now = Date.now()): number {
+  const byClock = (Math.floor(now / 1000) % 4_000_000) * 1000 + 1; // unique across server restarts
+  lastSeqBase = byClock > lastSeqBase ? byClock : lastSeqBase + 1000; // and for two conversations in the same second
+  if (lastSeqBase > 4_000_000_000) lastSeqBase = 1;
+  return lastSeqBase;
+}
+
 export class VoiceSession {
   readonly sessionId: string;
   private pod: PodSession | null = null;
   private seqByRid = new Map<string, number>();
-  private nextSeq = 1;
+  private nextSeq = seqBase();
   private proactiveRids = new Set<string>();
   private resamplers = new Map<string, StreamResampler>();
   private agentPartial = new Map<string, string>();
@@ -123,6 +141,12 @@ export class VoiceSession {
     pong_rtt_ms: [] as number[],
     /** notes sent to the conversation model: pacing nudges and memory hints (what, and when in the session) */
     notes: [] as { kind: string; at_s: number }[],
+    /**
+     * Bytes of voice received from the pod, by the sample rate it arrived at. Each voice engine has its own rate (the
+     * Hebrew voice BlueV3 44,100 Hz; the Piper voices 22,050 Hz), so this shows which voice really spoke in a session,
+     * including a silent switch to the pod's backup Hebrew voice.
+     */
+    voice_bytes_by_rate: {} as Record<string, number>,
     /** raw units reported by the pod (`usage` events): conversation-model tokens, synthesised characters, transcribed audio */
     usage: {
       llm: { calls: 0, prompt_tokens: 0, completion_tokens: 0, cached_tokens: 0, max_prompt_tokens: 0, model: null as string | null },
@@ -275,6 +299,7 @@ export class VoiceSession {
     if (this.closing) return;
     const rid = String(a.data.response_id ?? "?");
     const seq = this.seqFor(rid);
+    this.stats.voice_bytes_by_rate[a.sampleRate] = (this.stats.voice_bytes_by_rate[a.sampleRate] ?? 0) + a.pcm.byteLength;
     let rs = this.resamplers.get(rid);
     if (!rs || rs.inRate !== a.sampleRate) {
       rs = new StreamResampler(a.sampleRate, OUTPUT_SAMPLE_RATE);
@@ -471,6 +496,7 @@ export class VoiceSession {
       end_reason: this.endReason, duration_s: Math.round((Date.now() - this.startedAt.getTime()) / 1000),
       turns_user: s.turns_user, turns_agent: s.turns_agent, interruptions: s.interruptions, errors: s.errors,
       audio_in_s: +(s.audio_in_bytes / 2 / INPUT_SAMPLE_RATE).toFixed(1), audio_out_s: +(s.audio_out_bytes / 2 / OUTPUT_SAMPLE_RATE).toFixed(1),
+      voice_s_by_rate: Object.fromEntries(Object.entries(s.voice_bytes_by_rate).map(([rate, bytes]) => [rate, +(bytes / 2 / Number(rate)).toFixed(1)])),
       server_reply_ms: s.reply_ms, server_reply_ms_median: med(s.reply_ms),
       client_first_audio_ms: s.client_first_audio_ms, client_first_audio_ms_median: med(s.client_first_audio_ms),
       client_flush_ms: s.client_flush_ms, audio_events: s.audio_events, notes: s.notes,

@@ -235,7 +235,7 @@ async def speech(request: Request):
     hint = body.get("language")
 
     async def gen():
-        async for pcm, sr, _lang, _engine in state["tts"].synth(text, hint):
+        async for pcm, sr, _lang, _engine in state["tts"].synth(text, hint, body.get("foreign_language")):
             if sr != TTS_SAMPLE_RATE:  # keep one output rate for the client
                 x = np.frombuffer(pcm, dtype="<i2")
                 pcm = soxr.resample(x.astype(np.float32), sr, TTS_SAMPLE_RATE).astype("<i2").tobytes()

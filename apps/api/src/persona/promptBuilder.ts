@@ -51,8 +51,10 @@ export function resolveLanguage(start: { language?: Lang | null; language_explic
 
 export interface Journey { duration_min?: number; origin?: string; destination?: string; mode?: string; proactive?: boolean }
 
-function when(ts: Date, now: Date): string {
-  const days = Math.floor((now.getTime() - ts.getTime()) / 86_400_000);
+/** calendar days in the user's time zone: last night's ride is "yesterday", not "earlier today" */
+function when(ts: Date, now: Date, timeZone: string): string {
+  const day = (d: Date) => Date.parse(new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(d) + "T00:00:00Z");
+  const days = Math.round((day(now) - day(ts)) / 86_400_000);
   if (days <= 0) return "earlier today";
   if (days === 1) return "yesterday";
   return `${days} days ago`;
@@ -127,7 +129,7 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
     const tasks = fit(mem.tasks.map((t) => clip(t.content, 80)), PROMPT.tasks, PROMPT.tasksChars);
     if (tasks.length) lines.push("Open tasks they asked you to keep: " + tasks.map((t) => t.replace(/[.;]+$/, "")).join("; ") + ".");
     const last = mem.summaries[0];
-    if (last) lines.push(`Last time (${when(last.createdAt, now)}): ${clip(last.content, PROMPT.summary)}`);
+    if (last) lines.push(`Last time (${when(last.createdAt, now, opts.timeZone ?? "Asia/Jerusalem")}): ${clip(last.content, PROMPT.summary)}`);
   }
   if (opts.resume?.length) {
     lines.push("", "## The conversation so far (the connection dropped a moment ago)");
@@ -167,6 +169,17 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
     // the pod gets only what the pipeline needs; it stores nothing
     profile: { name: p.preferredName ?? null, preferred_language: p.preferredLanguage ?? null },
   };
+}
+
+/**
+ * The language the user is practising, when one of their goals or interests names it. The pod's voice then pronounces
+ * unclear foreign phrases in that language (clear ones are recognised on the pod). Only what the voice model speaks.
+ */
+const PRACTICE: [RegExp, "es" | "it" | "de"][] = [[/ספרדית|spanish/i, "es"], [/איטלקית|italian/i, "it"], [/גרמנית|german/i, "de"]];
+export function practiceLanguage(mem: MemoryView): "es" | "it" | "de" | null {
+  const texts = [...mem.goals.filter((g) => g.status === "active").map((g) => g.content), ...mem.profile.travelGoals, ...mem.profile.interests];
+  for (const t of texts) for (const [re, lang] of PRACTICE) if (re.test(t)) return lang;
+  return null;
 }
 
 export function emptyMemory(): MemoryView {

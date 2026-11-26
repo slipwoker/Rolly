@@ -187,9 +187,19 @@ export class MemoryStore {
     if (!old || old.status === "deleted") return false;
     await this.queueScrub(userId, old, null);
     await this.wipe(old.id);
-    if (old.kind === "name") await this.updateProfile(userId, { preferred_name: null });
+    if (old.kind === "name") await this.updateProfile(userId, { preferred_name: await this.currentName(userId) });
     await this.event(userId, id, "delete", via, sessionId);
     return true;
+  }
+
+  /**
+   * The name the profile should show after a name note was removed: the newest name note that is still active, else none.
+   * (Removing an unconfirmed duplicate, e.g. with its conversation, used to clear the name although a confirmed one existed.)
+   */
+  private async currentName(userId: string): Promise<string | null> {
+    const r = await this.db.query<{ content: string }>(
+      "SELECT content FROM memories WHERE user_id=$1 AND kind='name' AND status='active' AND content<>'' ORDER BY updated_at DESC LIMIT 1", [userId]);
+    return r.rows[0]?.content ?? null;
   }
 
   private async wipe(id: string) {
@@ -439,11 +449,26 @@ export class MemoryStore {
   }
 
   /** Learn addressing from the session's user turns (primary turns only change the preference). Returns the new record. */
-  async learnAddressing(userId: string, sessionId: string, turns: SessionTurn[]): Promise<AddressingRecord> {
+  async learnAddressing(userId: string, sessionId: string, turns: SessionTurn[],
+    /** phrases the summariser picked as the user speaking about themselves in a gendered form */
+    fromSummary: { form: "masculine" | "feminine"; quotes: string[] } | null = null): Promise<AddressingRecord> {
     let rec = await this.addressing(userId);
+    const counted = new Set<SessionTurn>();
     for (const t of turns) {
       if (t.role !== "user") continue;
-      rec = applyObservations(rec, observe(t.text), t.attribution, { session_id: sessionId, at: new Date(t.startedAt) });
+      const obs = observe(t.text);
+      if (obs.length) counted.add(t);
+      rec = applyObservations(rec, obs, t.attribution, { session_id: sessionId, at: new Date(t.startedAt) });
+    }
+    // The word list above knows a few dozen forms ("אני חושבת"); the summariser reads the whole conversation
+    // ("אני אורזת", "אני צמחונית"). Its phrases count only when they stand word for word in a turn the user said,
+    // one per turn, and not in a turn the word list already counted.
+    const squash = (x: string) => x.replace(/\s+/g, " ").trim();
+    for (const q of fromSummary?.quotes ?? []) {
+      const turn = turns.find((t) => t.role === "user" && !counted.has(t) && squash(t.text).includes(squash(q)));
+      if (!turn) continue;
+      counted.add(turn);
+      rec = applyObservations(rec, [{ form: fromSummary!.form, kind: "self_reference", quote: squash(q) }], turn.attribution, { session_id: sessionId, at: new Date(turn.startedAt) });
     }
     await this.saveAddressing(userId, rec, "summarizer", sessionId);
     return rec;
