@@ -4,8 +4,9 @@
  * Short on purpose (P1-D24). The conversation model is small (about 4B active parameters): with the previous prompt
  * (about 2,500 tokens, some thirty rules in six sections, copied from the research persona) it followed the rules weakly
  * and copied the examples, and it sounded like a bot: measured on scripted Hebrew conversations against the real model
- * (scripts/style-eval.ts), 32 % of replies opened by agreeing or acknowledging and 20 % were general life wisdom. This
- * text, with the per-turn style guard and the plan fed by notes, measured 5 % and 9 % at about 720 tokens.
+ * (scripts/style-eval.ts, 111 replies per variant, benchmarks/results/style_eval_20261126.json), 27 % of replies opened
+ * by agreeing or acknowledging and 17 % were general life wisdom. This text, with the per-turn style guard and the plan
+ * fed by notes, measured 5 % and 14 % at 773 tokens: the openers are fixed, the general wisdom is not.
  *
  * What is NOT here, by design: Hebrew example phrases (they get parroted), "react before you add anything" (it produced
  * the stock openers), rules for rare situations (they arrive as a note on the turn they apply to), and the plan for the
