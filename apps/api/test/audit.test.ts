@@ -221,6 +221,12 @@ describe("audit end to end", () => {
     expect(page.headers["content-security-policy"]).toContain("script-src 'self'");
     expect(page.body).toContain("/admin/app.js");
     expect((await app.inject({ method: "GET", url: "/admin/app.js" })).statusCode).toBe(200);
+    for (const mode of ["light", "dark"]) {
+      const logo = await app.inject({ method: "GET", url: `/admin/logo-${mode}.svg` });
+      expect(logo.statusCode).toBe(200);
+      expect(logo.headers["content-type"]).toBe("image/svg+xml");
+      expect(logo.body).toContain('viewBox="112 150 800 800"');
+    }
     expect((await adminGet("/v1/admin/audit/overview", "")).statusCode).toBe(401);
     expect((await adminGet("/v1/admin/audit/overview", "wrong")).statusCode).toBe(401);
   });
