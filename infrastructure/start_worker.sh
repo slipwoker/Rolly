@@ -7,6 +7,9 @@ WS="${ROLLY_WORKSPACE:-/workspace}"; LOGS="$WS/logs"; mkdir -p "$LOGS"
 export HF_HOME="${HF_HOME:-$WS/hf}"
 export ROLLY_STT_DEVICE=cuda ROLLY_STT_COMPUTE=float16 ROLLY_STT_WORKERS="${ROLLY_STT_WORKERS:-4}"
 export ROLLY_TTS_PROVIDER=cpu ROLLY_TTS_INSTANCES="${ROLLY_TTS_INSTANCES:-4}" ROLLY_TTS_THREADS=2
+# English: the BlueV3 voice of the Hebrew side (one voice for both languages); Piper stays as the fallback (config/providers.yaml).
+# ROLLY_TTS_EN_ENGINE=sherpa brings Piper back as the main English voice.
+export ROLLY_TTS_EN_ENGINE="${ROLLY_TTS_EN_ENGINE:-blue}"
 export ROLLY_TTS_EN_KIND=vits ROLLY_TTS_EN_DIR=models/vits-piper-en_US-lessac-medium ROLLY_TTS_EN_FILE=en_US-lessac-medium.onnx ROLLY_TTS_EN_SPEAKER=0
 export ROLLY_LLM_BASE_URL=http://127.0.0.1:8081/v1 ROLLY_LLM_MODEL=local ROLLY_LLM_API_KEY="${ROLLY_GPU_API_KEY:-}"
 # Hebrew voice: BlueV3 (infrastructure/blue_setup.sh); falls back to the Piper voice while its server is down.

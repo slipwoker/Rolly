@@ -244,66 +244,6 @@ async def speech(request: Request):
     return StreamingResponse(gen(), media_type="audio/pcm", headers={"X-Sample-Rate": str(TTS_SAMPLE_RATE)})
 
 
-# ---------------------------------------------------------------- audition: voices and speeds, for listening only
-AUDITION_ENGINES = ("blue", "kokoro", "piper")
-_audition_tts: dict = {}
-
-
-def parse_audition(body: dict) -> dict:
-    """Validated options of one audition request (raises ValueError with a message the caller can read)."""
-    text = str(body.get("input") or "").strip()
-    if not text or len(text) > 600:
-        raise ValueError("'input' is required, at most 600 characters")
-    engine = str(body.get("engine") or "blue")
-    if engine not in AUDITION_ENGINES:
-        raise ValueError(f"engine must be one of {', '.join(AUDITION_ENGINES)}")
-    voice = str(body.get("voice") or "")
-    if voice and not voice.replace("_", "").replace("-", "").isalnum():
-        raise ValueError("voice must be letters, digits, - _")
-    try:
-        speed = float(body.get("speed") or 1.0)
-        speaker = int(body.get("speaker") or 0)
-    except (TypeError, ValueError):
-        raise ValueError("speed must be a number and speaker an integer")
-    if not 0.5 <= speed <= 2.0 or not 0 <= speaker <= 200:
-        raise ValueError("speed must be between 0.5 and 2.0, speaker between 0 and 200")
-    return {"input": text, "engine": engine, "voice": voice, "speed": speed, "speaker": speaker, "language": "en" if body.get("language") == "en" else "he"}
-
-
-@app.post("/v1/audio/audition")
-async def audition(request: Request):
-    """One utterance in a named voice at a named speed, at the voice's own sample rate (X-Sample-Rate). For choosing a voice
-    by ear: it never touches the live pipeline (the voice server and the Sherpa voices are the same processes, asked for
-    something else).  engine "blue": BlueV3 voices of the bundle (`voice`) at `speed`; "kokoro" / "piper": the English
-    Sherpa voices (`speaker` selects the voice inside the model)."""
-    _auth(request)
-    try:
-        a = parse_audition(await request.json())
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-    if a["engine"] == "blue":
-        import httpx
-        body = {"model": "bluev3", "voice": a["voice"] or "daniel", "input": a["input"], "response_format": "pcm", "speed": a["speed"], "language": a["language"]}
-        async with httpx.AsyncClient(timeout=60) as c:
-            r = await c.post("http://127.0.0.1:1920/v1/audio/speech", json=body)
-        if r.status_code >= 400:
-            raise HTTPException(502, f"voice server: {r.text[:200]}")
-        return StreamingResponse(iter([r.content]), media_type="audio/pcm", headers={"X-Sample-Rate": "44100"})
-    from providers.modular.tts import SherpaTTS
-    key = a["engine"]
-    if key not in _audition_tts:
-        d = "models/kokoro-multi-lang-v1_0" if key == "kokoro" else "models/vits-piper-en_US-lessac-medium"
-        cfg = {"kind": "kokoro" if key == "kokoro" else "vits", "model_dir": str(ROOT / d), "model_file": "en_US-lessac-medium.onnx", "num_threads": 2, "provider": "cpu"}
-        try:
-            _audition_tts[key] = await asyncio.get_running_loop().run_in_executor(None, SherpaTTS, cfg)
-        except Exception as e:
-            raise HTTPException(502, f"{key} is not available on this host: {e!r}"[:300])
-    eng = _audition_tts[key]
-    eng.sid, eng.speed = a["speaker"], a["speed"]
-    chunks = [c async for c in eng.synth(a["input"], "en")]
-    return StreamingResponse(iter([b"".join(chunks)]), media_type="audio/pcm", headers={"X-Sample-Rate": str(eng.sample_rate)})
-
-
 @app.exception_handler(Exception)
 async def unhandled(request: Request, exc: Exception):
     return JSONResponse({"error": repr(exc)[:300]}, status_code=500)
