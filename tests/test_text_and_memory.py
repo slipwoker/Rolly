@@ -121,10 +121,106 @@ def test_question_guard_only_after_a_question():
     assert question_guard_note([q, u, s, u]) is None  # only the most recent reply counts
 
 
+def test_turn_notes_live_for_their_turns_and_stay_out_of_history():
+    from providers.modular.text import TurnNotes
+    n = TurnNotes()
+    assert n.text("מה נשמע") is None
+    n.add("About three minutes are left: start wrapping up.", turns=2)
+    n.add("  ", turns=3)  # empty: ignored
+    assert n.text("מה נשמע") == "[Note for this turn, not said by the user: About three minutes are left: start wrapping up.]"
+    n.consume("מה נשמע")
+    assert len(n) == 1
+    n.add("Nothing was saved: ask what to note.")  # a second note, for one turn
+    assert n.text("אוקיי").count("[Note for this turn") == 2
+    n.consume("אוקיי")
+    assert n.text("אוקיי") is None  # both used up
+    n.add("x" * 2000, turns=99)
+    assert len(n.text("היי")) < 700  # clipped
+    for _ in range(TurnNotes.MAX_TURNS):
+        n.text("היי")
+        n.consume("היי")
+    assert n.text("היי") is None  # never lives longer than MAX_TURNS
+    for i in range(6):
+        n.add(f"note {i}")
+    assert len(n) == TurnNotes.MAX_NOTES  # only the newest few are kept
+    n.add("note 5", turns=3)  # the same note again renews it instead of piling up
+    assert len(n) == TurnNotes.MAX_NOTES
+
+
+def test_conditional_note_waits_for_a_dry_turn():
+    """The next plan item is shown only when the user answered with a word or two, twice in a row; until then it waits."""
+    from providers.modular.text import TurnNotes
+    n = TurnNotes()
+    n.add("Bring up: sport.", turns=1, max_user_words=2, min_streak=2)
+    # a real question: the note stays out of the turn and is not used up
+    assert n.text("אז מה אתה חושב, שווה לי להמשיך עם הסטארט-אפ?") is None
+    n.consume("אז מה אתה חושב, שווה לי להמשיך עם הסטארט-אפ?")
+    assert len(n) == 1
+    # one short answer is an acknowledgement, not yet a dry conversation
+    assert n.text("אוקיי.") is None
+    n.consume("אוקיי.")
+    # the second short answer in a row: now
+    assert n.text("לא יודע") == "[Note for this turn, not said by the user: Bring up: sport.]"
+    n.consume("לא יודע")
+    assert len(n) == 0  # shown once
+    # the opener instruction is not something the user said
+    n.add("Bring up: podcasts.", max_user_words=2)
+    assert n.text("[journey_start] open") is None
+    assert n.text(None) is None
+    assert n.text("סתם") is not None
+    # a conditional note that never gets its turn is dropped in the end
+    m = TurnNotes()
+    m.add("stale", max_user_words=2)
+    for _ in range(TurnNotes.MAX_WAIT):
+        assert m.text("משפט ארוך עם הרבה מילים בתוכו") is None
+        m.consume("משפט ארוך עם הרבה מילים בתוכו")
+    assert len(m) == 0
+    # an unconditional note is not affected by any of this
+    m.add("pacing")
+    assert m.text("משפט ארוך עם הרבה מילים בתוכו") is not None
+
+
+def test_session_sampling_options_are_whitelisted_and_bounded():
+    from providers.modular.pipeline import LLM_OPTION_BOUNDS
+    from providers.modular.llm import OpenAICompatLLM
+    assert set(LLM_OPTION_BOUNDS) == {"temperature", "top_p", "presence_penalty", "frequency_penalty", "repetition_penalty"}
+    lo, hi = LLM_OPTION_BOUNDS["repetition_penalty"]
+    assert (lo, hi) == (1.0, 1.3)
+    llm = OpenAICompatLLM({"base_url": "http://127.0.0.1:1/v1", "model": "local"})
+    body = llm._body([{"role": "user", "content": "x"}], True, None, 0.7, repetition_penalty=1.05)
+    assert body["temperature"] == 0.7 and body["repetition_penalty"] == 1.05 and body["max_tokens"] == 160
+
+
+def test_pipeline_adds_caller_notes_to_the_turn_only():
+    """The note reaches the model next to the user's words and is not written into the history."""
+    from providers.modular.pipeline import ModularProvider
+    from providers.modular.text import TurnNotes
+    p = ModularProvider.__new__(ModularProvider)  # only what _messages needs, no models
+    p.history = [{"role": "assistant", "content": "האמת, לדעתי זה רעיון טוב."}]
+    p.question_guard = True
+    p.notes = TurnNotes()
+
+    class Ctx:
+        system_prompt = "SYSTEM"
+    p.ctx = Ctx()
+    assert p._messages("מה נשמע")[-1]["content"] == "מה נשמע"
+    p.notes.add("About half of the ride is over.", turns=1)
+    msgs = p._messages("מה נשמע")
+    assert msgs[-1]["content"].endswith("[Note for this turn, not said by the user: About half of the ride is over.]")
+    assert msgs[0] == {"role": "system", "content": "SYSTEM"}
+    assert all("Note for this turn" not in m["content"] for m in p.history)  # history untouched
+    p.notes.consume("מה נשמע")
+    assert p._messages("מה נשמע")[-1]["content"] == "מה נשמע"
+
+
 def test_hebrew_pronunciation_fixes_zappy_only_as_a_word():
     from providers.modular.text import he_pronounce
-    assert he_pronounce("עובדים על זאפי") == "עובדים על זַאפִּי"
-    assert he_pronounce("בזאפי, ולזאפי.") == "בזַאפִּי, ולזַאפִּי."
-    assert he_pronounce("זאפי?") == "זַאפִּי?"
+    # the owner's pick from listening samples (2026-11-26): "Zappy" in Latin letters, מָאוֹר with vowels
+    assert he_pronounce("עובדים על זאפי") == "עובדים על Zappy"
+    assert he_pronounce("בזאפי, ולזאפי.") == "ב-Zappy, ול-Zappy."
+    assert he_pronounce("זאפי?") == "Zappy?"
     assert he_pronounce("זאפיות") == "זאפיות"  # a longer word is left alone
     assert he_pronounce("Zappy is fine") == "Zappy is fine"
+    assert he_pronounce("בוקר טוב מאור, מה קורה עם זאפי?") == "בוקר טוב מָאוֹר, מה קורה עם Zappy?"
+    assert he_pronounce("אמרתי למאור") == "אמרתי למָאוֹר"
+    assert he_pronounce("מאוד מאורגן, יש מאורות") == "מאוד מאורגן, יש מאורות"  # other words that contain the letters

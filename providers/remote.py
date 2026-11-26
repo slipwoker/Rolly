@@ -12,6 +12,12 @@ Wire protocol (see `backend/gpu_worker.py`, endpoint `/v1/session`):
   app -> host   text  {"type":"start","ctx":{...SessionContext...}}
                 bytes PCM16 16 kHz mono microphone audio
                 text  {"type":"text","text":...} | {"type":"interrupt"}
+                text  {"type":"note","text":...,"turns":n[,"max_user_words":k,"min_streak":m]}
+                      a note for the model's next n turns (pacing, memory hints, the next plan item): never spoken, never
+                      stored in history, starts no turn; with max_user_words it waits for a turn where the user said at
+                      most k words (m turns in a row)
+                ctx.options.llm = {temperature, top_p, presence_penalty, frequency_penalty, repetition_penalty}: sampling
+                      for this conversation (bounded)
   host -> app   text  {"type":"ready","describe":{...}}
                 text  {"type":"event","event":<provider event type>,"data":{...}}
                 bytes 4-byte big-endian header length, JSON header {"event","data","sample_rate"}, PCM16 audio

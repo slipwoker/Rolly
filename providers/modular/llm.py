@@ -62,10 +62,10 @@ class OpenAICompatLLM:
         return body
 
     async def stream(self, messages: list[dict], result: LLMResult, max_tokens: int | None = None,
-                     temperature: float | None = None) -> AsyncIterator[str]:
-        """Yield text deltas; fills `result` with timings and token usage."""
+                     temperature: float | None = None, **kw) -> AsyncIterator[str]:
+        """Yield text deltas; fills `result` with timings and token usage.  `kw`: extra sampling fields for this call."""
         t0 = time.monotonic()
-        body = self._body(messages, True, max_tokens, temperature)
+        body = self._body(messages, True, max_tokens, temperature, **kw)
         async with self._client.stream("POST", f"{self.base_url}/chat/completions", headers=self._headers(), json=body) as resp:
             if resp.status_code >= 400:
                 detail = (await resp.aread()).decode("utf-8", "replace")[:500]
