@@ -18,6 +18,7 @@ import { radius, spacing, useTheme } from "../src/ui/theme";
 import { MicButton, Waveform } from "../src/ui/VoiceParts";
 import type { VoiceState } from "../src/voice/controller";
 import { useVoiceSession, type ConvLang } from "../src/voice/VoiceProvider";
+import { isNight } from "../src/ui/daypart";
 
 const LIVE: VoiceState[] = ["listening", "user_speaking", "agent_speaking"];
 const LANG_SHORT: Record<ConvLang, string> = { he: "עב", en: "EN", auto: "A" };
@@ -26,7 +27,8 @@ const TRIP_MINUTES = [10, 20, 40] as const;
 
 function greeting(name: string | null): string {
   const h = new Date().getHours();
-  const base = h >= 5 && h < 12 ? t.morning : h >= 12 && h < 17 ? t.afternoon : t.evening;
+  // "good evening" once the sun is down (16:37 in a Tel Aviv November), not only from 17:00
+  const base = h >= 5 && h < 12 ? t.morning : h >= 12 && h < 17 && !isNight() ? t.afternoon : t.evening;
   return name ? `${base}, ${name}` : base;
 }
 
