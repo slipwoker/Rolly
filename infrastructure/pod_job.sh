@@ -13,6 +13,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 # hints from rolly-api for the model's next turns).  Same restart as job 11: only the worker.
 # job 13 (2026-11-26): restart the worker for the voice routing fix (Hebrew letters never go to the English voice) and
 # the pronunciation of Spanish / Italian / German phrases in the Hebrew voice.  Same restart: only the worker.
+# job 14 (2026-11-26): restart the worker for online lookups (the lookup marker is kept out of speech and reported as
+# session.lookup_requested) and for skipping pieces with nothing to say ("—" woke the backup voice).  Only the worker.
 pkill -f "zonos3-server" 2>/dev/null || true
 if bash infrastructure/blue_setup.sh; then
   ROLLY_TTS_HE_ENGINE=blue bash infrastructure/start_worker.sh
