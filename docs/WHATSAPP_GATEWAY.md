@@ -145,6 +145,14 @@ service, `DATABASE_URL`, `WA_GATEWAY_TOKEN`, `WA_STT_URL`, optional `WA_STT_TOKE
 
 ### Known gaps
 - Linking: the code flow fails for **WhatsApp Business** accounts until `whatsmeow` issue 1360 is fixed; QR works. Personal accounts by code: not yet tried (no personal test number).
-- Not yet: link/relink screens in the app, voice command "disconnect WhatsApp", encryption of session keys per user, monitoring, a real
+- Not yet: voice command "disconnect WhatsApp", encryption of session keys per user, monitoring, a real
   Render deployment, an integration test that links a real client (the race fixed in `expireLink` was invisible to unit tests), privacy
   document update, the legal review (W6).
+
+### App screens (2026-11-26, `apps/mobile/app/whatsapp.tsx`, `src/whatsapp.ts`)
+Terms with an explicit "I understand" step (the API refuses to link without `consent: true`) → the user's number → the pairing **code** to type in WhatsApp
+(polled every 3 s until connected, countdown, new code when it expires) → status, relink and disconnect. A WhatsApp row in "Connected services" of the
+personalisation screen opens it and only shows when the server has WhatsApp. Pure logic (phone normalisation, code format, state meaning, error mapping) is
+unit-tested; **the screens have not been run on a device or simulator and the link has not been tried end to end on a personal account** (planned: the owner's
+personal number, live). The terms wording is a draft for the legal review (W6). Business accounts will fail at the code step until whatsmeow issue 1360 is fixed;
+the screen says so when a code expires.
