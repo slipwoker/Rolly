@@ -15,6 +15,8 @@ export ROLLY_LLM_BASE_URL=http://127.0.0.1:8081/v1 ROLLY_LLM_MODEL=local ROLLY_L
 # Hebrew voice: BlueV3 (infrastructure/blue_setup.sh); falls back to the Piper voice while its server is down.
 # See config/providers.yaml.  ROLLY_TTS_HE_ENGINE=renikud_piper switches it off; zonos selects the withdrawn ZONOS3 voice.
 export ROLLY_TTS_HE_ENGINE="${ROLLY_TTS_HE_ENGINE:-blue}" ROLLY_VOICE_DIR="$WS/voices"
+# names: the voice server serves its Hebrew front end on 1921 (blue_serve.py); the pipeline pins a name read differently by position
+export ROLLY_PRON_URL="${ROLLY_PRON_URL:-http://127.0.0.1:1921}" ROLLY_PRON_CACHE="${ROLLY_PRON_CACHE:-$WS/pron_cache.json}"
 export ROLLY_ZONOS_VOICE="${ROLLY_ZONOS_VOICE:-$WS/voices/he_voice.codes.npy}"
 pkill -f "uvicorn backend.gpu_worker" 2>/dev/null || true; sleep 1
 nohup .venv/bin/uvicorn backend.gpu_worker:app --host 0.0.0.0 --port 8000 > "$LOGS/worker.log" 2>&1 &

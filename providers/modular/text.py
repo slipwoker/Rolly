@@ -188,6 +188,8 @@ class TurnNotes:
             return True
         if user_text is None or user_text.lstrip().startswith("["):  # an event prompt (the opener), not something the user said
             return False
+        if "?" in user_text or "؟" in user_text:  # a question is for answering: no topic of ours on that turn (2026-11-26)
+            return False
         words = self._words(user_text)
         if words > n["max_user_words"]:
             return False
@@ -218,16 +220,16 @@ class TurnNotes:
         return len(self._notes)
 
 
-# Hebrew words the voice front end reads wrongly without vowels.  Applied only to the text sent to a Hebrew voice
-# (history and transcripts keep the plain spelling).  Value: vocalised spelling with the intended reading.
-#   זאפי (the owner's company, "Zappy"): read as "zaffy" because an unmarked פ in the middle is read as f.  The vocalised
-#   spelling זַאפִּי did not fix it for the owner's ear; written in Latin letters the Hebrew voice says it right
-#   (listening samples, 2026-11-26: the owner chose "Zappy" and מָאוֹר).
-#   מאור (a first name, "Ma-or"): read as "Me-or" without vowels.
+# Hebrew words the voice front end reads wrongly.  Applied only to the text sent to a Hebrew voice (history and transcripts
+# keep the plain spelling).  Value: the spelling to speak instead.  Brand words only: זאפי (the owner's company) is read
+# "zaffy" because an unmarked פ in the middle is read as f; in Latin letters the Hebrew voice says it right (listening samples,
+# 2026-11-26).  A user's NAME is not handled here but per conversation (pronounce.py): the same front end reads some names
+# differently depending on their place in the sentence, and a table of names cannot cover them.
 HE_PRONUNCIATION: dict[str, str] = {
     "זאפי": "Zappy",
-    "מאור": "מָאוֹר",
 }
+# how a prefix letter before a pinned word is said
+_PREFIX_PHONEMES = {"": "", "ו": "ve", "ה": "ha", "ב": "be", "ל": "le", "מ": "mi", "ש": "ʃe", "כ": "ke"}
 _HE_LETTER = "א-ת"
 
 
@@ -239,8 +241,17 @@ def _he_pattern(word: str) -> re.Pattern:
 _HE_PATTERNS = [(_he_pattern(w), v) for w, v in HE_PRONUNCIATION.items()]
 
 
-def he_pronounce(text: str) -> str:
-    """Replace words from HE_PRONUNCIATION with their vocalised reading, keeping any prefix letters."""
+def he_pronounce(text: str, phonemes: dict[str, str] | None = None) -> str:
+    """Replace words from HE_PRONUNCIATION with their reading, keeping any prefix letters.  `phonemes` ({word: phonemes}, the
+    names pinned for this conversation) is for a voice that takes inline `<he>…</he>` phoneme spans: those words are given as
+    phonemes, which that voice passes on unchanged."""
+    for word, ph in (phonemes or {}).items():
+        def sub(m, ph=ph):
+            pre = m.group(1)
+            if not all(c in _PREFIX_PHONEMES for c in pre):
+                return m.group(0)
+            return "<he>" + "".join(_PREFIX_PHONEMES[c] for c in pre) + ph + "</he>"
+        text = _he_pattern(word).sub(sub, text)
     for pat, v in _HE_PATTERNS:
         # a Hebrew prefix letter before a word written in Latin letters takes a hyphen, as in written Hebrew ("ב-Zappy")
         joiner = "-" if v[:1].isascii() and v[:1].isalpha() else ""

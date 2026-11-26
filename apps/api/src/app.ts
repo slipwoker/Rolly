@@ -10,7 +10,7 @@ import { buildContext, practiceLanguage, resolveLanguage } from "./persona/promp
 import { openAiLlm, type UtilityLlm } from "./memory/llm.ts";
 import { MemoryStore } from "./memory/store.ts";
 import { summarizeSession, type SummaryResult } from "./memory/summarizer.ts";
-import { handleCapture, handleLiveTurn } from "./memory/live.ts";
+import { handleCapture, handleLiveTurn, handleNamePronunciation, type NameReadings } from "./memory/live.ts";
 import { fallbackAgenda, planNext, type AgendaItem } from "./memory/plan.ts";
 import { scrubUser } from "./memory/scrub.ts";
 import { consolidate } from "./memory/consolidate.ts";
@@ -59,7 +59,21 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
   const sessionAgenda = new Map<string, AgendaItem[]>();
   // server-side self-tests only: compress pacing time for a user (see runSelftest)
   const pacingScales = new Map<string, number>();
+  // the last opening line said to each user in this process: a conversation started right after another one ended
+  // (2026-11-26: one second later) must not open with the same line while the first is still being saved
+  const recentOpeners = new Map<string, string>();
+  // how the pod's voice reads a name (its Hebrew front end, in five positions in a sentence): the choices when the user corrects the pronunciation
+  const nameReadings: NameReadings = {
+    async candidates(word) {
+      const r = await fetch(`${config.gpuWorkerUrl.replace(/\/+$/, "")}/phonemize`, { method: "POST", signal: AbortSignal.timeout(8_000),
+        headers: { Authorization: `Bearer ${config.gpuApiKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ word }) });
+      if (!r.ok) return null;
+      const j = (await r.json()) as { candidates?: unknown };
+      return Array.isArray(j.candidates) ? j.candidates.filter((c): c is string => typeof c === "string") : null;
+    },
+  };
   const hooks: SessionHooks = {
+    rememberOpener(userId, text) { recentOpeners.set(userId, text); },
     async prepare(userId, sessionId, start) {
       const planning = lookahead.get(userId);
       if (planning) await Promise.race([planning, new Promise((r) => setTimeout(r, 8_000))]);
@@ -70,6 +84,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
         resume = await store.lastTurns(userId, start.resume_of, 8);
       }
       const view = await store.memoryView(userId);
+      view.lastOpener = recentOpeners.get(userId) ?? view.lastOpener;
       const proactive = start.proactive ?? true;
       const { language, chosen } = resolveLanguage(start, view.profile.preferredLanguage);
       if (chosen === "he" || chosen === "en") await store.updateProfile(userId, { preferred_language: chosen });
@@ -94,6 +109,8 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       return audit.run({ userId: args.userId, sessionId: args.sessionId }, async () => {
         const done = await handleLiveTurn(store, llm, args);
         if (done.some((d) => /^(delete|correct):/.test(d))) void scrub(args.userId);
+        const pron = await handleNamePronunciation(store, llm, nameReadings, args);
+        if (pron) return { text: NOTE.namePronounced, turns: 2, pronunciations: { [pron.word]: pron.ipa } };
         const captured = (await handleCapture(store, llm, args)).note;
         const form = done.map((d) => /^addressing:(masculine|feminine|plural)$/.exec(d)?.[1]).find(Boolean) as "masculine" | "feminine" | "plural" | undefined;
         // how to address them was just said: tell the model now, and keep telling it until the conversation ends

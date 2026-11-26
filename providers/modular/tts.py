@@ -246,6 +246,10 @@ class TTSRouter:
             self.configs = {k: v for k, v in cfg.items() if isinstance(v, dict)}
         self.engines: dict[str, object] = {}
         self.unavailable: dict[str, str] = {}
+        self.pronunciations: dict[str, str] = {}  # this conversation's pinned readings of names ({word: phonemes}), pronounce.py
+
+    def set_pronunciations(self, words: dict[str, str]) -> None:
+        self.pronunciations = {str(k): str(v) for k, v in (words or {}).items() if k and v}
 
     @property
     def name(self) -> str:
@@ -299,7 +303,11 @@ class TTSRouter:
         lang = speech_language(text, hint, self.default)
         engine = self.engine_for(lang)
         if lang == "he":
-            text = he_pronounce(text)  # names with a fixed reading (מאור, Zappy); only the audio changes
+            # names with a fixed reading (מאור, Zappy); only the audio changes.  Phonemes only for a voice that takes inline spans.
+            plain = he_pronounce(text)  # what a voice without spans gets, the backup included
+            text = he_pronounce(text, self.pronunciations) if getattr(engine, "language_spans", False) else plain
+        else:
+            plain = text
         # a Spanish / Italian / German phrase inside Hebrew is spoken with that language's pronunciation, same voice;
         # the backup voice does not know the tags and gets the plain text
         marked = mark_foreign(text, foreign) if lang == "he" and getattr(engine, "language_spans", False) else text
@@ -318,5 +326,5 @@ class TTSRouter:
             if now - getattr(self, "_last_fallback_log", 0.0) > 30:  # do not flood the log while a backend is down
                 self._last_fallback_log = now
                 print(f"[tts] {engine.name} failed ({e!r}); using {fb.name}"[:300], flush=True)
-            async for pcm in fb.synth(text, lang):
+            async for pcm in fb.synth(plain, lang):
                 yield pcm, fb.sample_rate, lang, fb.name
