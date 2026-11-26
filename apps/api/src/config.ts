@@ -18,6 +18,8 @@ export interface Config {
   maxSessionMinutes: number;
   /** the model may look things up online during a conversation (needs the utility LLM key); ROLLY_WEB_LOOKUP=0 turns it off */
   webLookup: boolean;
+  /** WhatsApp through the private gateway (apps/wa-gateway); null = not connected. Needs the utility LLM key too. */
+  whatsapp: { url: string; token: string } | null;
   /** at most this many lookups per user in 24 hours (each costs a search fee) */
   lookupsPerDay: number;
   /** gate for silent device enrollment (the same value is built into the app); null = enrollment closed */
@@ -92,6 +94,8 @@ export function loadConfig(env = process.env): Config {
     maxSessionMinutes: Number(env.ROLLY_MAX_SESSION_MINUTES ?? 90),
     webLookup: (env.ROLLY_WEB_LOOKUP ?? "1") !== "0" && Boolean(env.OPENAI_API_KEY),
     lookupsPerDay: Number(env.ROLLY_LOOKUPS_PER_DAY ?? 30),
+    whatsapp: env.ROLLY_WA_GATEWAY_URL && env.ROLLY_WA_GATEWAY_TOKEN && env.OPENAI_API_KEY && (env.ROLLY_WHATSAPP ?? "1") !== "0"
+      ? { url: env.ROLLY_WA_GATEWAY_URL.replace(/\/+$/, ""), token: env.ROLLY_WA_GATEWAY_TOKEN } : null,
     devAuth,
     timezone: env.ROLLY_TIMEZONE ?? "Asia/Jerusalem",
     build: (env.RENDER_GIT_COMMIT || env.ROLLY_BUILD || "").slice(0, 12) || null,
