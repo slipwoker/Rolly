@@ -311,7 +311,7 @@ def test_the_pods_voices_are_the_ones_the_owner_chose(monkeypatch):
     """P1-D36: Hebrew `ariel` and English `jonathan`, both BlueV3 at speed 1.0, from the same voice server; Piper is the English
     fallback; without the pod's switch the English voice stays what it was."""
     from providers.registry import ProviderRegistry
-    for k in ("ROLLY_BLUE_VOICE", "ROLLY_BLUE_SPEED", "ROLLY_BLUE_VOICE_EN", "ROLLY_BLUE_SPEED_EN", "ROLLY_TTS_EN_ENGINE", "ROLLY_TTS_HE_ENGINE"):
+    for k in ("ROLLY_BLUE_VOICE", "ROLLY_BLUE_SPEED", "ROLLY_BLUE_VOICE_EN", "ROLLY_BLUE_SPEED_EN", "ROLLY_TTS_EN_ENGINE", "ROLLY_TTS_HE_ENGINE", "ROLLY_BLUE_STREAM", "ROLLY_TTS_MERGE_CHARS"):
         monkeypatch.delenv(k, raising=False)
     path = os.path.join(os.path.dirname(__file__), "..", "config", "providers.yaml")
     plain = ProviderRegistry(path).entries["modular-selfhosted"]["tts"]
@@ -328,4 +328,86 @@ def test_the_pods_voices_are_the_ones_the_owner_chose(monkeypatch):
     # the engines the router builds name the voice and the speed
     from providers.modular.tts import BlueTTS
     assert "bluev3:jonathan:speed1" in BlueTTS(en).name and "bluev3:ariel:speed1" in BlueTTS(he).name
+    # P1-D37, chosen in two blind listenings: a whole piece in one synthesis, short sentences kept together; no trimming, no cap
+    for v in (he, en):
+        b = BlueTTS(v)
+        assert (b.stream, b.trim, b.pause_cap_ms) == (False, False, 0)
+    assert tts_cfg_merge(path) == 70
 
+
+def tts_cfg_merge(path):
+    from providers.registry import ProviderRegistry
+    return int(ProviderRegistry(path).entries["modular-selfhosted"]["tts_merge_chars"])
+
+
+def _pcm(parts, rate=44100):
+    """parts: list of ("sil", ms) or ("tone", ms) -> PCM16 bytes"""
+    import numpy as np
+    out = []
+    for kind, ms in parts:
+        n = int(rate * ms / 1000)
+        out.append((np.zeros(n) if kind == "sil" else 0.3 * np.sin(2 * np.pi * 220 * np.arange(n) / rate)))
+    return (np.clip(np.concatenate(out), -1, 1) * 32767).astype("<i2").tobytes()
+
+
+def _silent_edges_ms(pcm: bytes, rate=44100, thresh=0.006):
+    import numpy as np
+    x = np.abs(np.frombuffer(pcm, dtype="<i2").astype(float) / 32768)
+    idx = np.where(x > thresh)[0]
+    return idx[0] / rate * 1000, (len(x) - idx[-1]) / rate * 1000, len(x) / rate * 1000
+
+
+def test_a_piece_loses_the_silence_it_starts_and_ends_with_and_gets_a_fixed_gap():
+    from providers.modular.shape import PieceShaper
+    raw = _pcm([("sil", 150), ("tone", 600), ("sil", 300), ("tone", 500), ("sil", 400)])  # a pause INSIDE the piece too
+    sh = PieceShaper(44100, gap_ms=150, lead_ms=20)
+    # fed in odd-sized chunks, like the network delivers it
+    out = b"".join(sh.feed(raw[i:i + 4801]) for i in range(0, len(raw), 4801)) + sh.finish()
+    lead, trail, total = _silent_edges_ms(out)
+    assert lead <= 30                       # a few ms of the leading silence stay, so the first sound is not abrupt
+    assert abs(trail - 150) <= 12           # exactly the fixed gap, not the model's 400 ms
+    assert abs(total - (20 + 600 + 300 + 500 + 150)) <= 25  # the pause inside the piece is untouched
+    assert len(out) % 2 == 0
+
+
+def test_the_shaper_never_cuts_speech_and_handles_empty_and_silent_pieces():
+    from providers.modular.shape import PieceShaper
+    raw = _pcm([("tone", 300)])
+    sh = PieceShaper(44100)
+    out = sh.feed(raw) + sh.finish()
+    assert len(out) >= len(raw)  # all of the speech, plus the gap
+    assert PieceShaper(44100).finish() == b""                       # nothing spoken, nothing added
+    sh2 = PieceShaper(44100); assert sh2.feed(_pcm([("sil", 500)])) != b"x" and sh2.finish() == b""  # only silence: nothing to say
+
+
+def test_short_sentences_are_kept_together_after_the_first_piece_when_merging_is_on():
+    text = "בוקר טוב מאור. עם ילדים הייתי הולך על אי רגוע. אתונה נשמעת לי עמוסה. ככה זה."
+    def pieces(**kw):
+        c = SentenceChunker(**kw); out = []
+        for ch in text:
+            out += c.feed(ch)
+        return out + c.flush()
+    plain = pieces()
+    assert plain[0] == "בוקר טוב מאור." and len(plain) >= 4  # a piece per sentence, as before
+    merged = pieces(merge_chars=70)
+    assert merged[0] == "בוקר טוב מאור."                         # the first piece is still early
+    assert len(merged) == 2 and merged[1].count(".") >= 3         # the rest together, one synthesis
+    assert " ".join(merged) == " ".join(plain)                    # the same words
+
+
+
+def test_a_pause_cap_shortens_only_the_long_silences():
+    import numpy as np
+    from providers.modular.shape import PauseCap
+    sr = 24000
+    tone = (np.sin(np.arange(sr // 5) * 0.3) * 8000).astype("<i2")
+    sil = lambda ms: np.zeros(sr * ms // 1000, dtype="<i2")
+    pcm = np.concatenate([sil(600), tone, sil(200), tone, sil(700), tone, sil(500)]).tobytes()
+    cap = PauseCap(sr, 350)
+    out = b"".join(cap.feed(pcm[i:i + 1000]) for i in range(0, len(pcm), 1000)) + cap.finish()  # odd chunking on purpose
+    n = len(out) // 2
+    # 600 -> 350, 200 stays, 700 -> 350, 500 -> 350: 750 ms removed; the tones are intact
+    assert abs(n - (len(pcm) // 2 - sr * 750 // 1000)) <= 2 * (sr // 100)
+    got = np.frombuffer(out, dtype="<i2")
+    assert int((np.abs(got) > 1000).sum()) == int((np.abs(np.frombuffer(pcm, dtype="<i2")) > 1000).sum())
+    assert PauseCap(sr, 350).finish() == b""

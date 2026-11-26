@@ -20,6 +20,7 @@ providers:
     requires_files: ["${ROLLY_VAD_MODEL:-models/silero_vad.onnx}"]
     vad_model: "${ROLLY_VAD_MODEL:-models/silero_vad.onnx}"
     max_history_turns: ${ROLLY_MAX_HISTORY_TURNS:-24}
+    tts_merge_chars: ${ROLLY_TTS_MERGE_CHARS:-70}   # after the first piece, short sentences are spoken together up to this many characters (0 = one piece per sentence; 70 since 2026-11-26, P1-D37)
     level_gate_db: ${ROLLY_LEVEL_GATE_DB:-0}   # ignore voices this many dB quieter than the user's own (0 = off)
     vad:
       endpoint_silence_ms: ${ROLLY_ENDPOINT_SILENCE_MS:-544}
@@ -60,6 +61,10 @@ providers:
         blue_url: "${ROLLY_BLUE_URL:-http://127.0.0.1:1920/v1}"
         blue_voice: "${ROLLY_BLUE_VOICE_EN:-jonathan}"   # the owner's pick for English, 2026-11-26
         blue_speed: ${ROLLY_BLUE_SPEED_EN:-1.0}
+        blue_stream: "${ROLLY_BLUE_STREAM:-0}"
+        blue_trim: "${ROLLY_BLUE_TRIM:-0}"
+        blue_gap_ms: ${ROLLY_BLUE_GAP_MS:-150}
+        blue_pause_cap_ms: ${ROLLY_BLUE_PAUSE_CAP_MS:-0}   # >0: no silence longer than this many ms inside a piece (off: not preferred in blind listening)
         blue_language: en
         kind: "${ROLLY_TTS_EN_KIND:-kokoro}"
         model_dir: "${ROLLY_TTS_EN_DIR:-models/kokoro-multi-lang-v1_0}"
@@ -87,6 +92,10 @@ providers:
         blue_url: "${ROLLY_BLUE_URL:-http://127.0.0.1:1920/v1}"
         blue_voice: "${ROLLY_BLUE_VOICE:-ariel}"   # chosen by the owner from 77 listening samples, 2026-11-26 (before: daniel)
         blue_speed: ${ROLLY_BLUE_SPEED:-1.0}          # 1.0 = natural read-speech pace of the voice (before: 1.2)
+        blue_stream: "${ROLLY_BLUE_STREAM:-0}"         # 0 = a piece is synthesised as a whole, not sentence by sentence
+        blue_trim: "${ROLLY_BLUE_TRIM:-0}"             # 1 = cut the silence each piece starts and ends with, fixed gap after it
+        blue_gap_ms: ${ROLLY_BLUE_GAP_MS:-150}
+        blue_pause_cap_ms: ${ROLLY_BLUE_PAUSE_CAP_MS:-0}   # >0: no silence longer than this many ms inside a piece (off: not preferred in blind listening)
         base_url: "${ROLLY_ZONOS_URL:-http://127.0.0.1:1919}"
         reference_codes: "${ROLLY_ZONOS_VOICE:-/workspace/voices/he_voice.codes.npy}"
         reference_frames: ${ROLLY_ZONOS_REFERENCE_FRAMES:-0}
