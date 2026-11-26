@@ -52,8 +52,15 @@ providers:
       temperature: 0.6
     tts:
       default: en
+      # English voice (ROLLY_TTS_EN_ENGINE):
+      #   blue    BlueV3, through the same voice server as the Hebrew voice, in the voice the owner chose for English (P1-D36)
+      #   sherpa  Kokoro or Piper through sherpa-onnx (the default here; the GPU pod switches to blue in start_worker.sh)
       en:
-        engine: sherpa
+        engine: "${ROLLY_TTS_EN_ENGINE:-sherpa}"
+        blue_url: "${ROLLY_BLUE_URL:-http://127.0.0.1:1920/v1}"
+        blue_voice: "${ROLLY_BLUE_VOICE_EN:-jonathan}"   # the owner's pick for English, 2026-11-26
+        blue_speed: ${ROLLY_BLUE_SPEED_EN:-1.0}
+        blue_language: en
         kind: "${ROLLY_TTS_EN_KIND:-kokoro}"
         model_dir: "${ROLLY_TTS_EN_DIR:-models/kokoro-multi-lang-v1_0}"
         model_file: "${ROLLY_TTS_EN_FILE:-}"
@@ -61,6 +68,16 @@ providers:
         num_threads: ${ROLLY_TTS_THREADS:-2}
         num_instances: ${ROLLY_TTS_INSTANCES:-1}
         provider: "${ROLLY_TTS_PROVIDER:-cpu}"
+        # when the voice server fails before it starts to speak, the reply is still spoken (Piper, as before P1-D36)
+        fallback:
+          engine: sherpa
+          kind: vits
+          model_dir: models/vits-piper-en_US-lessac-medium
+          model_file: en_US-lessac-medium.onnx
+          speaker_id: 0
+          num_threads: ${ROLLY_TTS_THREADS:-2}
+          num_instances: ${ROLLY_TTS_INSTANCES:-1}
+          provider: "${ROLLY_TTS_PROVIDER:-cpu}"
       # Hebrew voice (ROLLY_TTS_HE_ENGINE):
       #   blue          BlueV3, built-in voice, served by infrastructure/blue_setup.sh - chosen from listening samples
       #   zonos         ZONOS3-Mini with a cloned voice (infrastructure/zonos_setup.sh) - withdrawn: cut sentence endings
@@ -68,8 +85,8 @@ providers:
       he:
         engine: "${ROLLY_TTS_HE_ENGINE:-renikud_piper}"
         blue_url: "${ROLLY_BLUE_URL:-http://127.0.0.1:1920/v1}"
-        blue_voice: "${ROLLY_BLUE_VOICE:-daniel}"
-        blue_speed: ${ROLLY_BLUE_SPEED:-1.2}
+        blue_voice: "${ROLLY_BLUE_VOICE:-ariel}"   # chosen by the owner from 77 listening samples, 2026-11-26 (before: daniel)
+        blue_speed: ${ROLLY_BLUE_SPEED:-1.0}          # 1.0 = natural read-speech pace of the voice (before: 1.2)
         base_url: "${ROLLY_ZONOS_URL:-http://127.0.0.1:1919}"
         reference_codes: "${ROLLY_ZONOS_VOICE:-/workspace/voices/he_voice.codes.npy}"
         reference_frames: ${ROLLY_ZONOS_REFERENCE_FRAMES:-0}
