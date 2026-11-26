@@ -18,6 +18,9 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 # job 15 (2026-11-26): the voices the owner chose from 77 listening samples: BlueV3 `ariel` at speed 1.0 in Hebrew and
 # `jonathan` at 1.0 in English (before: daniel at 1.2, and Piper for English).  Restarts the voice server (blue_setup.sh,
 # which now installs both voices) and the worker.
+# job 16 (2026-11-26): the voice speaks a whole piece in one synthesis and keeps short sentences together (blue_stream=0,
+# tts_merge_chars=70), chosen in two blind listenings (P1-D37).  Only the worker restarts (same steps as job 15).
+# Back to the per-sentence synthesis of before: ROLLY_BLUE_STREAM=1 ROLLY_TTS_MERGE_CHARS=0.
 # Back to the old voices: ROLLY_BLUE_VOICE=daniel ROLLY_BLUE_SPEED=1.2 ROLLY_TTS_EN_ENGINE=sherpa.
 pkill -f "zonos3-server" 2>/dev/null || true
 if bash infrastructure/blue_setup.sh; then

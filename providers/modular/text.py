@@ -313,10 +313,13 @@ class SentenceChunker:
     the TTS better prosody.
     """
 
-    def __init__(self, first_min_chars: int = 24, min_chars: int = 40, max_chars: int = 220):
+    def __init__(self, first_min_chars: int = 24, min_chars: int = 40, max_chars: int = 220, merge_chars: int = 0):
         self.first_min = first_min_chars
         self.min = min_chars
         self.max = max_chars
+        # After the first piece, short sentences are kept together until the piece has this many characters, so they are
+        # spoken in one synthesis with the voice's own natural pause between them (0 = every sentence is a piece, as before).
+        self.merge = merge_chars
         self._buf = ""
         self._emitted = 0
 
@@ -342,7 +345,8 @@ class SentenceChunker:
         need = self.first_min if self._emitted == 0 else self.min
         for i in range(limit):
             ch = buf[i]
-            if ch in _HARD and i + 1 >= min(need, 12):
+            floor = min(need, 12) if self._emitted == 0 else max(min(need, 12), self.merge)
+            if ch in _HARD and i + 1 >= floor:
                 # require following whitespace/end so "3.5" or "e.g." are not split mid-token
                 if i + 1 < len(buf):
                     if buf[i + 1] in " \n\"'”)":

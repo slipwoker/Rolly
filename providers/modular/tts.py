@@ -138,12 +138,37 @@ class BlueTTS(OpenAICompatTTS):
     recognised (ZONOS3-Mini: 5 of 12), and the product owner picked this voice and speed from listening samples."""
 
     def __init__(self, cfg: dict):
+        def flag(v, default: bool) -> bool:
+            return default if v in (None, "") else str(v).lower() in ("1", "true", "yes", "on")
+        # blue_stream: the server cuts a request into sentences and synthesises each on its own (low first-sound latency, but
+        # every sentence is then read as a separate utterance); false = the whole piece in one synthesis, with the model's own
+        # natural pause between its sentences.  blue_trim: remove the silence each piece starts and ends with and put a fixed
+        # gap (blue_gap_ms) after it (providers/modular/shape.py).  Both default to the behaviour of before 2026-11-26.
+        self.stream = flag(cfg.get("blue_stream"), True)
+        self.trim = flag(cfg.get("blue_trim"), False)
+        self.gap_ms = int(cfg.get("blue_gap_ms") or 150)
+        self.pause_cap_ms = int(cfg.get("blue_pause_cap_ms") or 0)  # >0: no silence longer than this (shape.PauseCap)
         super().__init__({"base_url": cfg.get("blue_url", "http://127.0.0.1:1920/v1"), "model": "bluev3",
                           "voice": cfg.get("blue_voice", "ariel"), "sample_rate": int(cfg.get("blue_sample_rate", 44100)),
-                          "extra_body": {"speed": float(cfg.get("blue_speed", 1.0)), "language": cfg.get("blue_language", "he"), "stream": True}})
+                          "extra_body": {"speed": float(cfg.get("blue_speed", 1.0)), "language": cfg.get("blue_language", "he"), "stream": self.stream}})
         self.name = f"bluev3:{self.voice}:speed{self.extra['speed']:g}@{self.base_url}"
         # the model also speaks Spanish, Italian and German in the same voice inside <es>…</es> style tags
         self.language_spans = True
+
+    async def synth(self, text: str, language: str | None = None) -> AsyncIterator[bytes]:
+        if not self.trim and not self.pause_cap_ms:
+            async for pcm in super().synth(text, language):
+                yield pcm
+            return
+        from .shape import PauseCap, PieceShaper
+        shaper = PieceShaper(self.sample_rate, self.gap_ms) if self.trim else PauseCap(self.sample_rate, self.pause_cap_ms)
+        async for pcm in super().synth(text, language):
+            out = shaper.feed(pcm)
+            if out:
+                yield out
+        tail = shaper.finish()
+        if tail:
+            yield tail
 
 
 class ElevenLabsTTS:
