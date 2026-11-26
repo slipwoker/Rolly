@@ -11,7 +11,7 @@ import { useTheme } from "../src/ui/theme";
 import { VoiceProvider } from "../src/voice/VoiceProvider";
 
 ensureDirection();
-// keep the native splash (the orb) up until the fonts are ready, so the first frame is already styled
+// keep the native splash (the avatar) up until the fonts are ready, so the first frame is already styled
 void SplashScreen.preventAutoHideAsync().catch(() => {});
 
 /** No sign-in screen: the app opens straight on Home; the phone enrolls silently on first launch. */
