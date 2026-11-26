@@ -86,6 +86,10 @@ describe("relay phone <-> rolly-api <-> pod", () => {
     expect(users.slice(0, 3).every((t) => t.attribution === "primary")).toBe(true);
     expect(users[3]!.attribution).toBe("uncertain");
     expect(f.stats.interruptions).toBe(1);
+    // which voice spoke: all audio arrived at the fake pod's 44.1 kHz (the Hebrew voice's rate), none at another rate
+    const byRate = f.stats.voice_s_by_rate as Record<string, number>;
+    expect(Object.keys(byRate)).toEqual(["44100"]);
+    expect(byRate["44100"]).toBeGreaterThan(1);
     // the interrupted agent turn is stored as interrupted
     expect(f.turns.some((t) => t.role === "agent" && t.meta.interrupted === true)).toBe(true);
   }, 30_000);

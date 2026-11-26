@@ -118,6 +118,12 @@ export class VoiceSession {
     pong_rtt_ms: [] as number[],
     /** notes sent to the conversation model: pacing nudges and memory hints (what, and when in the session) */
     notes: [] as { kind: string; at_s: number }[],
+    /**
+     * Bytes of voice received from the pod, by the sample rate it arrived at. Each voice engine has its own rate (the
+     * Hebrew voice BlueV3 44,100 Hz; the Piper voices 22,050 Hz), so this shows which voice really spoke in a session,
+     * including a silent switch to the pod's backup Hebrew voice.
+     */
+    voice_bytes_by_rate: {} as Record<string, number>,
   };
 
   constructor(
@@ -258,6 +264,7 @@ export class VoiceSession {
     if (this.closing) return;
     const rid = String(a.data.response_id ?? "?");
     const seq = this.seqFor(rid);
+    this.stats.voice_bytes_by_rate[a.sampleRate] = (this.stats.voice_bytes_by_rate[a.sampleRate] ?? 0) + a.pcm.byteLength;
     let rs = this.resamplers.get(rid);
     if (!rs || rs.inRate !== a.sampleRate) {
       rs = new StreamResampler(a.sampleRate, OUTPUT_SAMPLE_RATE);
@@ -424,6 +431,7 @@ export class VoiceSession {
       end_reason: this.endReason, duration_s: Math.round((Date.now() - this.startedAt.getTime()) / 1000),
       turns_user: s.turns_user, turns_agent: s.turns_agent, interruptions: s.interruptions, errors: s.errors,
       audio_in_s: +(s.audio_in_bytes / 2 / INPUT_SAMPLE_RATE).toFixed(1), audio_out_s: +(s.audio_out_bytes / 2 / OUTPUT_SAMPLE_RATE).toFixed(1),
+      voice_s_by_rate: Object.fromEntries(Object.entries(s.voice_bytes_by_rate).map(([rate, bytes]) => [rate, +(bytes / 2 / Number(rate)).toFixed(1)])),
       server_reply_ms: s.reply_ms, server_reply_ms_median: med(s.reply_ms),
       client_first_audio_ms: s.client_first_audio_ms, client_first_audio_ms_median: med(s.client_first_audio_ms),
       client_flush_ms: s.client_flush_ms, audio_events: s.audio_events, notes: s.notes,
