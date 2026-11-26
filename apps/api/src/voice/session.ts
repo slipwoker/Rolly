@@ -53,6 +53,9 @@ export interface PreparedSession {
 /** Something to tell the conversation model on its next turn(s) through the pod's note channel. */
 export interface TurnNote { text: string; turns: number }
 
+/** A note as sent, for the audit: what, when (seconds into the session) and for how many turns. */
+export interface NoteRecord { kind: string; text: string; turns: number; at_s: number }
+
 /** The memory layer. A fixed-user implementation exists for the first slice and tests. */
 export interface SessionHooks {
   prepare(userId: string, sessionId: string, start: ClientSessionStart): Promise<PreparedSession>;
@@ -60,7 +63,9 @@ export interface SessionHooks {
   onUserTurn?(args: { userId: string; sessionId: string; turn: SessionTurn; recent: SessionTurn[] }): Promise<TurnNote | void>;
   /** called at the end; returns the summary that is sent to the phone */
   finalize(args: { userId: string; sessionId: string; turns: SessionTurn[]; stats: Record<string, unknown>; endReason: string;
-    describe: Record<string, unknown>; language: string; startedAt: Date }): Promise<unknown>;
+    describe: Record<string, unknown>; language: string; startedAt: Date;
+    /** the notes sent to the model, with their text (for the audit; personal text, kept apart from `stats`) */
+    notes?: NoteRecord[] }): Promise<unknown>;
 }
 
 export interface PodConfig {
@@ -142,7 +147,17 @@ export class VoiceSession {
      * including a silent switch to the pod's backup Hebrew voice.
      */
     voice_bytes_by_rate: {} as Record<string, number>,
+    /** raw units reported by the pod (`usage` events): conversation-model tokens, synthesised characters, transcribed audio */
+    usage: {
+      llm: { calls: 0, prompt_tokens: 0, completion_tokens: 0, cached_tokens: 0, max_prompt_tokens: 0, model: null as string | null },
+      tts: { chars: 0, audio_s: 0, engine: null as string | null },
+      stt: { audio_s: 0, engine: null as string | null },
+    },
   };
+  /** the same notes with their text, handed to finalize for the audit only */
+  private noteLog: NoteRecord[] = [];
+  /** per agent reply (response id): server reply latency and the pod's stage timings, put on the agent turn */
+  private turnMetrics = new Map<string, Record<string, number>>();
 
   constructor(
     private readonly client: ClientSocket,
@@ -243,7 +258,9 @@ export class VoiceSession {
   private note(kind: string, text: string, turns: number, when?: { maxUserWords: number; minStreak?: number }) {
     if (this.closing || !this.pod) return;
     this.pod.note(text, turns, when);
-    this.stats.notes.push({ kind, at_s: Math.round((Date.now() - this.startedAt.getTime()) / 1000) });
+    const at_s = Math.round((Date.now() - this.startedAt.getTime()) / 1000);
+    this.stats.notes.push({ kind, at_s });
+    this.noteLog.push({ kind, text: text.slice(0, 600), turns, at_s });
   }
 
   // ------------------------------------------------------------ phone -> pod
@@ -299,7 +316,7 @@ export class VoiceSession {
       this.firstAudioSent.add(seq);
       const proactive = this.proactiveRids.has(rid);
       const replyMs = !proactive && this.lastSpeechStoppedT !== null ? Date.now() - this.lastSpeechStoppedT : null;
-      if (replyMs !== null) this.stats.reply_ms.push(replyMs);
+      if (replyMs !== null) { this.stats.reply_ms.push(replyMs); this.metricsFor(rid).reply_ms = replyMs; }
       this.send({ type: "turn.latency", seq, server_reply_ms: replyMs, proactive });
     }
     this.stats.audio_out_bytes += pcm.byteLength;
@@ -364,7 +381,10 @@ export class VoiceSession {
         }
         const text = String(d.text ?? this.agentPartial.get(rid) ?? "").replace(END_MARKER, "").trim();
         this.stats.turns_agent++;
-        if (text) this.addTurn("agent", text, null, "primary", { proactive: this.proactiveRids.has(rid), rid });
+        const usage = d.usage && typeof d.usage === "object" ? d.usage as Record<string, unknown> : null;
+        if (text) this.addTurn("agent", text, null, "primary", { proactive: this.proactiveRids.has(rid), rid, ...this.turnMetrics.get(rid),
+          ...(usage && typeof usage.prompt_tokens === "number" ? { prompt_tokens: usage.prompt_tokens, completion_tokens: usage.completion_tokens ?? null } : {}) });
+        this.turnMetrics.delete(rid);
         if (text && !this.closing) this.afterReply(text, this.proactiveRids.has(rid));
         this.agentPartial.delete(rid);
         if (!this.closing) this.send({ type: "agent.turn_done", seq, text });
@@ -383,7 +403,7 @@ export class VoiceSession {
           last.text = heard || last.text;
           last.meta.interrupted = true;
         } else if (heard) {
-          this.addTurn("agent", heard, null, "primary", { interrupted: true, rid });
+          this.addTurn("agent", heard, null, "primary", { interrupted: true, rid, ...this.turnMetrics.get(rid) });
         }
         const det = typeof d.detect_audio_ms === "number" ? d.detect_audio_ms : null;
         this.send({ type: "agent.interrupted", seq, interrupt_detect_ms: det });
@@ -392,8 +412,12 @@ export class VoiceSession {
       case PodEvent.METRIC: {
         const name = String(d.name);
         (this.stats.pod_metrics[name] ??= []).push(Number(d.value_ms));
+        if (d.response_id !== undefined && /^(stt_ms|llm_ttft_ms|llm_total_ms|tts_ttfa_ms|pipeline_ms)$/.test(name) && Number.isFinite(Number(d.value_ms))) {
+          this.metricsFor(String(d.response_id))[name] = Math.round(Number(d.value_ms));
+        }
         break;
       }
+      case PodEvent.USAGE: this.addUsage(d); break;
       case PodEvent.END_REQUESTED: {
         if (this.endTimer) break;
         const wait = Math.min(20_000, Math.max(0, this.playbackUntil - Date.now()) + 600);
@@ -407,6 +431,29 @@ export class VoiceSession {
         break;
       default:
         break;
+    }
+  }
+
+  private metricsFor(rid: string): Record<string, number> {
+    let m = this.turnMetrics.get(rid);
+    if (!m) { m = {}; this.turnMetrics.set(rid, m); if (this.turnMetrics.size > 50) this.turnMetrics.delete(this.turnMetrics.keys().next().value!); }
+    return m;
+  }
+
+  private addUsage(d: Record<string, unknown>) {
+    const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+    const u = this.stats.usage;
+    if (d.kind === "llm") {
+      u.llm.calls++;
+      u.llm.prompt_tokens += n(d.prompt_tokens); u.llm.completion_tokens += n(d.completion_tokens); u.llm.cached_tokens += n(d.cached_tokens);
+      u.llm.max_prompt_tokens = Math.max(u.llm.max_prompt_tokens, n(d.prompt_tokens));
+      if (typeof d.model === "string") u.llm.model = d.model;
+    } else if (d.kind === "tts") {
+      u.tts.chars += n(d.chars); u.tts.audio_s = +(u.tts.audio_s + n(d.audio_s)).toFixed(2);
+      if (typeof d.engine === "string") u.tts.engine = d.engine;
+    } else if (d.kind === "stt") {
+      u.stt.audio_s = +(u.stt.audio_s + n(d.audio_s)).toFixed(2);
+      if (typeof d.engine === "string") u.stt.engine = d.engine;
     }
   }
 
@@ -428,7 +475,7 @@ export class VoiceSession {
     try {
       summary = await this.hooks.finalize({
         userId: this.userId, sessionId: this.sessionId, turns: this.turns, stats, endReason: reason, describe: this.describe,
-        language: this.language, startedAt: this.startedAt,
+        language: this.language, startedAt: this.startedAt, notes: this.noteLog,
       });
     } catch (e) {
       this.log("finalize failed", { error: String(e).slice(0, 300) });
@@ -454,6 +501,8 @@ export class VoiceSession {
       client_first_audio_ms: s.client_first_audio_ms, client_first_audio_ms_median: med(s.client_first_audio_ms),
       client_flush_ms: s.client_flush_ms, audio_events: s.audio_events, notes: s.notes,
       pod_metrics_median: Object.fromEntries(Object.entries(s.pod_metrics).map(([k, v]) => [k, med(v)])),
+      pod_metrics_count: Object.fromEntries(Object.entries(s.pod_metrics).map(([k, v]) => [k, v.length])),
+      usage: s.usage,
     };
   }
 }

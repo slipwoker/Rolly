@@ -43,7 +43,7 @@ export async function consolidate(store: MemoryStore, llm: UtilityLlm | null, us
     .replace("{notes}", personal.map((m) => `- [${m.kind}] ${m.content}`).join("\n") || "- (none)")
     .replace("{previous}", p.history_digest ? `; what was already folded in: "${p.history_digest}"` : "")
     .replace("{history}", fresh.map((s) => `- ${s.content}`).join("\n") || "- (none)");
-  const r = await llm.json(prompt, { maxTokens: 700 });
+  const r = await llm.json(prompt, { maxTokens: 700, purpose: "consolidate" });
   const digest = needDigest && typeof r.obj.digest === "string" ? r.obj.digest.trim().slice(0, 900) : null;
   const history = needHistory && typeof r.obj.history_digest === "string" ? r.obj.history_digest.trim().slice(0, 1100) : null;
   // a forget request may have arrived while the model was working: do not write text that could contain it

@@ -135,7 +135,7 @@ export async function planNext(llm: UtilityLlm | null, turns: SessionTurn[], ctx
     .replace("{progress}", ctx.progress.map((p, i) => `- ${i}: ${p}`).join("\n") || "- (nothing)")
     .replace("{transcript}", formatTranscript(turns));
   try {
-    const r = await llm.json(prompt, { maxTokens: 1400 });
+    const r = await llm.json(prompt, { maxTokens: 1400, purpose: "plan" });
     return { ...normalizePlan(r.obj, { goals: new Set(ctx.goals.map((g) => g.id)), tasks: new Set(ctx.tasks.map((t) => t.id)) }), ms: r.ms };
   } catch (e) {
     return { ...emptyPlan(), error: String(e).slice(0, 300) };

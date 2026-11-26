@@ -54,7 +54,12 @@ export async function startFakePod(opts: { script: string[]; token?: string; rep
       const audio = tone(opts.replyMs ?? 1200, 44100, 0.2, 220);
       for (let off = 0; off < audio.length; off += 4410 * 2) ws.send(packPodAudio("agent.audio", { response_id: id }, 44100, audio.subarray(off, off + 4410 * 2)));
       agentUntil = Date.now() + (opts.replyMs ?? 1200);
-      ev("agent.turn_done", { response_id: id, text });
+      // like the real pipeline (providers/modular/pipeline.py): stage timings and raw usage per reply
+      ev("metric", { name: "llm_ttft_ms", value_ms: 180, response_id: id });
+      ev("metric", { name: "tts_ttfa_ms", value_ms: 95, response_id: id });
+      ev("usage", { kind: "llm", prompt_tokens: 900 + rid * 40, completion_tokens: 30, cached_tokens: 800, model: "fake-gemma" });
+      ev("usage", { kind: "tts", chars: text.length, audio_s: (opts.replyMs ?? 1200) / 1000, engine: "fake-voice" });
+      ev("agent.turn_done", { response_id: id, text, usage: { prompt_tokens: 900 + rid * 40, completion_tokens: 30 } });
       return id;
     };
     ws.once("message", (raw) => {
