@@ -56,9 +56,11 @@ PROVIDERS="CPUExecutionProvider"
 
 say "starting the server (providers requested: $PROVIDERS)"
 pkill -f "examples/openai_server.py" 2>/dev/null || true; pkill -f "blue_serve.py" 2>/dev/null || true; sleep 1
+# the previous run's log becomes a dated copy (log_retention.sh deletes it after 7 days); ">>" lets that script empty it in place
+[ -s "$LOGS/blue_server.log" ] && mv "$LOGS/blue_server.log" "$LOGS/blue_server.log.$(date -u +%Y%m%d-%H%M%S)"
 # fp32: the listening samples were made with the float graph; the int8 graph is not quality-gated by its author
 LD_LIBRARY_PATH="$NVLIBS${LD_LIBRARY_PATH:-}" BLUE_ONNX_PRECISION=fp32 POLYG2P_DATA="$BL/bundle/frontend/polyg2p_data" nohup "$PY" "$SELF_DIR/blue_serve.py" "$BL/src/examples/openai_server.py" --bundle "$BL/bundle" \
-  --voices-dir "$BL/voice" --default-voice "$VOICE" --pcm-sample-rate 0 --host 127.0.0.1 --port 1920 --providers "$PROVIDERS" > "$LOGS/blue_server.log" 2>&1 &
+  --voices-dir "$BL/voice" --default-voice "$VOICE" --pcm-sample-rate 0 --host 127.0.0.1 --port 1920 --providers "$PROVIDERS" >> "$LOGS/blue_server.log" 2>&1 &
 for i in $(seq 1 90); do curl -fs -m 3 http://127.0.0.1:1920/health >/dev/null 2>&1 && break; sleep 2; done
 curl -fs -m 3 http://127.0.0.1:1920/health >/dev/null 2>&1 || { say "server did not come up:"; tail -15 "$LOGS/blue_server.log"; state failed; exit 1; }
 USED="$(grep -o "Using ONNX Runtime providers.*" "$LOGS/blue_server.log" | head -1)"; say "$USED"

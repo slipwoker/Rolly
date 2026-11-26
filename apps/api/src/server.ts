@@ -1,4 +1,4 @@
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import { WebSocketServer, type WebSocket } from "ws";
 import type { ClientMessage, ClientSessionStart } from "@rolly/contracts";
 import type { Config } from "./config.ts";
@@ -30,9 +30,42 @@ function wrap(ws: WebSocket): ClientSocket {
   };
 }
 
+/**
+ * A URL as it may appear in the logs: the path, and the names of the query parameters without their values (P1-D40).
+ * The Google OAuth callback carries `code` and `state` in its query, and other values there may identify someone.
+ */
+export function redactUrl(url: string | undefined): string {
+  const u = url ?? "";
+  const q = u.indexOf("?");
+  if (q < 0) return u;
+  const names = u.slice(q + 1).split("&").map((p) => p.split("=")[0]!.slice(0, 40)).filter(Boolean).slice(0, 20);
+  return `${u.slice(0, q)}?${names.map((n) => `${n}=~`).join("&")}`;
+}
+
+/**
+ * Logging for the HTTP server. The request is logged with its method, redacted URL, host and client address (kept in
+ * server logs for operation and security, as the privacy policy says); no headers, no client port.
+ */
+export function loggerOptions(stream?: { write(line: string): void }) {
+  return {
+    level: process.env.LOG_LEVEL ?? "info",
+    redact: ["req.headers.authorization"],
+    serializers: {
+      req: (req: FastifyRequest) => ({ method: req.method, url: redactUrl(req.url), host: req.host, remoteAddress: req.ip }),
+    },
+    ...(stream ? { stream } : {}),
+  };
+}
+
+/** Same answer as Fastify's default 404, but its log line would carry the full URL: this one logs nothing extra. */
+export function quietNotFound(app: FastifyInstance) {
+  app.setNotFoundHandler((req, reply) => reply.code(404).send({ message: `Route ${req.method}:${redactUrl(req.url)} not found`, error: "Not Found", statusCode: 404 }));
+}
+
 export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
   const { config } = deps;
-  const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info", redact: ["req.headers.authorization"] }, trustProxy: true });
+  const app = Fastify({ logger: loggerOptions(), trustProxy: true });
+  quietNotFound(app);
 
   app.get("/healthz", async () => ({ ok: true, active_sessions: active.size, ...(deps.health ? await deps.health() : {}) }));
   if (deps.routes) await deps.routes(app);
