@@ -92,14 +92,15 @@ export function attributionFor(d: Record<string, unknown>): { attribution: "prim
  * (to drop their late audio) and, in the builds installed in November 2026, keeps that list for as long as the app is
  * open. So a reply whose number had been interrupted in an EARLIER conversation was shown as text and never spoken
  * (owner's phone, 2026-11-26 11:27: replies 4 and 7 were silent; 4 had been cut off at 11:18 and 7 at 11:14).
- * With a range per conversation no number is ever seen twice by one app. The value still fits the 4 bytes it has
- * in an audio frame.
+ * With a range per conversation no number is ever seen twice by one app. The value fits the 4 bytes it has in an
+ * audio frame and a signed 32-bit integer.
  */
 let lastSeqBase = 0;
 export function seqBase(now = Date.now()): number {
-  const byClock = (Math.floor(now / 1000) % 4_000_000) * 1000 + 1; // unique across server restarts
+  // Below 2^31: the Android audio module takes the number as a 32-bit signed integer.
+  const byClock = (Math.floor(now / 1000) % 2_000_000) * 1000 + 1; // unique across server restarts (repeats after 23 days)
   lastSeqBase = byClock > lastSeqBase ? byClock : lastSeqBase + 1000; // and for two conversations in the same second
-  if (lastSeqBase > 4_000_000_000) lastSeqBase = 1;
+  if (lastSeqBase > 2_000_000_000) lastSeqBase = 1;
   return lastSeqBase;
 }
 
