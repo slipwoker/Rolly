@@ -188,6 +188,8 @@ class TurnNotes:
             return True
         if user_text is None or user_text.lstrip().startswith("["):  # an event prompt (the opener), not something the user said
             return False
+        if "?" in user_text or "؟" in user_text:  # a question is for answering: no topic of ours on that turn (2026-11-26)
+            return False
         words = self._words(user_text)
         if words > n["max_user_words"]:
             return False
@@ -218,16 +220,16 @@ class TurnNotes:
         return len(self._notes)
 
 
-# Hebrew words the voice front end reads wrongly without vowels.  Applied only to the text sent to a Hebrew voice
-# (history and transcripts keep the plain spelling).  Value: vocalised spelling with the intended reading.
-#   זאפי (the owner's company, "Zappy"): read as "zaffy" because an unmarked פ in the middle is read as f.  The vocalised
-#   spelling זַאפִּי did not fix it for the owner's ear; written in Latin letters the Hebrew voice says it right
-#   (listening samples, 2026-11-26: the owner chose "Zappy" and מָאוֹר).
-#   מאור (a first name, "Ma-or"): read as "Me-or" without vowels.
+# Hebrew words the voice front end reads wrongly.  Applied only to the text sent to a Hebrew voice (history and transcripts
+# keep the plain spelling).  Value: the spelling to speak instead.  Brand words only: זאפי (the owner's company) is read
+# "zaffy" because an unmarked פ in the middle is read as f; in Latin letters the Hebrew voice says it right (listening samples,
+# 2026-11-26).  A user's NAME is not handled here but per conversation (pronounce.py): the same front end reads some names
+# differently depending on their place in the sentence, and a table of names cannot cover them.
 HE_PRONUNCIATION: dict[str, str] = {
     "זאפי": "Zappy",
-    "מאור": "מָאוֹר",
 }
+# how a prefix letter before a pinned word is said
+_PREFIX_PHONEMES = {"": "", "ו": "ve", "ה": "ha", "ב": "be", "ל": "le", "מ": "mi", "ש": "ʃe", "כ": "ke"}
 _HE_LETTER = "א-ת"
 
 
@@ -239,8 +241,17 @@ def _he_pattern(word: str) -> re.Pattern:
 _HE_PATTERNS = [(_he_pattern(w), v) for w, v in HE_PRONUNCIATION.items()]
 
 
-def he_pronounce(text: str) -> str:
-    """Replace words from HE_PRONUNCIATION with their vocalised reading, keeping any prefix letters."""
+def he_pronounce(text: str, phonemes: dict[str, str] | None = None) -> str:
+    """Replace words from HE_PRONUNCIATION with their reading, keeping any prefix letters.  `phonemes` ({word: phonemes}, the
+    names pinned for this conversation) is for a voice that takes inline `<he>…</he>` phoneme spans: those words are given as
+    phonemes, which that voice passes on unchanged."""
+    for word, ph in (phonemes or {}).items():
+        def sub(m, ph=ph):
+            pre = m.group(1)
+            if not all(c in _PREFIX_PHONEMES for c in pre):
+                return m.group(0)
+            return "<he>" + "".join(_PREFIX_PHONEMES[c] for c in pre) + ph + "</he>"
+        text = _he_pattern(word).sub(sub, text)
     for pat, v in _HE_PATTERNS:
         # a Hebrew prefix letter before a word written in Latin letters takes a hyphen, as in written Hebrew ("ב-Zappy")
         joiner = "-" if v[:1].isascii() and v[:1].isalpha() else ""
@@ -313,10 +324,13 @@ class SentenceChunker:
     the TTS better prosody.
     """
 
-    def __init__(self, first_min_chars: int = 24, min_chars: int = 40, max_chars: int = 220):
+    def __init__(self, first_min_chars: int = 24, min_chars: int = 40, max_chars: int = 220, merge_chars: int = 0):
         self.first_min = first_min_chars
         self.min = min_chars
         self.max = max_chars
+        # After the first piece, short sentences are kept together until the piece has this many characters, so they are
+        # spoken in one synthesis with the voice's own natural pause between them (0 = every sentence is a piece, as before).
+        self.merge = merge_chars
         self._buf = ""
         self._emitted = 0
 
@@ -342,7 +356,8 @@ class SentenceChunker:
         need = self.first_min if self._emitted == 0 else self.min
         for i in range(limit):
             ch = buf[i]
-            if ch in _HARD and i + 1 >= min(need, 12):
+            floor = min(need, 12) if self._emitted == 0 else max(min(need, 12), self.merge)
+            if ch in _HARD and i + 1 >= floor:
                 # require following whitespace/end so "3.5" or "e.g." are not split mid-token
                 if i + 1 < len(buf):
                     if buf[i + 1] in " \n\"'”)":

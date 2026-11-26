@@ -1,0 +1,312 @@
+{
+    "id": "6bd67679-b7bc-481e-89f1-95707932d74d",
+    "scenario": "relay",
+    "lang": "en",
+    "status": "done",
+    "started": "2026-11-26T14:44:28.660Z",
+    "results": [
+        {
+            "label": "relay",
+            "ok": true,
+            "lang": "en",
+            "turns": [
+                {
+                    "label": "opener",
+                    "seq": 1704269001,
+                    "text": "Hey, good afternoon. Where are we headed today, and what's your name?",
+                    "audio_s": 4.88,
+                    "interrupted": false,
+                    "proactive": true
+                },
+                {
+                    "label": "reply1",
+                    "seq": 1704269002,
+                    "text": "First impressions are everything with new clients. I've always thought a solid handshake beats a flashy presentation.",
+                    "audio_s": 7.87,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 211,
+                    "user_said": "Hey, I'm driving to work, I have an important meeting with a new client today."
+                },
+                {
+                    "label": "reply2",
+                    "seq": 1704269003,
+                    "text": "I can't give advice, but I've noticed people listen better when you just pause.",
+                    "audio_s": 0.6,
+                    "interrupted": true,
+                    "proactive": false,
+                    "reply_latency_ms": 359,
+                    "user_said": "I'm a bit stressed, give me one short tip for the meeting.",
+                    "interrupt_received_ms_after_barge_start": 462
+                },
+                {
+                    "label": "after_barge_in_3",
+                    "seq": 1704269004,
+                    "text": "Sure. What's on your mind?",
+                    "audio_s": 2.02,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 366,
+                    "user_said": "Wait, wait, actually let's talk about something else."
+                }
+            ],
+            "transcripts": [
+                {
+                    "text": "Hey, I'm driving to work. I have an important meeting with a new client today.",
+                    "language": "en"
+                },
+                {
+                    "text": "I'm a bit stressed. Give me one short tip for the meeting.",
+                    "language": "en"
+                },
+                {
+                    "text": "Wait, wait. Actually, let's talk about something else.",
+                    "language": "en"
+                }
+            ],
+            "events": [
+                {
+                    "t": 315,
+                    "type": "session.created"
+                },
+                {
+                    "t": 315,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 546,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 749,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 5860,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 10885,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 10885,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 10885,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 11013,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 11188,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 19202,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 22702,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 22702,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 22702,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 22884,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 22935,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 24047,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 24047,
+                    "type": "agent.interrupted"
+                },
+                {
+                    "t": 27682,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 27682,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 27682,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 27791,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 27819,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 32483,
+                    "type": "session.summary"
+                },
+                {
+                    "t": 32483,
+                    "type": "session.closed"
+                }
+            ],
+            "session_id": "dc3484c3-4dcd-4b0f-a412-3e96f827ffce",
+            "summary": {
+                "type": "session.summary",
+                "session_id": "dc3484c3-4dcd-4b0f-a412-3e96f827ffce",
+                "summary": {
+                    "summary": "They were driving to work for an important meeting with a new client and said they felt a bit stressed. They asked for one short meeting tip, then decided to change the subject before receiving one.",
+                    "progress": [],
+                    "method": "llm"
+                },
+                "stats": {
+                    "end_reason": "client_end",
+                    "duration_s": 30,
+                    "turns_user": 3,
+                    "turns_agent": 4,
+                    "interruptions": 1,
+                    "errors": 0,
+                    "audio_in_s": 29.8,
+                    "audio_out_s": 19.9,
+                    "voice_s_by_rate": {
+                        "44100": 19.9
+                    },
+                    "server_reply_ms": [
+                        127,
+                        176,
+                        107
+                    ],
+                    "server_reply_ms_median": 127,
+                    "client_first_audio_ms": [],
+                    "client_first_audio_ms_median": null,
+                    "client_flush_ms": [],
+                    "audio_events": [],
+                    "notes": [],
+                    "lookups": [],
+                    "pod_metrics_median": {
+                        "llm_first_chunk_ms": 100.61633097939193,
+                        "tts_ttfa_ms": 96.82719700504094,
+                        "pipeline_ms": 386.11264096107334,
+                        "llm_ttft_ms": 59.983254061080515,
+                        "llm_total_ms": 255.43539901264012,
+                        "stt_ms": 77.86064699757844,
+                        "stt_queue_ms": 0.10488997213542461
+                    },
+                    "pod_metrics_count": {
+                        "llm_first_chunk_ms": 2,
+                        "tts_ttfa_ms": 4,
+                        "pipeline_ms": 4,
+                        "llm_ttft_ms": 4,
+                        "llm_total_ms": 4,
+                        "stt_ms": 3,
+                        "stt_queue_ms": 3
+                    },
+                    "usage": {
+                        "llm": {
+                            "calls": 4,
+                            "prompt_tokens": 3087,
+                            "completion_tokens": 72,
+                            "cached_tokens": 0,
+                            "max_prompt_tokens": 824,
+                            "model": "local@http://127.0.0.1:8081/v1"
+                        },
+                        "tts": {
+                            "chars": 289,
+                            "audio_s": 19.86,
+                            "engine": "en=bluev3:jonathan:speed1:whole@http://127.0.0.1:1920/v1 | he=bluev3:ariel:speed1:whole@http://127.0.0.1:1920/v1"
+                        },
+                        "stt": {
+                            "audio_s": 12.83,
+                            "engine": "routed[he=faster-whisper:ivrit-ai/whisper-large-v3-turbo-ct2:cuda:float16, en=faster-whisper:deepdml/faster-whisper-large-v3-turbo-ct2:cuda:float16; mixed->he]"
+                        }
+                    },
+                    "summary_ms": 2448
+                }
+            }
+        }
+    ],
+    "user_id": "5d48722e-baaf-4ad4-927a-976dfa9cc007",
+    "error": null,
+    "state": {
+        "profile": {
+            "preferred_name": null,
+            "preferred_language": "en",
+            "addressing": {
+                "value": null,
+                "status": "unknown",
+                "evidence": {
+                    "examples": [],
+                    "feminine": 0,
+                    "masculine": 0,
+                    "ignored_uncertain": 0
+                }
+            }
+        },
+        "memories": [
+            {
+                "kind": "summary",
+                "status": "active",
+                "content": "They were driving to work for an important meeting with a new client and said they felt a bit stressed. They asked for one short meeting tip, then decided to change the subject before receiving one.",
+                "confidence": null
+            }
+        ],
+        "progress": [],
+        "goals": [],
+        "tasks_open": [],
+        "ideas": [],
+        "tasks_done": [],
+        "next_agenda": [
+            {
+                "why": "The meeting felt important and a bit stressful on the way there.",
+                "kind": "follow_up",
+                "take": "A calm opening and a clear question about what the client needs can do more than a polished pitch.",
+                "topic": "the new-client meeting",
+                "ref_id": null
+            },
+            {
+                "why": "It connects lightly to the new-client meeting without returning to advice that was declined.",
+                "kind": "fresh",
+                "take": "A warm greeting beats a perfect handshake; the handshake gets too much credit.",
+                "topic": "a playful first-impression debate",
+                "ref_id": null
+            }
+        ],
+        "digest": null,
+        "scrub_pending": 0,
+        "sessions": [
+            {
+                "started_at": "2026-11-26T14:44:29.800Z",
+                "notes": [],
+                "plan": {
+                    "ms": 2121,
+                    "method": "llm",
+                    "applied": [],
+                    "refused": [],
+                    "next_agenda": 2,
+                    "agenda_outcome": []
+                },
+                "lookahead_ms": 2130,
+                "reply_ms": 127
+            }
+        ],
+        "next_opener_instruction": "[journey_start - not said by the user] The ride has just started. Open now: a short hello for the afternoon, and one easy, light question about them: how their morning or day is going, or how the ride is starting. Do not bring up anything from before, nothing about yourself. Under twelve words in total. Your last opening was \"Hey, good afternoon. Where are we headed today, and what's your name?\": open differently this time.",
+        "next_prompt_chars": 2770,
+        "next_prompt_memory_part": "## What you know about them\nTheir name: not known yet (you are Rolly). You do not know whether to address them as a man or a woman: phrase things without gendered second person (impersonal or plural forms), and never ask about it. If they tell you, follow it at once.\nLast time (earlier today): They were driving to work for an important meeting with a new client and said they felt a bit stressed. They asked for one short meeting tip, then decided to change the subject before receiving one.\n\nLocal time: Thursday 16:45 (afternoon).\n"
+    }
+}

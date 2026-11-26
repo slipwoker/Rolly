@@ -217,15 +217,20 @@ def test_pipeline_adds_caller_notes_to_the_turn_only():
 
 def test_hebrew_pronunciation_fixes_zappy_only_as_a_word():
     from providers.modular.text import he_pronounce
-    # the owner's pick from listening samples (2026-11-26): "Zappy" in Latin letters, מָאוֹר with vowels
+    # the owner's pick from listening samples (2026-11-26): "Zappy" in Latin letters
     assert he_pronounce("עובדים על זאפי") == "עובדים על Zappy"
     assert he_pronounce("בזאפי, ולזאפי.") == "ב-Zappy, ול-Zappy."
     assert he_pronounce("זאפי?") == "Zappy?"
     assert he_pronounce("זאפיות") == "זאפיות"  # a longer word is left alone
     assert he_pronounce("Zappy is fine") == "Zappy is fine"
-    assert he_pronounce("בוקר טוב מאור, מה קורה עם זאפי?") == "בוקר טוב מָאוֹר, מה קורה עם Zappy?"
-    assert he_pronounce("אמרתי למאור") == "אמרתי למָאוֹר"
-    assert he_pronounce("מאוד מאורגן, יש מאורות") == "מאוד מאורגן, יש מאורות"  # other words that contain the letters
+    assert he_pronounce("בוקר טוב מאור, מה קורה עם זאפי?") == "בוקר טוב מאור, מה קורה עם Zappy?"
+    # no table of names: a name is pinned per conversation (pronounce.py); the voice gets it as phonemes
+    pin = {"מאור": "maʔˈoʁ"}
+    assert he_pronounce("בוקר טוב מאור, מה קורה עם זאפי?", pin) == "בוקר טוב <he>maʔˈoʁ</he>, מה קורה עם Zappy?"
+    assert he_pronounce("תודה מאור!", pin) == "תודה <he>maʔˈoʁ</he>!"
+    assert he_pronounce("אמרתי למאור", pin) == "אמרתי <he>lemaʔˈoʁ</he>"
+    assert he_pronounce("מאוד מאורגן, יש מאורות", pin) == "מאוד מאורגן, יש מאורות"
+    assert he_pronounce("תודה מאור!") == "תודה מאור!"  # nothing pinned: the voice's own reading
 
 
 def test_hebrew_letters_never_go_to_the_english_voice():
@@ -311,7 +316,7 @@ def test_the_pods_voices_are_the_ones_the_owner_chose(monkeypatch):
     """P1-D36: Hebrew `ariel` and English `jonathan`, both BlueV3 at speed 1.0, from the same voice server; Piper is the English
     fallback; without the pod's switch the English voice stays what it was."""
     from providers.registry import ProviderRegistry
-    for k in ("ROLLY_BLUE_VOICE", "ROLLY_BLUE_SPEED", "ROLLY_BLUE_VOICE_EN", "ROLLY_BLUE_SPEED_EN", "ROLLY_TTS_EN_ENGINE", "ROLLY_TTS_HE_ENGINE"):
+    for k in ("ROLLY_BLUE_VOICE", "ROLLY_BLUE_SPEED", "ROLLY_BLUE_VOICE_EN", "ROLLY_BLUE_SPEED_EN", "ROLLY_TTS_EN_ENGINE", "ROLLY_TTS_HE_ENGINE", "ROLLY_BLUE_STREAM", "ROLLY_TTS_MERGE_CHARS"):
         monkeypatch.delenv(k, raising=False)
     path = os.path.join(os.path.dirname(__file__), "..", "config", "providers.yaml")
     plain = ProviderRegistry(path).entries["modular-selfhosted"]["tts"]
@@ -328,4 +333,197 @@ def test_the_pods_voices_are_the_ones_the_owner_chose(monkeypatch):
     # the engines the router builds name the voice and the speed
     from providers.modular.tts import BlueTTS
     assert "bluev3:jonathan:speed1" in BlueTTS(en).name and "bluev3:ariel:speed1" in BlueTTS(he).name
+    # P1-D37, chosen in two blind listenings: a whole piece in one synthesis, short sentences kept together; no trimming, no cap
+    for v in (he, en):
+        b = BlueTTS(v)
+        assert (b.stream, b.trim, b.pause_cap_ms) == (False, False, 0)
+    assert tts_cfg_merge(path) == 70
 
+
+def tts_cfg_merge(path):
+    from providers.registry import ProviderRegistry
+    return int(ProviderRegistry(path).entries["modular-selfhosted"]["tts_merge_chars"])
+
+
+def _pcm(parts, rate=44100):
+    """parts: list of ("sil", ms) or ("tone", ms) -> PCM16 bytes"""
+    import numpy as np
+    out = []
+    for kind, ms in parts:
+        n = int(rate * ms / 1000)
+        out.append((np.zeros(n) if kind == "sil" else 0.3 * np.sin(2 * np.pi * 220 * np.arange(n) / rate)))
+    return (np.clip(np.concatenate(out), -1, 1) * 32767).astype("<i2").tobytes()
+
+
+def _silent_edges_ms(pcm: bytes, rate=44100, thresh=0.006):
+    import numpy as np
+    x = np.abs(np.frombuffer(pcm, dtype="<i2").astype(float) / 32768)
+    idx = np.where(x > thresh)[0]
+    return idx[0] / rate * 1000, (len(x) - idx[-1]) / rate * 1000, len(x) / rate * 1000
+
+
+def test_a_piece_loses_the_silence_it_starts_and_ends_with_and_gets_a_fixed_gap():
+    from providers.modular.shape import PieceShaper
+    raw = _pcm([("sil", 150), ("tone", 600), ("sil", 300), ("tone", 500), ("sil", 400)])  # a pause INSIDE the piece too
+    sh = PieceShaper(44100, gap_ms=150, lead_ms=20)
+    # fed in odd-sized chunks, like the network delivers it
+    out = b"".join(sh.feed(raw[i:i + 4801]) for i in range(0, len(raw), 4801)) + sh.finish()
+    lead, trail, total = _silent_edges_ms(out)
+    assert lead <= 30                       # a few ms of the leading silence stay, so the first sound is not abrupt
+    assert abs(trail - 150) <= 12           # exactly the fixed gap, not the model's 400 ms
+    assert abs(total - (20 + 600 + 300 + 500 + 150)) <= 25  # the pause inside the piece is untouched
+    assert len(out) % 2 == 0
+
+
+def test_the_shaper_never_cuts_speech_and_handles_empty_and_silent_pieces():
+    from providers.modular.shape import PieceShaper
+    raw = _pcm([("tone", 300)])
+    sh = PieceShaper(44100)
+    out = sh.feed(raw) + sh.finish()
+    assert len(out) >= len(raw)  # all of the speech, plus the gap
+    assert PieceShaper(44100).finish() == b""                       # nothing spoken, nothing added
+    sh2 = PieceShaper(44100); assert sh2.feed(_pcm([("sil", 500)])) != b"x" and sh2.finish() == b""  # only silence: nothing to say
+
+
+def test_short_sentences_are_kept_together_after_the_first_piece_when_merging_is_on():
+    text = "בוקר טוב מאור. עם ילדים הייתי הולך על אי רגוע. אתונה נשמעת לי עמוסה. ככה זה."
+    def pieces(**kw):
+        c = SentenceChunker(**kw); out = []
+        for ch in text:
+            out += c.feed(ch)
+        return out + c.flush()
+    plain = pieces()
+    assert plain[0] == "בוקר טוב מאור." and len(plain) >= 4  # a piece per sentence, as before
+    merged = pieces(merge_chars=70)
+    assert merged[0] == "בוקר טוב מאור."                         # the first piece is still early
+    assert len(merged) == 2 and merged[1].count(".") >= 3         # the rest together, one synthesis
+    assert " ".join(merged) == " ".join(plain)                    # the same words
+
+
+
+def test_a_pause_cap_shortens_only_the_long_silences():
+    import numpy as np
+    from providers.modular.shape import PauseCap
+    sr = 24000
+    tone = (np.sin(np.arange(sr // 5) * 0.3) * 8000).astype("<i2")
+    sil = lambda ms: np.zeros(sr * ms // 1000, dtype="<i2")
+    pcm = np.concatenate([sil(600), tone, sil(200), tone, sil(700), tone, sil(500)]).tobytes()
+    cap = PauseCap(sr, 350)
+    out = b"".join(cap.feed(pcm[i:i + 1000]) for i in range(0, len(pcm), 1000)) + cap.finish()  # odd chunking on purpose
+    n = len(out) // 2
+    # 600 -> 350, 200 stays, 700 -> 350, 500 -> 350: 750 ms removed; the tones are intact
+    assert abs(n - (len(pcm) // 2 - sr * 750 // 1000)) <= 2 * (sr // 100)
+    got = np.frombuffer(out, dtype="<i2")
+    assert int((np.abs(got) > 1000).sum()) == int((np.abs(np.frombuffer(pcm, dtype="<i2")) > 1000).sum())
+    assert PauseCap(sr, 350).finish() == b""
+
+
+def test_a_lookup_request_survives_a_reply_that_is_cancelled_right_after_it():
+    """2026-11-26: the user spoke right after "אני בודק", the reply was cancelled and the request, reported only at the end of a
+    reply, was lost (then the model told the user it had found nothing).  It is reported as soon as the marker is written."""
+    import asyncio
+    from providers import base
+    from providers.modular.pipeline import ModularProvider, _Gate
+    from providers.modular.text import TurnNotes
+
+    events = []
+
+    class LLM:
+        name = "fake"
+
+        async def stream(self, messages, res, **kw):
+            for piece in ["אני בודק ", "<look", "up/>", ".", " עוד משהו אחרי"]:
+                yield piece
+                if piece == ".":
+                    await asyncio.sleep(30)  # still "speaking" when the user cuts in
+
+    class TTS:
+        name = "fake"
+
+        async def synth(self, chunk, hint=None, foreign=None):
+            return
+            yield  # an empty async generator
+
+    class Ctx:
+        system_prompt = "S"
+        language = "he"
+
+    async def go(typed_text):
+        p = ModularProvider.__new__(ModularProvider)
+        p.history, p.question_guard, p.notes, p.ctx = [], False, TurnNotes(), Ctx()
+        p.llm, p.tts, p.config, p._foreign = LLM(), TTS(), {}, None
+        p._turn_state = None
+
+        async def emit(type_, audio=None, sample_rate=0, **data):
+            events.append(type_)
+        p.emit = emit
+        gate = _Gate(p, committed=True)
+        task = asyncio.create_task(p._run_turn(gate, text=typed_text, typed=True))
+        await asyncio.sleep(0.3)
+        task.cancel()
+        try:
+            await task
+        except BaseException:
+            pass
+
+    asyncio.run(go("מה יש במבצע?"))
+    assert events.count(base.LOOKUP_REQUESTED) == 1
+    events.clear()
+    asyncio.run(go("[lookup_result - not said by the user] x"))  # a reply to a lookup result never asks for another one
+    assert base.LOOKUP_REQUESTED not in events
+
+
+def test_a_waiting_topic_is_not_shown_on_a_turn_where_the_user_asked_something():
+    from providers.modular.text import TurnNotes
+    n = TurnNotes()
+    n.add("Bring up this now: reggae.", turns=1, max_user_words=6, min_streak=1)
+    assert n.text("וואלה עובר בסדר, מה איתך?") is None  # a question: it gets an answer, not our topic
+    n.consume("וואלה עובר בסדר, מה איתך?")
+    assert "reggae" in (n.text("עובר בסדר") or "")  # the next short statement takes it
+
+
+def test_a_name_read_differently_by_position_is_pinned_to_its_reading_in_the_middle_of_a_sentence():
+    from providers.modular.pronounce import analyze, usable_name
+
+    def fake(text):  # the voice's front end: reads מאור "me-or" alone and at the end, "ma-or" elsewhere; דנה always the same
+        if "מאור" in text:
+            ma = "maʔˈoʁ" if ("היי" in text or "אני איתך" in text) else "meʔˈoʁ"
+            return "<he>" + text.replace("מאור", ma) + "</he>"
+        return "<he>" + text.replace("דנה", "dˈana") + "</he>"
+    a = analyze("מאור", fake)
+    assert not a["stable"] and a["pinned"] == "maʔˈoʁ" and set(a["candidates"]) == {"maʔˈoʁ", "meʔˈoʁ"}
+    assert a["candidates"][0] == "meʔˈoʁ"  # most common first; the pin is not "the most common"
+    d = analyze("דנה", fake)
+    assert d["stable"] and d["candidates"] == ["dˈana"]
+    assert usable_name("מאור") == "מאור" and usable_name("מאור כהן") == "מאור" and usable_name("Dan") is None and usable_name(None) is None
+
+
+def test_the_conversation_pins_a_name_only_when_it_is_unstable_and_the_users_correction_wins(monkeypatch):
+    import asyncio
+    import providers.modular.pipeline as pl
+    from providers.modular.tts import TTSRouter
+
+    class Probe:
+        enabled = True
+
+        async def pins(self, name, timeout=None):
+            return {"מאור": "maʔˈoʁ"} if name == "מאור" else {}
+    monkeypatch.setattr(pl, "get_probe", lambda url, cache=None: Probe())
+
+    def session(profile, language="he"):
+        p = pl.ModularProvider.__new__(pl.ModularProvider)
+
+        class Ctx:
+            session_id = "abcdef123456"
+        Ctx.profile, Ctx.language = profile, language
+        p.ctx, p.config = Ctx(), {"pronounce_url": "http://x"}
+        p.tts = TTSRouter({"he": {"engine": "x"}, "default": "he"})
+        asyncio.run(p._load_pronunciations())
+        return p.tts.pronunciations
+    assert session({"name": "מאור"}) == {"מאור": "maʔˈoʁ"}
+    assert session({"name": "דנה"}) == {}  # stable: left alone
+    assert session({"name": "מאור"}, "en") == {}
+    assert session({"name": "מאור", "name_pron": {"name": "מאור", "ipa": "meʔˈoʁ"}}) == {"מאור": "meʔˈoʁ"}  # the user chose
+    assert session({"name": "מאור כהן", "name_pron": {"name": "מאור", "ipa": "meʔˈoʁ"}}) == {"מאור": "meʔˈoʁ"}
+    assert session({"name": "דנה", "name_pron": {"name": "מאור", "ipa": "meʔˈoʁ"}}) == {}  # the name changed: the choice is stale
+    assert session({"name": None}) == {}

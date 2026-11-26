@@ -48,7 +48,7 @@ export async function webLookup(llm: UtilityLlm | null, a: LookupArgs): Promise<
   if (!llm?.search) return { ok: false, reason: "unavailable", ms: 0 };
   try {
     // the token limit also covers the model's own reasoning: 500 cut an answer in the middle of a word
-    const r = await llm.search(lookupPrompt(a), { maxTokens: 1200, timeoutMs: 12_000, timezone: a.timeZone });
+    const r = await llm.search(lookupPrompt(a), { maxTokens: 1200, timeoutMs: 14_000, timezone: a.timeZone });
     // spoken text only: no links, no markdown, no citation marks
     const answer = r.text.replace(/\[[^\]]*\]\([^)]*\)/g, " ").replace(/https?:\/\/\S+/g, " ").replace(/[([]\s*[)\]]/g, " ").replace(/[*_#`]+/g, "").replace(/\s+/g, " ").trim().slice(0, 500);
     if (!answer) return { ok: false, reason: "failed", ms: Date.now() - t0, error: "empty answer" };

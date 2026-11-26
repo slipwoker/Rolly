@@ -17,7 +17,8 @@ const he = {
   remembers: "מה ROLLY זוכר", unconfirmed: "לא מאושר (אולי נאמר על ידי מישהו אחר)", confirm: "לאשר", edit: "לתקן", delete: "למחוק", save: "שמירה", cancel: "ביטול",
   addressing: "פנייה בעברית", addrUnknown: "עוד לא ידוע — ROLLY מדבר בניסוח ניטרלי", addrInferred: "נלמד מהשיחה", addrConfirmed: "נקבע על ידך",
   masculine: "זכר", feminine: "נקבה", plural: "רבים", reset: "לאפס", name: "שם",
-  services: "שירותים מחוברים", soon: "בקרוב", exportData: "ייצוא המידע שלי", deleteAccount: "מחיקת החשבון וכל המידע",
+  services: "שירותים מחוברים", soon: "בקרוב", connect: "לחבר", disconnect: "לנתק", connected: "מחובר",
+  googleService: "Google: יומן ומייל", googleWhy: "ROLLY יוכל לספר מה ביומן ומה חדש במייל (קריאה בלבד)", musicService: "Spotify: מוזיקה ופודקאסטים", musicWhy: "לחפש ולהמליץ על שירים, אמנים ופודקאסטים", exportData: "ייצוא המידע שלי", deleteAccount: "מחיקת החשבון וכל המידע",
   sure: "להמשיך? אי אפשר לבטל את זה.", noSpeakerId: "ROLLY לא יודע לזהות מי מדבר. דברים שנאמרו כשלא ברור מי אמר אותם נשמרים כלא מאושרים עד שתאשרו.",
 };
 type Strings = typeof he;
@@ -36,7 +37,8 @@ const en: Strings = {
   remembers: "What ROLLY remembers", unconfirmed: "Not confirmed (maybe said by someone else)", confirm: "Confirm", edit: "Correct", delete: "Delete", save: "Save", cancel: "Cancel",
   addressing: "Hebrew addressing", addrUnknown: "Not known yet — ROLLY uses neutral phrasing", addrInferred: "Learned from conversation", addrConfirmed: "Set by you",
   masculine: "Masculine", feminine: "Feminine", plural: "Plural", reset: "Reset", name: "Name",
-  services: "Connected services", soon: "Coming later", exportData: "Export my data", deleteAccount: "Delete account and all data",
+  services: "Connected services", soon: "Coming later", connect: "Connect", disconnect: "Disconnect", connected: "Connected",
+  googleService: "Google: calendar and mail", googleWhy: "ROLLY can tell you what is on your calendar and what is new in your mail (read only)", musicService: "Spotify: music and podcasts", musicWhy: "Find and recommend songs, artists and podcasts", exportData: "Export my data", deleteAccount: "Delete account and all data",
   sure: "Are you sure? This cannot be undone.", noSpeakerId: "ROLLY cannot tell who is speaking. Things said when it is unclear who said them are kept as unconfirmed until you confirm them.",
 };
 

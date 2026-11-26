@@ -10,7 +10,7 @@ import { buildContext, practiceLanguage, resolveLanguage } from "./persona/promp
 import { openAiLlm, type UtilityLlm } from "./memory/llm.ts";
 import { MemoryStore } from "./memory/store.ts";
 import { summarizeSession, type SummaryResult } from "./memory/summarizer.ts";
-import { handleCapture, handleLiveTurn } from "./memory/live.ts";
+import { handleCapture, handleLiveTurn, handleNamePronunciation, type NameReadings } from "./memory/live.ts";
 import { fallbackAgenda, planNext, type AgendaItem } from "./memory/plan.ts";
 import { scrubUser } from "./memory/scrub.ts";
 import { consolidate } from "./memory/consolidate.ts";
@@ -18,7 +18,11 @@ import type { ServerDeps } from "./server.ts";
 import type { SessionHooks, SessionTurn } from "./voice/session.ts";
 import { LINES, runConversation, type Step } from "./selftest/scenarios.ts";
 import { NOTE, core } from "./persona/core.ts";
-import { lookupMessage, webLookup } from "./lookup/web.ts";
+import { lookupMessage } from "./lookup/web.ts";
+import { runTool, type Connections } from "./integrations/tools.ts";
+import { realHttp } from "./integrations/http.ts";
+import * as googleApi from "./integrations/google.ts";
+import { seal, unseal, signState, verifyState } from "./integrations/crypto.ts";
 import { GatewayError, httpGateway } from "./whatsapp/gateway.ts";
 import { WhatsAppFlow } from "./whatsapp/flow.ts";
 import { AuditRecorder } from "./audit/recorder.ts";
@@ -29,7 +33,8 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
   const db = createPool(config.databaseUrl!);
   await migrate(db);
   const store = new MemoryStore(db, { candidateTtlDays: config.candidateTtlDays, transcriptRetentionDays: config.transcriptRetentionDays });
-  const auth = new Auth(db, await Auth.loadSecret(db, config.authSecret || null));
+  const authSecret = await Auth.loadSecret(db, config.authSecret || null);
+  const auth = new Auth(db, authSecret);
   const rawLlm: UtilityLlm | null = overrides.llm !== undefined ? overrides.llm
     : config.openaiApiKey ? openAiLlm({ baseUrl: config.utilityBaseUrl, apiKey: config.openaiApiKey, model: config.utilityModel, reasoning: config.utilityReasoning }) : null;
   // the backoffice audit (src/audit/): every utility-model call is recorded with its purpose, tokens and cost
@@ -64,7 +69,31 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
   const sessionAgenda = new Map<string, AgendaItem[]>();
   // server-side self-tests only: compress pacing time for a user (see runSelftest)
   const pacingScales = new Map<string, number>();
+  // the last opening line said to each user in this process: a conversation started right after another one ended
+  // (2026-11-26: one second later) must not open with the same line while the first is still being saved
+  const recentOpeners = new Map<string, string>();
+  // how the pod's voice reads a name (its Hebrew front end, in five positions in a sentence): the choices when the user corrects the pronunciation
+  const nameReadings: NameReadings = {
+    async candidates(word) {
+      const r = await fetch(`${config.gpuWorkerUrl.replace(/\/+$/, "")}/phonemize`, { method: "POST", signal: AbortSignal.timeout(8_000),
+        headers: { Authorization: `Bearer ${config.gpuApiKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ word }) });
+      if (!r.ok) return null;
+      const j = (await r.json()) as { candidates?: unknown };
+      return Array.isArray(j.candidates) ? j.candidates.filter((c): c is string => typeof c === "string") : null;
+    },
+  };
+  // connected services (src/integrations): Google refresh tokens are kept sealed in PostgreSQL, keyed by the server's auth secret
+  const sealKey = authSecret;
+  const googleCfg = config.google ? { ...config.google, redirectUri: `${config.publicUrl}/v1/integrations/google/callback` } : null;
+  const connections: Connections = {
+    async googleRefresh(userId) {
+      const r = await db.query<{ refresh_enc: string }>("SELECT refresh_enc FROM integrations WHERE user_id=$1 AND provider='google'", [userId]);
+      return r.rows[0] ? unseal(r.rows[0].refresh_enc, sealKey) : null;
+    },
+    async dropGoogle(userId) { await db.query("DELETE FROM integrations WHERE user_id=$1 AND provider='google'", [userId]); },
+  };
   const hooks: SessionHooks = {
+    rememberOpener(userId, text) { recentOpeners.set(userId, text); },
     async prepare(userId, sessionId, start) {
       const planning = lookahead.get(userId);
       if (planning) await Promise.race([planning, new Promise((r) => setTimeout(r, 8_000))]);
@@ -75,17 +104,19 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
         resume = await store.lastTurns(userId, start.resume_of, 8);
       }
       const view = await store.memoryView(userId);
+      view.lastOpener = recentOpeners.get(userId) ?? view.lastOpener;
       const proactive = start.proactive ?? true;
       const { language, chosen } = resolveLanguage(start, view.profile.preferredLanguage);
       if (chosen === "he" || chosen === "en") await store.updateProfile(userId, { preferred_language: chosen });
       const lookup = config.webLookup && Boolean(llm?.search);
       const whatsapp = wa ? await wa.linked(userId) : false;
-      const built = buildContext(view, { language, journey: { ...start.journey, proactive }, timeZone: config.timezone, resume, lookup, whatsapp });
+      const built = buildContext(view, { language, journey: { ...start.journey, proactive }, timeZone: config.timezone, resume, lookup, whatsapp,
+        tools: { calendar: Boolean(googleCfg), music: Boolean(config.spotify) } });
       await store.startSession(sessionId, userId, built.language, built.onboarding, new Date());
       await store.markUsed(view.usedIds);
       sessionAgenda.set(sessionId, built.agenda);
       await audit.recordPrompt({ sessionId, userId, language: built.language, onboarding: built.onboarding, systemPrompt: built.system_prompt,
-        persona: core(built.language, { lookup, whatsapp }), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })),
+        persona: core(built.language, { lookup, whatsapp, tools: { calendar: Boolean(googleCfg), music: Boolean(config.spotify) } }), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })),
         memoryIds: view.usedIds, sampling: config.llmSampling });
       const foreign = practiceLanguage(view);
       return {
@@ -100,6 +131,8 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       return audit.run({ userId: args.userId, sessionId: args.sessionId }, async () => {
         const done = await handleLiveTurn(store, llm, args);
         if (done.some((d) => /^(delete|correct):/.test(d))) void scrub(args.userId);
+        const pron = await handleNamePronunciation(store, llm, nameReadings, args);
+        if (pron) return { text: NOTE.namePronounced, turns: 2, pronunciations: { [pron.word]: pron.ipa } };
         const captured = (await handleCapture(store, llm, args)).note;
         const form = done.map((d) => /^addressing:(masculine|feminine|plural)$/.exec(d)?.[1]).find(Boolean) as "masculine" | "feminine" | "plural" | undefined;
         // how to address them was just said: tell the model now, and keep telling it until the conversation ends
@@ -114,11 +147,12 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
         if (viaWhatsApp) return viaWhatsApp;
         const refuse = (reason: "unavailable" | "limit") => ({ message: lookupMessage({ ok: false, reason, ms: 0 }), ok: false, reason });
         if (!config.webLookup || !llm?.search) return refuse("unavailable");
-        const used = (await db.query<{ n: number }>("SELECT count(*)::int n FROM llm_calls WHERE user_id=$1 AND purpose='lookup' AND at > now() - interval '24 hours'", [args.userId])
+        const used = (await db.query<{ n: number }>("SELECT count(*)::int n FROM llm_calls WHERE user_id=$1 AND purpose IN ('lookup','tool') AND at > now() - interval '24 hours'", [args.userId])
           .catch(() => ({ rows: [{ n: 0 }] }))).rows[0]?.n ?? 0;
         if (used >= config.lookupsPerDay) return refuse("limit");
-        const r = await webLookup(llm, { question: args.question, recent: args.recent, language: args.language, timeZone: config.timezone });
-        return { message: lookupMessage(r), ok: r.ok, ...(r.ok ? {} : { reason: r.reason }) };
+        // web search, calendar, mail or music: a small planning call picks the tool (integrations/tools.ts)
+        const r = await runTool({ llm, http: realHttp, connections, google: googleCfg, spotify: config.spotify }, { userId: args.userId, question: args.question, recent: args.recent, language: args.language, timeZone: config.timezone });
+        return { message: r.message, ok: r.ok, ...(r.reason ? { reason: r.reason } : {}) };
       });
     },
     async finalize(args) {
@@ -235,6 +269,50 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       return auth.createTicket(id);
     });
 
+    // ---------------------------------------------------------- connected services
+    /** what the app shows under "connected services": calendar + email share one Google connection; music needs no sign-in */
+    const servicesFor = async (userId: string) => {
+      const g = await db.query<{ account_label: string | null }>("SELECT account_label FROM integrations WHERE user_id=$1 AND provider='google'", [userId]).catch(() => ({ rows: [] as { account_label: string | null }[] }));
+      const google = !googleCfg ? "not_available" : g.rows[0] ? "connected" : "not_connected";
+      return [
+        { id: "calendar", provider: "google", status: google, account: g.rows[0]?.account_label ?? null },
+        { id: "email", provider: "google", status: google, account: g.rows[0]?.account_label ?? null },
+        { id: "music", provider: "spotify", status: config.spotify ? "connected" : "not_available", account: null },
+      ];
+    };
+    app.get("/v1/integrations", async (req, reply) => {
+      const id = user(req, reply); if (!id) return;
+      return { services: await servicesFor(id) };
+    });
+    // the app opens the returned URL in the browser; Google sends the user back to the callback below
+    app.post("/v1/integrations/google/start", async (req, reply) => {
+      const id = user(req, reply); if (!id) return;
+      if (!googleCfg) return reply.code(503).send({ error: "google is not configured" });
+      return { url: googleApi.authUrl(googleCfg, signState(id, authSecret)) };
+    });
+    app.get("/v1/integrations/google/callback", async (req, reply) => {
+      const q = (req.query ?? {}) as { code?: string; state?: string; error?: string };
+      const page = (ok: boolean) => reply.type("text/html; charset=utf-8").send(
+        `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rolly</title>` +
+        `<body style="font-family:-apple-system,system-ui,sans-serif;text-align:center;padding:4rem 1.5rem"><h2>${ok ? "Google connected ✓" : "Could not connect Google"}</h2>` +
+        `<p>${ok ? "חוזרים ל-Rolly. אפשר לסגור את הדף הזה." : "נסו שוב מתוך האפליקציה."}</p></body>`);
+      const uid = verifyState(q.state, authSecret);
+      if (!googleCfg || !uid || q.error || !q.code) return page(false);
+      const g = await googleApi.exchangeCode(realHttp, googleCfg, q.code).catch(() => null);
+      if (!g) return page(false);
+      await db.query(`INSERT INTO integrations(user_id, provider, refresh_enc, scopes, account_label) VALUES ($1,'google',$2,$3,$4)
+        ON CONFLICT (user_id, provider) DO UPDATE SET refresh_enc=$2, scopes=$3, account_label=$4, created_at=now()`, [uid, seal(g.refreshToken, sealKey), g.scopes, g.email]);
+      app.log.info({ user_id: uid }, "google connected");
+      return page(true);
+    });
+    app.delete("/v1/integrations/google", async (req, reply) => {
+      const id = user(req, reply); if (!id) return;
+      const rt = await connections.googleRefresh(id);
+      if (rt) await googleApi.revoke(realHttp, rt);
+      await connections.dropGoogle(id);
+      return { disconnected: true };
+    });
+
     // ---------------------------------------------------------- the user's own data
     app.get("/v1/me", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
@@ -242,7 +320,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       return { user_id: id, preferred_name: p.preferred_name, preferred_language: p.preferred_language,
         addressing: { value: p.addressing_value, status: p.addressing_status, evidence_count: (p.addressing_evidence?.masculine ?? 0) + (p.addressing_evidence?.feminine ?? 0),
           examples: (p.addressing_evidence?.examples ?? []).slice(-3).map((e) => e.quote) },
-        connected_services: [{ id: "calendar", status: "not_available" }, { id: "email", status: "not_available" }, { id: "music", status: "not_available" }] };
+        connected_services: await servicesFor(id) };
     });
     app.patch("/v1/me", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
@@ -313,6 +391,8 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     app.delete("/v1/me", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
       await gateway?.unlink(id).catch(() => {}); // the WhatsApp link and everything stored for it leave with the account
+      const rt = await connections.googleRefresh(id).catch(() => null);
+      if (rt) await googleApi.revoke(realHttp, rt); // withdraw Google access too, not only our copy of the token
       await store.deleteAccount(id);
       return { deleted: true };
     });

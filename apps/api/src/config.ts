@@ -33,6 +33,11 @@ export interface Config {
   timezone: string;
   /** deploy commit, recorded with each prompt version in the audit (Render sets RENDER_GIT_COMMIT) */
   build: string | null;
+  /** Google sign-in for calendar + mail (read only); all three set = enabled. Redirect URI = `${publicUrl}/v1/integrations/google/callback` */
+  google: { clientId: string; clientSecret: string } | null;
+  spotify: { clientId: string; clientSecret: string; market: string } | null;
+  /** public base URL of this API (OAuth redirects, app return page) */
+  publicUrl: string;
   /** run the LLM judge after every conversation with at least two user turns (ROLLY_AUDIT_JUDGE=off disables it) */
   auditJudge: boolean;
 }
@@ -99,6 +104,9 @@ export function loadConfig(env = process.env): Config {
     devAuth,
     timezone: env.ROLLY_TIMEZONE ?? "Asia/Jerusalem",
     build: (env.RENDER_GIT_COMMIT || env.ROLLY_BUILD || "").slice(0, 12) || null,
+    google: env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET ? { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET } : null,
+    spotify: env.SPOTIFY_CLIENT_ID && env.SPOTIFY_CLIENT_SECRET ? { clientId: env.SPOTIFY_CLIENT_ID, clientSecret: env.SPOTIFY_CLIENT_SECRET, market: env.SPOTIFY_MARKET ?? "IL" } : null,
+    publicUrl: (env.ROLLY_PUBLIC_URL ?? "https://rolly-api.onrender.com").replace(/\/+$/, ""),
     auditJudge: !/^(off|0|false|no)$/i.test(env.ROLLY_AUDIT_JUDGE ?? "on"),
   };
 }

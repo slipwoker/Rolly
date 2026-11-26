@@ -1,7 +1,7 @@
 /** PostgreSQL memory store: profile, typed memories with status and provenance, sessions, turns, progress. */
 import { redactPersonalText } from "../audit/recorder.ts";
 import type { Db } from "../db/index.ts";
-import type { MemoryView } from "../persona/promptBuilder.ts";
+import type { MemoryView, NamePron } from "../persona/promptBuilder.ts";
 import type { AddressingValue } from "../persona/phase1Sections.ts";
 import type { SessionTurn } from "../voice/session.ts";
 import { applyObservations, confirm as confirmAddressing, emptyEvidence, observe, type AddressingRecord } from "./addressing.ts";
@@ -58,7 +58,7 @@ export class MemoryStore {
     return r.rows[0] as {
       preferred_name: string | null; preferred_language: "he" | "en" | null; languages: string[]; addressing_value: AddressingValue | null;
       addressing_status: "unknown" | "inferred" | "confirmed"; addressing_evidence: AddressingRecord["evidence"];
-      professional_background: string | null; preferences: Record<string, string>;
+      professional_background: string | null; preferences: Record<string, string>; name_pron: NamePron | null;
       digest: string | null; history_digest: string | null; digest_at: Date | null; next_agenda: StoredAgenda | null;
     };
   }
@@ -82,10 +82,17 @@ export class MemoryStore {
   }
 
   async updateProfile(userId: string, patch: { preferred_name?: string | null; preferred_language?: "he" | "en" | null; professional_background?: string | null }) {
-    await this.profile(userId);
+    const before = await this.profile(userId);
     const sets: string[] = [], vals: unknown[] = [userId];
+    // a correction of how the name is pronounced belongs to that name
+    if (patch.preferred_name !== undefined && patch.preferred_name !== before.preferred_name && before.name_pron) sets.push("name_pron=NULL");
     for (const [k, v] of Object.entries(patch)) { if (v !== undefined) { vals.push(v); sets.push(`${k}=$${vals.length}`); } }
     if (sets.length) await this.db.query(`UPDATE profiles SET ${sets.join(", ")}, updated_at=now() WHERE user_id=$1`, vals);
+  }
+
+  async setNamePron(userId: string, value: NamePron | null) {
+    await this.profile(userId);
+    await this.db.query("UPDATE profiles SET name_pron=$2, updated_at=now() WHERE user_id=$1", [userId, value ? JSON.stringify(value) : null]);
   }
 
   private async event(userId: string, memoryId: string | null, action: string, via: string, sessionId: string | null) {
@@ -349,7 +356,7 @@ export class MemoryStore {
       ? { ...p.next_agenda, items: p.next_agenda.items.filter((i) => !i.ref_id || liveRefs.has(i.ref_id)) } : null;
     return {
       profile: {
-        preferredName: p.preferred_name, preferredLanguage: p.preferred_language, professionalBackground: p.professional_background,
+        preferredName: p.preferred_name, preferredLanguage: p.preferred_language, professionalBackground: p.professional_background, namePron: p.name_pron ?? null,
         interests: interests.map((m) => m.content), travelGoals: goals.filter((g) => g.kind === "travel_goal").map((g) => g.content), preferences: prefs,
         addressing: { value: p.addressing_value, status: p.addressing_status, evidenceCount: (p.addressing_evidence?.masculine ?? 0) + (p.addressing_evidence?.feminine ?? 0) },
       },

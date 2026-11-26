@@ -1,7 +1,7 @@
 /** Minimal OpenAI-compatible chat client for the utility LLM (summaries, memory commands). */
 import { fetch, ProxyAgent, type Dispatcher } from "undici";
 
-export type LlmPurpose = "summary" | "live_command" | "capture" | "plan" | "scrub" | "consolidate" | "judge" | "lookup" | "whatsapp" | "other";
+export type LlmPurpose = "summary" | "live_command" | "capture" | "plan" | "scrub" | "consolidate" | "judge" | "lookup" | "tool_plan" | "tool" | "whatsapp" | "name_pron" | "other";
 
 export interface UtilityLlm {
   name: string;
@@ -15,7 +15,7 @@ export interface UtilityLlm {
 }
 
 let dispatcher: Dispatcher | undefined;
-function proxyDispatcher(): Dispatcher | undefined {
+export function proxyDispatcher(): Dispatcher | undefined {
   const p = process.env.HTTPS_PROXY || process.env.https_proxy;
   if (!p) return undefined;
   return (dispatcher ??= new ProxyAgent(p));

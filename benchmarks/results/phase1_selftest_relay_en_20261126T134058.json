@@ -1,0 +1,378 @@
+{
+    "id": "50880e42-d6d3-42bf-a870-3de1fd6d30e8",
+    "scenario": "relay",
+    "lang": "en",
+    "status": "done",
+    "started": "2026-11-26T13:40:21.520Z",
+    "results": [
+        {
+            "label": "relay",
+            "ok": true,
+            "lang": "en",
+            "turns": [
+                {
+                    "label": "opener",
+                    "seq": 1700421001,
+                    "text": "Hey, good afternoon. What's your name and where are we headed?",
+                    "audio_s": 4.32,
+                    "interrupted": false,
+                    "proactive": true
+                },
+                {
+                    "label": "reply1",
+                    "seq": 1700421003,
+                    "text": "First impressions are everything, so I hope you've got your pitch nailed down.",
+                    "audio_s": 5.36,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 460,
+                    "user_said": "Hey, I'm driving to work, I have an important meeting with a new client today."
+                },
+                {
+                    "label": "reply2",
+                    "seq": 1700421004,
+                    "text": "Just focus on listening more than you talk.",
+                    "audio_s": 0.33,
+                    "interrupted": true,
+                    "proactive": false,
+                    "reply_latency_ms": 437,
+                    "user_said": "I'm a bit stressed, give me one short tip for the meeting.",
+                    "interrupt_received_ms_after_barge_start": 464
+                },
+                {
+                    "label": "after_barge_in_3",
+                    "seq": 1700421006,
+                    "text": "Fair enough. I was thinking about that documentary on deep-sea creatures earlier.",
+                    "audio_s": 5.85,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 614,
+                    "user_said": "Wait, wait, actually let's talk about something else."
+                }
+            ],
+            "transcripts": [
+                {
+                    "text": "Hey, I'm driving to work.",
+                    "language": "en"
+                },
+                {
+                    "text": "I have an important meeting with a new client today.",
+                    "language": "en"
+                },
+                {
+                    "text": "I'm a bit stressed. Give me one short tip for the meeting.",
+                    "language": "en"
+                },
+                {
+                    "text": "Wait",
+                    "language": "en"
+                },
+                {
+                    "text": "Actually let's talk about something else.",
+                    "language": "en"
+                }
+            ],
+            "events": [
+                {
+                    "t": 253,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 253,
+                    "type": "session.created"
+                },
+                {
+                    "t": 493,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 741,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 5154,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 7095,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 7095,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 7095,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 7168,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 7288,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 7394,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 7394,
+                    "type": "agent.interrupted"
+                },
+                {
+                    "t": 10460,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 10460,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 10460,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 10651,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 10974,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 16416,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 19835,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 19867,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 19867,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 20091,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 20130,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 21256,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 21256,
+                    "type": "agent.interrupted"
+                },
+                {
+                    "t": 21954,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 21955,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 21955,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 21963,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 21970,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 22436,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 22436,
+                    "type": "agent.interrupted"
+                },
+                {
+                    "t": 24835,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 25063,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 25063,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 25246,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 25434,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 33351,
+                    "type": "session.summary"
+                },
+                {
+                    "t": 33351,
+                    "type": "session.closed"
+                }
+            ],
+            "session_id": "e80341a0-b87c-41c1-a873-0604d6fb07a5",
+            "summary": {
+                "type": "session.summary",
+                "session_id": "e80341a0-b87c-41c1-a873-0604d6fb07a5",
+                "summary": {
+                    "summary": "The speaker was driving to work for an important meeting with a new client and said they felt a bit stressed. They asked for one short meeting tip, then changed the subject before continuing with another topic.",
+                    "progress": [],
+                    "method": "llm"
+                },
+                "stats": {
+                    "end_reason": "client_end",
+                    "duration_s": 31,
+                    "turns_user": 5,
+                    "turns_agent": 6,
+                    "interruptions": 3,
+                    "errors": 0,
+                    "audio_in_s": 31.1,
+                    "audio_out_s": 25.2,
+                    "voice_s_by_rate": {
+                        "44100": 25.2
+                    },
+                    "server_reply_ms": [
+                        70,
+                        188,
+                        254,
+                        2,
+                        409
+                    ],
+                    "server_reply_ms_median": 188,
+                    "client_first_audio_ms": [],
+                    "client_first_audio_ms_median": null,
+                    "client_flush_ms": [],
+                    "audio_events": [],
+                    "notes": [],
+                    "lookups": [],
+                    "pod_metrics_median": {
+                        "llm_first_chunk_ms": 100.1171349780634,
+                        "tts_ttfa_ms": 93.08122890070081,
+                        "pipeline_ms": 347.7138599846512,
+                        "llm_ttft_ms": 60.197873041033745,
+                        "llm_total_ms": 236.18100199382752,
+                        "stt_ms": 270.5670619616285,
+                        "stt_queue_ms": 0.09675894398242235
+                    },
+                    "pod_metrics_count": {
+                        "llm_first_chunk_ms": 4,
+                        "tts_ttfa_ms": 6,
+                        "pipeline_ms": 6,
+                        "llm_ttft_ms": 6,
+                        "llm_total_ms": 6,
+                        "stt_ms": 5,
+                        "stt_queue_ms": 5
+                    },
+                    "usage": {
+                        "llm": {
+                            "calls": 6,
+                            "prompt_tokens": 4729,
+                            "completion_tokens": 85,
+                            "cached_tokens": 0,
+                            "max_prompt_tokens": 904,
+                            "model": "local@http://127.0.0.1:8081/v1"
+                        },
+                        "tts": {
+                            "chars": 347,
+                            "audio_s": 25.21,
+                            "engine": "en=bluev3:jonathan:speed1:whole@http://127.0.0.1:1920/v1 | he=bluev3:ariel:speed1:whole@http://127.0.0.1:1920/v1"
+                        },
+                        "stt": {
+                            "audio_s": 12.42,
+                            "engine": "routed[he=faster-whisper:ivrit-ai/whisper-large-v3-turbo-ct2:cuda:float16, en=faster-whisper:deepdml/faster-whisper-large-v3-turbo-ct2:cuda:float16; mixed->he]"
+                        }
+                    },
+                    "summary_ms": 2150
+                }
+            }
+        }
+    ],
+    "user_id": "c576d2b4-3c99-4532-8496-7c5cac394e30",
+    "error": null,
+    "state": {
+        "profile": {
+            "preferred_name": null,
+            "preferred_language": "en",
+            "addressing": {
+                "value": null,
+                "status": "unknown",
+                "evidence": {
+                    "examples": [],
+                    "feminine": 0,
+                    "masculine": 0,
+                    "ignored_uncertain": 0
+                }
+            }
+        },
+        "memories": [
+            {
+                "kind": "summary",
+                "status": "active",
+                "content": "The speaker was driving to work for an important meeting with a new client and said they felt a bit stressed. They asked for one short meeting tip, then changed the subject before continuing with another topic.",
+                "confidence": null
+            }
+        ],
+        "progress": [],
+        "goals": [],
+        "tasks_open": [],
+        "ideas": [],
+        "tasks_done": [],
+        "next_agenda": [
+            {
+                "why": "It was an important meeting, and the speaker mentioned feeling stressed before it.",
+                "kind": "follow_up",
+                "take": "Listening closely is a stronger first impression than trying to deliver a perfect pitch.",
+                "topic": "the new-client meeting",
+                "ref_id": null
+            },
+            {
+                "why": "Rolly brought up a documentary, but the topic never got a chance to develop.",
+                "kind": "fresh",
+                "take": "The strangest deep-sea creatures make for a better conversation than another polished nature documentary.",
+                "topic": "deep-sea creatures",
+                "ref_id": null
+            }
+        ],
+        "digest": null,
+        "scrub_pending": 0,
+        "sessions": [
+            {
+                "started_at": "2026-11-26T13:40:21.538Z",
+                "notes": [],
+                "plan": {
+                    "ms": 1911,
+                    "method": "llm",
+                    "applied": [],
+                    "refused": [],
+                    "next_agenda": 2,
+                    "agenda_outcome": []
+                },
+                "lookahead_ms": 1920,
+                "reply_ms": 188
+            }
+        ],
+        "next_opener_instruction": "[journey_start - not said by the user] The ride has just started. Open now: a short hello for the afternoon, and one easy, light question about them: how their morning or day is going, or how the ride is starting. Do not bring up anything from before, nothing about yourself. Under twelve words in total. Your last opening was \"Hey, good afternoon. What's your name and where are we headed?\": open differently this time.",
+        "next_prompt_chars": 2782,
+        "next_prompt_memory_part": "## What you know about them\nTheir name: not known yet (you are Rolly). You do not know whether to address them as a man or a woman: phrase things without gendered second person (impersonal or plural forms), and never ask about it. If they tell you, follow it at once.\nLast time (earlier today): The speaker was driving to work for an important meeting with a new client and said they felt a bit stressed. They asked for one short meeting tip, then changed the subject before continuing with another topic.\n\nLocal time: Thursday 15:40 (afternoon).\n"
+    }
+}

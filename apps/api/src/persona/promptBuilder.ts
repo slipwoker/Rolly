@@ -14,9 +14,13 @@ import { PROMPT, clip } from "../memory/select.ts";
 export { END_MARKER };
 export type Lang = "he" | "en" | "auto";
 
+/** how the user said their name is pronounced: one of the readings the voice's own front end gave (P1-D39) */
+export interface NamePron { name: string; ipa: string; source: "user" }
+
 export interface MemoryView {
   profile: {
     preferredName: string | null;
+    namePron?: NamePron | null;
     preferredLanguage: "he" | "en" | null;
     professionalBackground?: string | null;
     interests: string[];
@@ -99,6 +103,8 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
   resume?: { role: "user" | "agent"; text: string }[];
   /** online lookups are connected (config and key): the persona then tells the model how to ask for one */
   lookup?: boolean;
+  /** which tools beyond web search the same marker reaches (integrations/tools.ts) */
+  tools?: { calendar?: boolean; music?: boolean };
   /** this user has WhatsApp linked (whatsapp/flow.ts) */
   whatsapp?: boolean }): BuiltContext {
   const p = mem.profile;
@@ -143,7 +149,7 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
   }
   lines.push("", `Local time: ${lt.weekday} ${lt.hm} (${partOfDay}).${minutes ? ` About ${Math.round(minutes)} minutes until they arrive.` : ""}`);
 
-  const system_prompt = core(language, { lookup: opts.lookup, whatsapp: opts.whatsapp }) + "\n\n" + lines.join("\n") + "\n";
+  const system_prompt = core(language, { lookup: opts.lookup, tools: opts.tools, whatsapp: opts.whatsapp }) + "\n\n" + lines.join("\n") + "\n";
 
   // the plan for this ride: made after the previous conversation, cut to the time there is now
   const agenda = onboarding || opts.resume?.length ? [] : adaptAgenda(mem.agenda, { minutes: minutes ?? null, now });
@@ -173,7 +179,7 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
     system_prompt, opener_instruction: opener, language, onboarding, agenda,
     confirm: !onboarding && mem.candidates[0] ? clip(mem.candidates[0].content, 140) : null,
     // the pod gets only what the pipeline needs; it stores nothing
-    profile: { name: p.preferredName ?? null, preferred_language: p.preferredLanguage ?? null },
+    profile: { name: p.preferredName ?? null, preferred_language: p.preferredLanguage ?? null, name_pron: p.namePron ?? null },
   };
 }
 

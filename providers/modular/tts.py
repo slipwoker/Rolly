@@ -138,12 +138,37 @@ class BlueTTS(OpenAICompatTTS):
     recognised (ZONOS3-Mini: 5 of 12), and the product owner picked this voice and speed from listening samples."""
 
     def __init__(self, cfg: dict):
+        def flag(v, default: bool) -> bool:
+            return default if v in (None, "") else str(v).lower() in ("1", "true", "yes", "on")
+        # blue_stream: the server cuts a request into sentences and synthesises each on its own (low first-sound latency, but
+        # every sentence is then read as a separate utterance); false = the whole piece in one synthesis, with the model's own
+        # natural pause between its sentences.  blue_trim: remove the silence each piece starts and ends with and put a fixed
+        # gap (blue_gap_ms) after it (providers/modular/shape.py).  Both default to the behaviour of before 2026-11-26.
+        self.stream = flag(cfg.get("blue_stream"), True)
+        self.trim = flag(cfg.get("blue_trim"), False)
+        self.gap_ms = int(cfg.get("blue_gap_ms") or 150)
+        self.pause_cap_ms = int(cfg.get("blue_pause_cap_ms") or 0)  # >0: no silence longer than this (shape.PauseCap)
         super().__init__({"base_url": cfg.get("blue_url", "http://127.0.0.1:1920/v1"), "model": "bluev3",
                           "voice": cfg.get("blue_voice", "ariel"), "sample_rate": int(cfg.get("blue_sample_rate", 44100)),
-                          "extra_body": {"speed": float(cfg.get("blue_speed", 1.0)), "language": cfg.get("blue_language", "he"), "stream": True}})
-        self.name = f"bluev3:{self.voice}:speed{self.extra['speed']:g}@{self.base_url}"
+                          "extra_body": {"speed": float(cfg.get("blue_speed", 1.0)), "language": cfg.get("blue_language", "he"), "stream": self.stream}})
+        self.name = f"bluev3:{self.voice}:speed{self.extra['speed']:g}{'' if self.stream else ':whole'}{':trim' if self.trim else ''}{f':cap{self.pause_cap_ms}' if self.pause_cap_ms else ''}@{self.base_url}"
         # the model also speaks Spanish, Italian and German in the same voice inside <es>…</es> style tags
         self.language_spans = True
+
+    async def synth(self, text: str, language: str | None = None) -> AsyncIterator[bytes]:
+        if not self.trim and not self.pause_cap_ms:
+            async for pcm in super().synth(text, language):
+                yield pcm
+            return
+        from .shape import PauseCap, PieceShaper
+        shaper = PieceShaper(self.sample_rate, self.gap_ms) if self.trim else PauseCap(self.sample_rate, self.pause_cap_ms)
+        async for pcm in super().synth(text, language):
+            out = shaper.feed(pcm)
+            if out:
+                yield out
+        tail = shaper.finish()
+        if tail:
+            yield tail
 
 
 class ElevenLabsTTS:
@@ -221,6 +246,10 @@ class TTSRouter:
             self.configs = {k: v for k, v in cfg.items() if isinstance(v, dict)}
         self.engines: dict[str, object] = {}
         self.unavailable: dict[str, str] = {}
+        self.pronunciations: dict[str, str] = {}  # this conversation's pinned readings of names ({word: phonemes}), pronounce.py
+
+    def set_pronunciations(self, words: dict[str, str]) -> None:
+        self.pronunciations = {str(k): str(v) for k, v in (words or {}).items() if k and v}
 
     @property
     def name(self) -> str:
@@ -274,7 +303,11 @@ class TTSRouter:
         lang = speech_language(text, hint, self.default)
         engine = self.engine_for(lang)
         if lang == "he":
-            text = he_pronounce(text)  # names with a fixed reading (מאור, Zappy); only the audio changes
+            # names with a fixed reading (מאור, Zappy); only the audio changes.  Phonemes only for a voice that takes inline spans.
+            plain = he_pronounce(text)  # what a voice without spans gets, the backup included
+            text = he_pronounce(text, self.pronunciations) if getattr(engine, "language_spans", False) else plain
+        else:
+            plain = text
         # a Spanish / Italian / German phrase inside Hebrew is spoken with that language's pronunciation, same voice;
         # the backup voice does not know the tags and gets the plain text
         marked = mark_foreign(text, foreign) if lang == "he" and getattr(engine, "language_spans", False) else text
@@ -293,5 +326,5 @@ class TTSRouter:
             if now - getattr(self, "_last_fallback_log", 0.0) > 30:  # do not flood the log while a backend is down
                 self._last_fallback_log = now
                 print(f"[tts] {engine.name} failed ({e!r}); using {fb.name}"[:300], flush=True)
-            async for pcm in fb.synth(text, lang):
+            async for pcm in fb.synth(plain, lang):
                 yield pcm, fb.sample_rate, lang, fb.name

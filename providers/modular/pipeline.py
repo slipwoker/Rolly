@@ -28,6 +28,7 @@ from ..base import VoiceProvider
 from .llm import LLMResult, OpenAICompatLLM
 from .stt import discard_reason, get_stt
 from .text import FOREIGN_LANGS, LOOKUP_MARKER, MarkerFilter, SentenceChunker, TurnNotes, clean_for_speech, echo_like, has_stop_word, question_guard_note, user_wants_to_end
+from .pronounce import get_probe, usable_name
 from .tts import TTSRouter
 from .vad import Endpointer, SileroVAD, VadConfig
 
@@ -137,11 +138,36 @@ class ModularProvider(VoiceProvider):
         # the language the user is practising, if the caller knows it: unclear foreign phrases are pronounced in it
         speech = opts.get("speech") if isinstance(opts.get("speech"), dict) else {}
         self._foreign = speech.get("foreign_language") if speech.get("foreign_language") in FOREIGN_LANGS else None
+        await self._load_pronunciations()
         self.endpointer = Endpointer(SileroVAD(self.config.get("vad_model", "models/silero_vad.onnx")), self.vad_cfg)
         if self.ctx.proactive and self.ctx.opener_instruction:
             gate = _Gate(self, committed=True)
             self._gate = gate
             self._turn = asyncio.create_task(self._run_turn(gate, text=self.ctx.opener_instruction, proactive=True))
+
+    async def _load_pronunciations(self) -> None:
+        """How the Hebrew voice says the user's name in this conversation (pronounce.py).  The user's own correction, kept by
+        the caller, wins; otherwise a name whose reading depends on its place in the sentence is pinned to the reading in the
+        middle of one.  Before the opener: the greeting is where the name is said first."""
+        prof = self.ctx.profile if isinstance(self.ctx.profile, dict) else {}
+        word = usable_name(prof.get("name"))
+        chosen = prof.get("name_pron") if isinstance(prof.get("name_pron"), dict) else None
+        pins: dict[str, str] = {}
+        if word and chosen and chosen.get("ipa") and usable_name(chosen.get("name")) == word:
+            pins = {word: str(chosen["ipa"])}
+        elif word and self.ctx.language in ("he", "auto"):
+            probe = get_probe(self.config.get("pronounce_url"), self.config.get("pronounce_cache"))
+            if probe.enabled:
+                pins = await probe.pins(word, 3.0)
+        self.tts.set_pronunciations(pins)
+        if pins:
+            print(f"[pron] {self.ctx.session_id[:8]}: {pins}", flush=True)
+            if getattr(self, "_emit", None):  # shows in the session's metrics (stats.pod_metrics_count.name_pinned)
+                await self.emit(base.METRIC, name="name_pinned", value_ms=float(len(pins)))
+
+    async def set_pronunciations(self, words: dict) -> None:
+        """The caller changed how a name is said (the user corrected it): from the next piece of speech on."""
+        self.tts.set_pronunciations(words if isinstance(words, dict) else {})
 
     async def close(self) -> None:
         self._closed = True
@@ -495,12 +521,19 @@ class ModularProvider(VoiceProvider):
             t_llm = time.monotonic()
 
             async def produce() -> None:
-                chunker = SentenceChunker()
+                chunker = SentenceChunker(merge_chars=int(self.config.get("tts_merge_chars") or 0))
                 shown = MarkerFilter()  # the end and lookup markers never reach the text shown on the phone
                 first_chunk = True
                 try:
                     async for delta in self.llm.stream(messages, llm_res, **getattr(self, "_llm_extra", {})):
                         state["agent_text"] += delta
+                        # "checking": reported as soon as the marker has been written, not at the end of the reply.  A user who
+                        # speaks right after "אני בודק" cancels the reply, and a request reported only at its end was lost
+                        # (2026-11-26: three of seven requests, then Rolly "reported" a search that never ran).
+                        if (not state.get("lookup_sent") and LOOKUP_MARKER in state["agent_text"] and END_MARKER not in state["agent_text"]
+                                and not (typed and (text or "").startswith("[lookup"))):
+                            state["lookup_sent"] = True
+                            await gate.emit(base.LOOKUP_REQUESTED, response_id=rid)
                         visible = shown.feed(delta)
                         if visible:
                             await gate.emit(base.AGENT_TEXT, response_id=rid, delta=visible)
@@ -567,7 +600,7 @@ class ModularProvider(VoiceProvider):
                 await gate.emit(base.END_REQUESTED, reason="user_ended", after_s=tts_audio_s)
             # "checking": the caller looks it up and sends the answer back as a marked message.  A reply to such a
             # message cannot ask for another lookup (no loops).
-            elif LOOKUP_MARKER in state["agent_text"] and not (typed and (text or "").startswith("[lookup")):
+            elif LOOKUP_MARKER in state["agent_text"] and not state.get("lookup_sent") and not (typed and (text or "").startswith("[lookup")):
                 await gate.emit(base.LOOKUP_REQUESTED, response_id=rid)
             if gate.committed:
                 await self._finalize_committed(state)

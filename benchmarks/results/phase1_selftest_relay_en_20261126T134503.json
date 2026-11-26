@@ -1,0 +1,357 @@
+{
+    "id": "cf0ba8a9-85d7-4413-a866-bafe68c57a87",
+    "scenario": "relay",
+    "lang": "en",
+    "status": "done",
+    "started": "2026-11-26T13:44:21.192Z",
+    "results": [
+        {
+            "label": "relay",
+            "ok": true,
+            "lang": "en",
+            "turns": [
+                {
+                    "label": "opener",
+                    "seq": 1700661001,
+                    "text": "Hey, good afternoon. What's your name, and where are we headed?",
+                    "audio_s": 4.46,
+                    "interrupted": false,
+                    "proactive": true
+                },
+                {
+                    "label": "reply1",
+                    "seq": 1700661003,
+                    "text": "New clients are always a bit of a gamble. I've always preferred working with people who already know my style.",
+                    "audio_s": 7.45,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 345,
+                    "user_said": "Hey, I'm driving to work, I have an important meeting with a new client today."
+                },
+                {
+                    "label": "reply2",
+                    "seq": 1700661004,
+                    "text": "I can't really give advice, but I've always found that over-preparing the first five minutes helps.",
+                    "audio_s": 0.11,
+                    "interrupted": true,
+                    "proactive": false,
+                    "reply_latency_ms": 353,
+                    "user_said": "I'm a bit stressed, give me one short tip for the meeting.",
+                    "interrupt_received_ms_after_barge_start": 459
+                },
+                {
+                    "label": "after_barge_in_3",
+                    "seq": 1700661006,
+                    "text": "Fair enough. I've been thinking a lot about how much better coffee tastes when you're actually in a rush.",
+                    "audio_s": 6.69,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 239,
+                    "user_said": "Wait, wait, actually let's talk about something else."
+                }
+            ],
+            "transcripts": [
+                {
+                    "text": "I have an important meeting with a new client today.",
+                    "language": "en"
+                },
+                {
+                    "text": "I'm a bit stressed. Give me one short tip for the meeting.",
+                    "language": "en"
+                },
+                {
+                    "text": "Wait",
+                    "language": "en"
+                },
+                {
+                    "text": "Actually let's talk about something else.",
+                    "language": "en"
+                }
+            ],
+            "events": [
+                {
+                    "t": 313,
+                    "type": "session.created"
+                },
+                {
+                    "t": 313,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 538,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 729,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 5337,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 7256,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 7557,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 7557,
+                    "type": "agent.interrupted"
+                },
+                {
+                    "t": 10617,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 10617,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 10617,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 10723,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 11045,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 18558,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 22016,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 22016,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 22016,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 22170,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 22362,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 23337,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 23337,
+                    "type": "agent.interrupted"
+                },
+                {
+                    "t": 24036,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 24037,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 24037,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 24039,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 24051,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 24516,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 24516,
+                    "type": "agent.interrupted"
+                },
+                {
+                    "t": 26916,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 26917,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 26917,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 26958,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 27281,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 35572,
+                    "type": "session.summary"
+                },
+                {
+                    "t": 35573,
+                    "type": "session.closed"
+                }
+            ],
+            "session_id": "9c692339-d282-48b5-917b-8fb4c1c2cde7",
+            "summary": {
+                "type": "session.summary",
+                "session_id": "9c692339-d282-48b5-917b-8fb4c1c2cde7",
+                "summary": {
+                    "summary": "They mentioned having an important meeting with a new client and feeling a bit stressed, then asked for one short tip. The request was not answered, and they switched to another topic.",
+                    "progress": [],
+                    "method": "llm"
+                },
+                "stats": {
+                    "end_reason": "client_end",
+                    "duration_s": 34,
+                    "turns_user": 4,
+                    "turns_agent": 5,
+                    "interruptions": 3,
+                    "errors": 0,
+                    "audio_in_s": 33.6,
+                    "audio_out_s": 26.6,
+                    "voice_s_by_rate": {
+                        "44100": 26.6
+                    },
+                    "server_reply_ms": [
+                        107,
+                        154,
+                        2,
+                        36
+                    ],
+                    "server_reply_ms_median": 36,
+                    "client_first_audio_ms": [],
+                    "client_first_audio_ms_median": null,
+                    "client_flush_ms": [],
+                    "audio_events": [],
+                    "notes": [],
+                    "lookups": [],
+                    "pod_metrics_median": {
+                        "llm_first_chunk_ms": 108.29672089312226,
+                        "tts_ttfa_ms": 101.57900606282055,
+                        "pipeline_ms": 334.20947403647006,
+                        "llm_ttft_ms": 54.9025769578293,
+                        "llm_total_ms": 303.4084429964423,
+                        "stt_ms": 139.75430908612907,
+                        "stt_queue_ms": 0.12108893133699894
+                    },
+                    "pod_metrics_count": {
+                        "llm_first_chunk_ms": 4,
+                        "tts_ttfa_ms": 5,
+                        "pipeline_ms": 5,
+                        "llm_ttft_ms": 5,
+                        "llm_total_ms": 5,
+                        "stt_ms": 4,
+                        "stt_queue_ms": 4
+                    },
+                    "usage": {
+                        "llm": {
+                            "calls": 5,
+                            "prompt_tokens": 3923,
+                            "completion_tokens": 100,
+                            "cached_tokens": 0,
+                            "max_prompt_tokens": 885,
+                            "model": "local@http://127.0.0.1:8081/v1"
+                        },
+                        "tts": {
+                            "chars": 383,
+                            "audio_s": 26.61,
+                            "engine": "en=bluev3:jonathan:speed1:whole@http://127.0.0.1:1920/v1 | he=bluev3:ariel:speed1:whole@http://127.0.0.1:1920/v1"
+                        },
+                        "stt": {
+                            "audio_s": 10.27,
+                            "engine": "routed[he=faster-whisper:ivrit-ai/whisper-large-v3-turbo-ct2:cuda:float16, en=faster-whisper:deepdml/faster-whisper-large-v3-turbo-ct2:cuda:float16; mixed->he]"
+                        }
+                    },
+                    "summary_ms": 1804
+                }
+            }
+        }
+    ],
+    "user_id": "84167a93-d378-4b56-8dd4-cf88eecb41dc",
+    "error": null,
+    "state": {
+        "profile": {
+            "preferred_name": null,
+            "preferred_language": "en",
+            "addressing": {
+                "value": null,
+                "status": "unknown",
+                "evidence": {
+                    "examples": [],
+                    "feminine": 0,
+                    "masculine": 0,
+                    "ignored_uncertain": 0
+                }
+            }
+        },
+        "memories": [
+            {
+                "kind": "summary",
+                "status": "active",
+                "content": "They mentioned having an important meeting with a new client and feeling a bit stressed, then asked for one short tip. The request was not answered, and they switched to another topic.",
+                "confidence": null
+            }
+        ],
+        "progress": [],
+        "goals": [],
+        "tasks_open": [],
+        "ideas": [],
+        "tasks_done": [],
+        "next_agenda": [
+            {
+                "why": "עלה רצון לקבל טיפ קצר, אבל השיחה עברה לנושא אחר לפני שקיבלת מענה.",
+                "kind": "follow_up",
+                "take": "הייתי מתמקד בשאלה אחת טובה ללקוח במקום לנסות להרשים בכל מחיר.",
+                "topic": "המתח לפני פגישת הלקוח",
+                "ref_id": null
+            },
+            {
+                "why": "זה היה הנושא שהועלה אחרי שהעדפת לדבר על משהו אחר.",
+                "kind": "fresh",
+                "take": "אני חושב שקפה בדרך דווקא טעים יותר בגלל ההפוגה הקטנה, לא בגלל הלחץ עצמו.",
+                "topic": "הטעם של קפה בזמן לחץ",
+                "ref_id": null
+            }
+        ],
+        "digest": null,
+        "scrub_pending": 0,
+        "sessions": [
+            {
+                "started_at": "2026-11-26T13:44:21.208Z",
+                "notes": [],
+                "plan": {
+                    "ms": 2507,
+                    "method": "llm",
+                    "applied": [],
+                    "refused": [],
+                    "next_agenda": 2,
+                    "agenda_outcome": []
+                },
+                "lookahead_ms": 2523,
+                "reply_ms": 36
+            }
+        ],
+        "next_opener_instruction": "[journey_start - not said by the user] The ride has just started. Open now: a short hello for the afternoon, and one easy, light question about them: how their morning or day is going, or how the ride is starting. Do not bring up anything from before, nothing about yourself. Under twelve words in total. Your last opening was \"Hey, good afternoon. What's your name, and where are we headed?\": open differently this time.",
+        "next_prompt_chars": 2756,
+        "next_prompt_memory_part": "## What you know about them\nTheir name: not known yet (you are Rolly). You do not know whether to address them as a man or a woman: phrase things without gendered second person (impersonal or plural forms), and never ask about it. If they tell you, follow it at once.\nLast time (earlier today): They mentioned having an important meeting with a new client and feeling a bit stressed, then asked for one short tip. The request was not answered, and they switched to another topic.\n\nLocal time: Thursday 15:45 (afternoon).\n"
+    }
+}
