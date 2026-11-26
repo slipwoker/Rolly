@@ -27,6 +27,9 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /v1/users/{uid}/link", s.auth(http.HandlerFunc(s.link)))
 	mux.Handle("GET /v1/users/{uid}", s.auth(http.HandlerFunc(s.status)))
 	mux.Handle("DELETE /v1/users/{uid}", s.auth(http.HandlerFunc(s.unlink)))
+	mux.Handle("POST /v1/users/{uid}/send/draft", s.auth(http.HandlerFunc(s.draft)))
+	mux.Handle("POST /v1/users/{uid}/send/confirm", s.auth(http.HandlerFunc(s.confirm)))
+	mux.Handle("DELETE /v1/users/{uid}/send/drafts/{id}", s.auth(http.HandlerFunc(s.cancelDraft)))
 	mux.Handle("GET /v1/users/{uid}/chats", s.auth(http.HandlerFunc(s.chats)))
 	mux.Handle("GET /v1/users/{uid}/chats/{ref}/messages", s.auth(http.HandlerFunc(s.messages)))
 	return mux
@@ -229,4 +232,75 @@ func (s *Server) transcribePage(ctx context.Context, userID, ref string, list []
 		}(&list[i])
 	}
 	wg.Wait()
+}
+
+// POST /v1/users/{uid}/send/draft {"chat_ref","text"} -> the draft to read back to the user. Sends nothing.
+func (s *Server) draft(w http.ResponseWriter, r *http.Request) {
+	id, ok := uid(w, r)
+	if !ok {
+		return
+	}
+	var body struct {
+		ChatRef string `json:"chat_ref"`
+		Text    string `json:"text"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16384)).Decode(&body); err != nil || !refRe.MatchString(body.ChatRef) {
+		writeJSON(w, 400, map[string]string{"error": "chat_ref and text are required"})
+		return
+	}
+	d, err := s.m.CreateDraft(r.Context(), id, body.ChatRef, body.Text)
+	switch {
+	case errors.Is(err, ErrBadText):
+		writeJSON(w, 400, map[string]string{"error": err.Error()})
+	case errors.Is(err, ErrChatNotFound):
+		writeJSON(w, 404, map[string]string{"error": err.Error()})
+	case err != nil:
+		writeJSON(w, 500, map[string]string{"error": "internal error"})
+	default:
+		writeJSON(w, 201, d)
+	}
+}
+
+// POST /v1/users/{uid}/send/confirm {"draft_id"}: call ONLY after the user said yes to the read-back.
+func (s *Server) confirm(w http.ResponseWriter, r *http.Request) {
+	id, ok := uid(w, r)
+	if !ok {
+		return
+	}
+	var body struct {
+		DraftID string `json:"draft_id"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&body); err != nil || body.DraftID == "" {
+		writeJSON(w, 400, map[string]string{"error": "draft_id is required"})
+		return
+	}
+	sent, err := s.m.ConfirmDraft(r.Context(), id, body.DraftID)
+	var rl *RateLimitError
+	switch {
+	case err == nil:
+		writeJSON(w, 200, sent)
+	case errors.Is(err, ErrDraftNotFound):
+		writeJSON(w, 404, map[string]string{"error": err.Error()})
+	case errors.Is(err, ErrDraftUsed):
+		writeJSON(w, 409, map[string]string{"error": err.Error()})
+	case errors.Is(err, ErrNotConnected):
+		writeJSON(w, 409, map[string]string{"error": err.Error(), "state": "not_connected"})
+	case errors.As(err, &rl):
+		w.Header().Set("Retry-After", strconv.Itoa(int(rl.RetryAfter.Seconds())+1))
+		writeJSON(w, 429, map[string]any{"error": rl.Error(), "reason": rl.Reason, "retry_after_s": int(rl.RetryAfter.Seconds()) + 1})
+	case errors.Is(err, ErrChatNotFound):
+		writeJSON(w, 404, map[string]string{"error": err.Error()})
+	default:
+		writeJSON(w, 502, map[string]string{"error": "send failed"})
+	}
+}
+
+// DELETE /v1/users/{uid}/send/drafts/{id}: the user said no.
+func (s *Server) cancelDraft(w http.ResponseWriter, r *http.Request) {
+	id, ok := uid(w, r)
+	if !ok {
+		return
+	}
+	s.m.CancelDraft(id, r.PathValue("id"))
+	writeJSON(w, 200, map[string]bool{"ok": true})
 }

@@ -55,6 +55,8 @@ func (s *MessageStore) Migrate(ctx context.Context) error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS wa_messages_chat_ts ON wa_messages (user_id, chat_ref, ts)`,
 		`CREATE INDEX IF NOT EXISTS wa_messages_expiry ON wa_messages (expires_at)`,
+		`CREATE TABLE IF NOT EXISTS wa_sends (user_id TEXT NOT NULL, chat_ref TEXT NOT NULL, ts BIGINT NOT NULL)`, // no content, only counts for the caps
+		`CREATE INDEX IF NOT EXISTS wa_sends_user_ts ON wa_sends (user_id, ts)`,
 	}
 	for _, st := range stmts {
 		if _, err := s.db.ExecContext(ctx, st); err != nil {
@@ -237,16 +239,37 @@ func (s *MessageStore) Purge(ctx context.Context, now time.Time) (int64, error) 
 		return 0, err
 	}
 	n, _ := res.RowsAffected()
+	_, _ = s.db.ExecContext(ctx, s.q(`DELETE FROM wa_sends WHERE ts < ?`), now.Add(-48*time.Hour).UnixMilli())
 	_, err = s.db.ExecContext(ctx, `DELETE FROM wa_chats WHERE NOT EXISTS (SELECT 1 FROM wa_messages m WHERE m.user_id = wa_chats.user_id AND m.chat_ref = wa_chats.ref)`)
 	return n, err
 }
 
 // DeleteUser removes everything stored for the user.
 func (s *MessageStore) DeleteUser(ctx context.Context, userID string) error {
-	for _, t := range []string{"wa_messages", "wa_chats"} {
+	for _, t := range []string{"wa_messages", "wa_chats", "wa_sends"} {
 		if _, err := s.db.ExecContext(ctx, s.q(`DELETE FROM `+t+` WHERE user_id = ?`), userID); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// RecordSend logs that a message was sent (no content) so the caps can be enforced across restarts.
+func (s *MessageStore) RecordSend(ctx context.Context, userID, chatRef string, at time.Time) error {
+	_, err := s.db.ExecContext(ctx, s.q(`INSERT INTO wa_sends (user_id, chat_ref, ts) VALUES (?, ?, ?)`), userID, chatRef, at.UnixMilli())
+	return err
+}
+
+// SendStats returns the time of the last send and the number of sends since the cutoff (and the oldest of them).
+func (s *MessageStore) SendStats(ctx context.Context, userID string, since time.Time) (last time.Time, count int, oldest time.Time, err error) {
+	var maxTS, minTS sql.NullInt64
+	err = s.db.QueryRowContext(ctx, s.q(`SELECT MAX(ts), MIN(CASE WHEN ts >= ? THEN ts END), COUNT(CASE WHEN ts >= ? THEN 1 END) FROM wa_sends WHERE user_id = ?`),
+		since.UnixMilli(), since.UnixMilli(), userID).Scan(&maxTS, &minTS, &count)
+	if maxTS.Valid {
+		last = time.UnixMilli(maxTS.Int64)
+	}
+	if minTS.Valid {
+		oldest = time.UnixMilli(minTS.Int64)
+	}
+	return
 }

@@ -47,6 +47,10 @@ type Manager struct {
 	stt       *Transcriber
 	log       waLog.Logger
 
+	now          func() time.Time
+	drafts       drafts
+	sendOverride func(userID string) (sender, error) // tests
+
 	mu   sync.Mutex
 	live map[string]*live
 }
@@ -58,7 +62,7 @@ func NewManager(cfg Config, container *sqlstore.Container, accounts *AccountStor
 		retention = 30 * 24 * time.Hour
 	}
 	return &Manager{
-		cfg: cfg, container: container, accounts: accounts, log: log, live: map[string]*live{},
+		cfg: cfg, container: container, accounts: accounts, log: log, live: map[string]*live{}, now: time.Now,
 		msgs:   msgs,
 		ingest: &Ingester{msgs: msgs, retention: retention, now: time.Now},
 		stt:    &Transcriber{URL: cfg.STTURL, Token: cfg.STTToken, Language: cfg.STTLanguage},

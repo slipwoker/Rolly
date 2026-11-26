@@ -18,6 +18,10 @@ type Config struct {
 	STTURL        string // speech-to-text endpoint for voice notes (WA_STT_URL); empty = voice notes are not transcribed
 	STTToken      string // bearer token for it (WA_STT_TOKEN)
 	STTLanguage   string // WA_STT_LANGUAGE, default he
+	SendPerDay    int    // most messages one user may send in 24 h (WA_SEND_PER_DAY, default 40)
+	SendMinGapS   int    // minimum seconds between two sends of one user (WA_SEND_MIN_GAP_S, default 4)
+	DraftTTLS     int    // seconds a draft stays confirmable (WA_DRAFT_TTL_S, default 120)
+	MaxSendChars  int    // longest message Rolly may send (WA_MAX_SEND_CHARS, default 1000)
 }
 
 func LoadConfig() (Config, error) {
@@ -31,6 +35,10 @@ func LoadConfig() (Config, error) {
 		STTURL:        os.Getenv("WA_STT_URL"),
 		STTToken:      os.Getenv("WA_STT_TOKEN"),
 		STTLanguage:   envOr("WA_STT_LANGUAGE", "he"),
+		SendPerDay:    envInt("WA_SEND_PER_DAY", 40),
+		SendMinGapS:   envInt("WA_SEND_MIN_GAP_S", 4),
+		DraftTTLS:     envInt("WA_DRAFT_TTL_S", 120),
+		MaxSendChars:  envInt("WA_MAX_SEND_CHARS", 1000),
 	}
 	if c.DatabaseURL == "" {
 		return c, fmt.Errorf("DATABASE_URL is required")
@@ -61,4 +69,30 @@ func envInt(k string, d int) int {
 		return v
 	}
 	return d
+}
+
+// accessors fall back to the defaults when a Config is built by hand (tests)
+func (c Config) sendPerDay() int {
+	if c.SendPerDay > 0 {
+		return c.SendPerDay
+	}
+	return 40
+}
+func (c Config) sendMinGap() int {
+	if c.SendMinGapS > 0 {
+		return c.SendMinGapS
+	}
+	return 4
+}
+func (c Config) draftTTL() int {
+	if c.DraftTTLS > 0 {
+		return c.DraftTTLS
+	}
+	return 120
+}
+func (c Config) maxSendChars() int {
+	if c.MaxSendChars > 0 {
+		return c.MaxSendChars
+	}
+	return 1000
 }
