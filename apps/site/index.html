@@ -47,12 +47,40 @@
     "רולי"
    ],
    "url": "https://heyrolly.ai/",
+   "legalName": "Zappy Technologies Ltd.",
    "logo": {
     "@type": "ImageObject",
     "url": "https://heyrolly.ai/assets/apple-touch-icon.png",
     "width": 180,
     "height": 180
-   }
+   },
+   "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "4 HaShlosha St.",
+    "addressLocality": "Nitzanei Oz",
+    "addressCountry": "IL"
+   },
+   "contactPoint": [
+    {
+     "@type": "ContactPoint",
+     "contactType": "customer support",
+     "email": "ido@zappy5.com",
+     "telephone": "+972-54-4559955",
+     "availableLanguage": [
+      "he",
+      "en"
+     ]
+    },
+    {
+     "@type": "ContactPoint",
+     "contactType": "privacy",
+     "email": "privacy@zappy5.com",
+     "availableLanguage": [
+      "he",
+      "en"
+     ]
+    }
+   ]
   },
   {
    "@type": "WebSite",
@@ -213,7 +241,9 @@
     d.lang = page; d.dir = page === "he" ? "rtl" : "ltr";
     var h = new Date().getHours(); d.dataset.time = (h >= 6 && h < 19) ? "day" : "night";
     d.classList.add("js");
-    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) d.classList.add("intro");
+    var still = false; try { still = localStorage.getItem("rolly-motion") === "off"; } catch (e) {}
+    if (still) d.classList.add("still");
+    else if (!matchMedia("(prefers-reduced-motion: reduce)").matches) d.classList.add("intro");
   })();
 </script>
 <style>
@@ -441,7 +471,20 @@ section{padding-block:128px 0}
 .peek .m-head{animation:peek 5s ease-in-out infinite}
 .shoot{position:absolute;top:18%;width:140px;height:2px;background:linear-gradient(90deg,rgba(255,255,255,0),#fff);border-radius:2px;opacity:0;animation:shoot 7s 2s ease-in infinite;z-index:-1}
 
-footer{padding:40px 0 48px;display:flex;flex-wrap:wrap;gap:14px 24px;align-items:center;justify-content:space-between;color:var(--ink-3);font-size:14px}
+footer{padding:40px 0 48px;display:flex;flex-wrap:wrap;gap:14px 24px;align-items:center;justify-content:space-between;color:var(--ink-2);font-size:14px}
+.legal-links{display:flex;flex-wrap:wrap;gap:4px 18px;margin:0;padding:0;list-style:none}
+.legal-links a{color:var(--ink-2);text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+.legal-links a:hover{color:var(--ink);text-decoration-color:currentColor}
+/* keyboard users jump past the header (WCAG 2.4.1) */
+.skip{position:absolute;inset-inline-start:16px;top:-60px;z-index:100;padding:10px 16px;border-radius:12px;background:var(--ink);color:#fff;text-decoration:none;font-weight:500}
+.skip:focus{top:12px}
+/* pause all motion (WCAG 2.2.2): the button in the header, remembered per visitor */
+.motion{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;padding:0;flex:none}
+.motion svg{width:16px;height:16px}
+.motion .play{display:none}
+.still .motion .play{display:block}.still .motion .pause{display:none}
+.still *,.still *::before,.still *::after{animation-play-state:paused!important;transition-duration:.01ms!important;transition-delay:0s!important}
+
 footer .brand-word{font-size:18px;color:var(--ink)}
 .foot-end{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .lang{display:inline-flex;padding:3px;border-radius:999px;background:#fff;border:1px solid var(--line)}
@@ -554,6 +597,7 @@ footer .brand-word{font-size:18px;color:var(--ink)}
 </style>
 </head>
 <body>
+<a class="skip" href="#top" data-t="skip">דלגו לתוכן</a>
 
 <header class="nav wrap">
   <div class="nav-in">
@@ -567,6 +611,7 @@ footer .brand-word{font-size:18px;color:var(--ink)}
       <a href="#ride" data-t="nav_ride">לכל נסיעה</a>
     </nav>
     <div class="nav-end">
+      <button class="motion" type="button" aria-pressed="false" data-t-aria="motion" aria-label="עצירת אנימציות"><svg class="pause" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1.2" fill="currentColor"/><rect x="9.5" y="2" width="3.5" height="12" rx="1.2" fill="currentColor"/></svg><svg class="play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11a.8.8 0 0 0 1.2.7l9-5.5a.8.8 0 0 0 0-1.4l-9-5.5A.8.8 0 0 0 4 2.5z" fill="currentColor"/></svg></button>
       <button class="daynight" type="button" data-t-aria="daynight" aria-label="להחליף בין יום ולילה">
         <span class="dot" style="top:10px;inset-inline-start:14px"></span><span class="dot" style="top:22px;inset-inline-start:22px"></span><span class="dot" style="top:13px;inset-inline-start:28px"></span>
         <span class="knob"></span>
@@ -744,8 +789,15 @@ footer .brand-word{font-size:18px;color:var(--ink)}
 
 <footer class="wrap">
   <span class="brand"><span class="brand-mark" data-mascot="mark"></span><span class="brand-word">ROLLY</span></span>
+  <nav aria-labelledby="legal-title"><h2 id="legal-title" class="hp" data-t="legal_nav">מידע משפטי</h2>
+    <ul class="legal-links">
+      <li><a href="/privacy/" data-legal data-t="legal_privacy">מדיניות פרטיות</a></li>
+      <li><a href="/terms/" data-legal data-t="legal_terms">תנאי שימוש</a></li>
+      <li><a href="/accessibility/" data-legal data-t="legal_access">הצהרת נגישות</a></li>
+    </ul>
+  </nav>
   <div class="foot-end">
-    <span data-t="rights">© 2026 ROLLY. כל הזכויות שמורות.</span>
+    <span data-t="rights">© 2026 זאפי טכנולוגיות בע״מ. כל הזכויות שמורות.</span>
     <div class="lang" role="group" aria-label="Language / שפה">
       <a href="/" data-lang="he" lang="he" hreflang="he" aria-current="page">עברית</a>
       <a href="/en/" data-lang="en" lang="en" hreflang="en">English</a>
@@ -789,7 +841,9 @@ footer .brand-word{font-size:18px;color:var(--ink)}
       r_eb: "לכל נסיעה", r_a: "כמה זמן", r_b: "הנסיעה היום?", r_p: "רולי מתאים את השיחה לדרך: מה נכנס, מה נשאר לפעם הבאה, ואיפה עוצרים.",
       r_group: "אורך הנסיעה", chip: "{n} דק׳", min_word: "דקות",
       cta_h: "נתראה על הכביש.", cta_p: "רולי בשלבי בדיקות אחרונים. הצטרפו לרשימה ותהיו מהראשונים שיוצאים איתו לדרך.",
-      rights: "© 2026 ROLLY. כל הזכויות שמורות.",
+      rights: "© 2026 זאפי טכנולוגיות בע״מ. כל הזכויות שמורות.",
+      skip: "דלגו לתוכן", motion: "עצירת אנימציות", motion_on: "הפעלת אנימציות",
+      legal_nav: "מידע משפטי", legal_privacy: "מדיניות פרטיות", legal_terms: "תנאי שימוש", legal_access: "הצהרת נגישות",
       og_alt: "רולי, דמות לבנה עגולה מאחורי ההגה, ליד הכותרת ״חבר לנסיעה שזוכר הכל״",
       faq_eb: "שאלות נפוצות", faq_h: "רגע, יש לי שאלה.",
       q1_q: "מה זה רולי?",
@@ -830,7 +884,9 @@ footer .brand-word{font-size:18px;color:var(--ink)}
       r_eb: "Every ride", r_a: "How long is", r_b: "the drive today?", r_p: "Rolly shapes the conversation to the road: what fits, what waits for next time, and where to stop.",
       r_group: "Ride length", chip: "{n} min", min_word: "minutes",
       cta_h: "See you on the road.", cta_p: "Rolly is in its last round of testing. Join the list and be among the first to ride with it.",
-      rights: "© 2026 ROLLY. All rights reserved.",
+      rights: "© 2026 Zappy Technologies Ltd. All rights reserved.",
+      skip: "Skip to content", motion: "Pause animations", motion_on: "Play animations",
+      legal_nav: "Legal", legal_privacy: "Privacy policy", legal_terms: "Terms of use", legal_access: "Accessibility statement",
       og_alt: "Rolly, a round white character at the wheel, next to the headline “A ride buddy who remembers”",
       faq_eb: "Questions", faq_h: "Wait, one question.",
       q1_q: "What is Rolly?",
@@ -946,6 +1002,17 @@ footer .brand-word{font-size:18px;color:var(--ink)}
     var d = $('[data-mascot="hero"]'); d.classList.remove("hop"); void d.offsetWidth; d.classList.add("hop");
     restartChat();   // so ROLLY greets with "good evening" at night, "good morning" by day
   });
+  // pause / play all motion; remembered so the next visit starts still
+  var motionBtn = $(".motion");
+  function setStill(still, save){
+    root.classList.toggle("still", still);
+    motionBtn.setAttribute("aria-pressed", String(still));
+    motionBtn.setAttribute("aria-label", t(still ? "motion_on" : "motion"));
+    if (save) { try { localStorage.setItem("rolly-motion", still ? "off" : "on"); } catch (e) {} }
+    if (still) clearTimeout(chatTimer); else if (save) restartChat();
+  }
+  motionBtn.addEventListener("click", function(){ setStill(!root.classList.contains("still"), true); });
+
   // each language is its own page; remember the choice so / doesn't send this visitor elsewhere next time
   $$(".lang a").forEach(function(a){
     a.addEventListener("click", function(e){
@@ -989,20 +1056,20 @@ footer .brand-word{font-size:18px;color:var(--ink)}
     if (live.length > MAX){ var old = live[0]; old.classList.add("out"); setTimeout(function(){ old.remove(); }, 450); }
     return b;
   }
-  function step(){
+  function step(instant){
     var lines = LINES[lang], l = lines[at % lines.length]; at++;
     var text = typeof l.text === "string" ? l.text : l.text[root.dataset.time === "night" ? "night" : "day"];  // greeting follows day/night
     var html = (l.who === "rolly" ? "<small>ROLLY</small>" : "") + esc(text) + (l.check ? '<span class="check">✓</span>' : "");
     var next = function(){ chatTimer = setTimeout(step, at % lines.length === 0 ? 4200 : 2300); };
     if (at % lines.length === 1 && at > 1) $$(".bubble", box).forEach(function(x){ x.classList.add("out"); setTimeout(function(){ x.remove(); }, 450); });
-    if (reduced){ addBubble(l.who, html); return; }
+    if (reduced || instant){ addBubble(l.who, html); return; }
     if (l.who === "rolly"){      // ROLLY "speaks" after a beat, the way it does in the car
       var typing = addBubble("rolly typing", "<i></i><i></i><i></i>");
       chatTimer = setTimeout(function(){ typing.remove(); addBubble(l.who, html); next(); }, 900);
     } else { addBubble(l.who, html); next(); }
   }
   function restartChat(){ clearTimeout(chatTimer); box.innerHTML = ""; at = 0;
-    if (reduced) { for (var i = 0; i < MAX; i++) step(); } else chatTimer = setTimeout(step, 400); }
+    if (reduced || root.classList.contains("still")) { for (var i = 0; i < MAX; i++) step(true); } else chatTimer = setTimeout(step, 400); }
 
   /* ================================================================ ride length */
   var current = 20, shown = 0, car = $(".track .car"), counter = $("[data-count]");
@@ -1115,6 +1182,7 @@ footer .brand-word{font-size:18px;color:var(--ink)}
 
   /* ================================================================ go */
   applyLang();
+  setStill(root.classList.contains("still"), false);
   counter.textContent = reduced ? current : 0;
   if (reduced) planFor(current);
   var hero = $(".hero");
