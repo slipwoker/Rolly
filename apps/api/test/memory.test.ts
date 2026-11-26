@@ -37,6 +37,29 @@ const a = (text: string): SessionTurn => ({ idx: idx++, role: "agent", text, att
 const item = (content: string, quote: string, extra: Record<string, unknown> = {}) => ({ content, quote, confidence: 0.9, first_person: true, turn: null, ...extra });
 
 describe.skipIf(!process.env.CI && false)("memory policy with PostgreSQL", () => {
+  it("addressing still unknown: earlier stored rides are read again, deleted ones are not", async () => {
+    if (!available) return;
+    const uid = await store.createUser("addr");
+    const ride = async (texts: string[]) => {
+      const sid = crypto.randomUUID(); await store.startSession(sid, uid, "he", false, new Date());
+      const turns = texts.map((t) => u(t));
+      await store.learnAddressing(uid, sid, turns);
+      await store.finishSession({ sessionId: sid, userId: uid, turns, summary: null, stats: {}, endReason: "client_end", describe: {} });
+      return sid;
+    };
+    // stored as if an older reader had seen nothing in them
+    const s1 = await ride(["וואלה, לא יודע, משהו כזה"]);
+    const s2 = await ride(["אין לי מושג, אני לא מכיר את רומא."]);
+    await db.query("UPDATE profiles SET addressing_evidence='{}'::jsonb WHERE user_id=$1", [uid]);
+    expect(await store.addressing(uid)).toMatchObject({ value: null, status: "unknown" });
+    await store.deleteSession(uid, s2);
+    await ride(["אני אני אמור לנסוע לאיטליה"]);
+    expect((await store.addressing(uid)).evidence.masculine).toBe(2); // s1 re-read, the deleted s2 not
+    await ride(["ואני קצת רדום עכשיו"]);
+    expect(await store.addressing(uid)).toMatchObject({ value: "masculine", status: "inferred" });
+    expect((await store.addressing(uid)).evidence.examples.map((e) => e.session_id)).toContain(s1);
+  });
+
   it("first-person one-to-one -> active; uncertain speaker -> candidate; continuity in the next prompt", async () => {
     if (!available) return;
     const uid = await store.createUser("test");

@@ -17,8 +17,23 @@ describe("observe()", () => {
     expect(observe("עשיתי את זה אתמול")).toEqual([]);
     expect(observe("אני רוצה לדבר על העבודה")).toEqual([]);
     expect(observe("אני מנסה")).toEqual([]);
-    expect(observe("הוא חושב שאני צודק")).toEqual([]); // "צודק" not after אני directly in the lexicon
+    expect(observe("הוא חושב")).toEqual([]);
     expect(observe("I think so")).toEqual([]);
+  });
+  it("reads common spoken forms: dropped pronoun, repeated pronoun, everyday words", () => {
+    expect(observe("וואלה, לא יודע, משהו כזה").map((o) => o.form)).toEqual(["masculine"]);
+    expect(observe("לא בטוחה.").map((o) => o.form)).toEqual(["feminine"]);
+    expect(observe("אני אני אמור לנסוע שבוע הבא").map((o) => o.form)).toEqual(["masculine"]);
+    expect(observe("אין לי מושג, אני לא מכיר את רומא.").map((o) => o.form)).toEqual(["masculine"]);
+    expect(observe("ואני קצת רדומה עכשיו").map((o) => o.form)).toEqual(["feminine"]);
+    expect(observe("אני בת 35").map((o) => o.form)).toEqual(["feminine"]);
+  });
+  it("does not read a dropped pronoun in a question, mid-sentence or about someone else", () => {
+    expect(observe("לא יודע?")).toEqual([]);
+    expect(observe("הוא לא יודע")).toEqual([]);
+    expect(observe("אתה לא יודע")).toEqual([]);
+    expect(observe("בואו נדבר על לא יודע מה")).toEqual([]);
+    expect(observe("אני בן אדם")).toEqual([]);
   });
   it("detects explicit requests", () => {
     expect(observe("תדבר אליי בלשון נקבה בבקשה")).toEqual([{ form: "feminine", kind: "explicit", quote: "תדבר אליי בלשון נקבה בבקשה" }]);
@@ -28,6 +43,11 @@ describe("observe()", () => {
 });
 
 describe("addressing state machine", () => {
+  it("infers from a real ride where the pronoun is mostly dropped", () => {
+    const r = feed(fresh(), ["‫לא יודע, מה התוכנית להיום?", "אני אני אמור לנסוע שבוע הבא לאיטליה", "אין לי מושג, אני לא מכיר את רומא."]);
+    expect(r).toMatchObject({ value: "masculine", status: "inferred" });
+  });
+
   it("stays unknown below the threshold, infers with consistent evidence", () => {
     let r = feed(fresh(), ["אני חושבת שכן", "אני עייפה"]);
     expect(r.status).toBe("unknown");

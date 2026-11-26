@@ -2,7 +2,7 @@
  * Hebrew grammatical addressing: learned only from the user's own words.
  *
  * Evidence = gendered first-person self-references in the user's speech ("אני חושב" / "אני חושבת", "אני עייף" / "אני עייפה",
- * "הייתי עייפה"). First-person past-tense verbs ("עשיתי") carry no gender and are not counted. Explicit requests
+ * "הייתי עייפה", and with the pronoun dropped at the start of a clause: "לא יודע" / "לא יודעת"). First-person past-tense verbs ("עשיתי") carry no gender and are not counted. Explicit requests
  * ("תדבר אליי בלשון נקבה") confirm the preference. Never: voice pitch, name, interests. Never asked unprompted.
  *
  * Evidence from turns whose speaker is uncertain is counted separately and never changes the stored preference.
@@ -24,11 +24,32 @@ const PAIRS: [string, string][] = [
   ["מנהל", "מנהלת"], ["מתכוון", "מתכוונת"], ["מתגעגע", "מתגעגעת"], ["חולה", "חולה"], ["מקשיב", "מקשיבה"], ["משתדל", "משתדלת"],
   ["מאמין", "מאמינה"], ["מנסה", "מנסה"], ["רוצה", "רוצה"], ["רואה", "רואה"], ["מקווה", "מקווה"], ["קורא", "קוראת"],
   ["מוטרד", "מוטרדת"], ["מרוצה", "מרוצה"], ["מותש", "מותשת"], ["ערני", "ערנית"], ["מבולבל", "מבולבלת"], ["מסוגל", "מסוגלת"],
+  ["מכיר", "מכירה"], ["אמור", "אמורה"], ["רדום", "רדומה"], ["חייב", "חייבת"], ["מוכרח", "מוכרחה"], ["מעוניין", "מעוניינת"],
+  ["זקוק", "זקוקה"], ["צודק", "צודקת"], ["נמצא", "נמצאת"], ["יושב", "יושבת"], ["עומד", "עומדת"], ["מגיע", "מגיעה"],
+  ["יוצא", "יוצאת"], ["נכנס", "נכנסת"], ["עובר", "עוברת"], ["יורד", "יורדת"], ["בא", "באה"], ["שוכח", "שוכחת"],
+  ["מבקש", "מבקשת"], ["מסתכל", "מסתכלת"], ["מחליט", "מחליטה"], ["משחק", "משחקת"], ["אוכל", "אוכלת"], ["גר", "גרה"],
+  ["חי", "חיה"], ["ישן", "ישנה"], ["מצליח", "מצליחה"], ["מתעסק", "מתעסקת"], ["מתמודד", "מתמודדת"], ["מתאמן", "מתאמנת"],
+  ["מרוויח", "מרוויחה"], ["משלם", "משלמת"], ["מסיים", "מסיימת"], ["ממשיך", "ממשיכה"], ["מחזיק", "מחזיקה"], ["שואל", "שואלת"],
+  ["מצטרף", "מצטרפת"], ["נשאר", "נשארת"], ["נרדם", "נרדמת"], ["מקבל", "מקבלת"], ["נותן", "נותנת"], ["לוקח", "לוקחת"],
+  ["מבשל", "מבשלת"], ["מטייל", "מטיילת"], ["מסתדר", "מסתדרת"], ["מתבאס", "מתבאסת"], ["מתעצבן", "מתעצבנת"], ["מתלהב", "מתלהבת"],
+  ["מפספס", "מפספסת"], ["מקנא", "מקנאת"], ["מבטיח", "מבטיחה"], ["מוותר", "מוותרת"], ["מחובר", "מחוברת"], ["מת", "מתה"],
+  ["כועס", "כועסת"], ["עצוב", "עצובה"], ["מאוכזב", "מאוכזבת"], ["מופתע", "מופתעת"], ["נרגש", "נרגשת"], ["משועמם", "משועממת"],
+  ["חלש", "חלשה"], ["בריא", "בריאה"], ["מבוגר", "מבוגרת"], ["שבור", "שבורה"], ["הרוס", "הרוסה"], ["מסודר", "מסודרת"],
+  ["סגור", "סגורה"], ["פנוי", "פנויה"], ["גרוש", "גרושה"], ["ער", "ערה"], ["קם", "קמה"], ["מתקשר", "מתקשרת"],
 ];
+/**
+ * Spoken Hebrew often drops the pronoun: "לא יודע", "לא בטוחה". These count only at the start of a clause (after optional
+ * discourse words), right after "לא", and not in a question ("לא יודע?" may be said to ROLLY).
+ */
+const PRODROP = new Set(["יודע", "יודעת", "בטוח", "בטוחה", "זוכר", "זוכרת", "מכיר", "מכירה", "מבין", "מבינה", "מסכים", "מסכימה",
+  "שומע", "שומעת"]);
+const DISCOURSE = new Set(["וואלה", "ואלה", "אז", "כן", "טוב", "אוקיי", "אוקי", "אה", "אמ", "אממ", "יאללה", "תכלס", "בקיצור", "האמת",
+  "נו", "רגע", "שמע", "תשמע", "אבל", "אחי", "ממש", "פשוט", "באמת", "עדיין", "כבר", "גם", "סתם"]);
 /** self-descriptive nouns: stronger evidence (weight 2), still only "inferred", never "confirmed" */
 const NOUNS: [string, string][] = [["גבר", "אישה"], ["בחור", "בחורה"], ["אבא", "אמא"], ["סטודנט", "סטודנטית"], ["מורה", "מורה"],
   ["מהנדס", "מהנדסת"], ["מתכנת", "מתכנתת"], ["רופא", "רופאה"], ["עורך", "עורכת"], ["יועץ", "יועצת"], ["מעצב", "מעצבת"], ["נהג", "נהגת"],
-  ["אח", "אחות"], ["פרילנסר", "פרילנסרית"], ["יזם", "יזמית"], ["חייל", "חיילת"], ["פנסיונר", "פנסיונרית"]];
+  ["אח", "אחות"], ["פרילנסר", "פרילנסרית"], ["יזם", "יזמית"], ["חייל", "חיילת"], ["פנסיונר", "פנסיונרית"], ["בן", "בת"],
+  ["ילד", "ילדה"], ["מייסד", "מייסדת"], ["עורך דין", "עורכת דין"]];
 
 const LEX = new Map<string, Form>();
 for (const [m, f] of PAIRS) if (m !== f) { LEX.set(m, "masculine"); LEX.set(f, "feminine"); }
@@ -57,28 +78,40 @@ const EXPLICIT: [RegExp, Form | "plural"][] = [
 const ADDRESS_ME = /(אליי|אלי|איתי|לי|אותי)/;
 
 /** Gendered self-references and explicit addressing requests in one utterance of the user. */
+const SELF = new Set(["אני", "ואני", "שאני", "כשאני", "הייתי", "אהיה"]);
+
 export function observe(text: string): Observation[] {
   const out: Observation[] = [];
   for (const [re, form] of EXPLICIT) {
     if (re.test(text) && ADDRESS_ME.test(text)) out.push({ form, kind: "explicit", quote: text.slice(0, 160) });
   }
   if (out.length) return out; // an explicit request decides; do not also count the words in it
-  const t = tokens(text);
-  for (let i = 0; i < t.length; i++) {
-    const w = t[i]!;
-    const starts = w === "אני" || w === "ואני" || w === "שאני" || w === "הייתי" || w === "אהיה";
-    if (!starts) continue;
-    // skip a few fillers ("אני ממש לא בטוחה")
-    let j = i + 1;
-    while (j < t.length && j - i <= 4 && FILLERS.has(t[j]!)) j++;
-    const next = t[j];
-    if (!next) continue;
-    const bare = next.replace(/^ו/, "");
-    const f = LEX.get(next) ?? LEX.get(bare);
-    if (f) { out.push({ form: f, kind: "self_reference", quote: t.slice(i, j + 1).join(" ") }); continue; }
-    if (w === "אני" || w === "ואני") {
-      const n = NOUN_LEX.get(next);
-      if (n) out.push({ form: n, kind: "self_noun", quote: t.slice(i, j + 1).join(" ") });
+  // clauses, so that a dropped pronoun is only read at the start of one; a "?" marks the clause as a question
+  for (const m of text.matchAll(/([^.,!?;:…\n]+)([.,!?;:…\n]*)/g)) {
+    const t = tokens(m[1]!);
+    const question = m[2]!.includes("?");
+    for (let i = 0; i < t.length; i++) {
+      const w = t[i]!;
+      if (!SELF.has(w)) continue;
+      // skip a few fillers and a repeated pronoun ("אני ממש לא בטוחה", "אני אני אמור")
+      let j = i + 1;
+      while (j < t.length && j - i <= 4 && (FILLERS.has(t[j]!) || t[j] === "אני")) j++;
+      const next = t[j];
+      if (!next) continue;
+      const bare = next.replace(/^ו/, "");
+      const f = LEX.get(next) ?? LEX.get(bare);
+      if (f) { out.push({ form: f, kind: "self_reference", quote: t.slice(i, j + 1).join(" ") }); i = j; continue; }
+      if (w === "אני" || w === "ואני") {
+        const two = t[j + 1] ? `${next} ${t[j + 1]}` : "";
+        const n = NOUN_LEX.get(two) ?? (t[j + 1] === "אדם" ? undefined : NOUN_LEX.get(next)); // "אני בן אדם" is said by anyone
+        if (n) { out.push({ form: n, kind: "self_noun", quote: t.slice(i, j + (NOUN_LEX.has(two) ? 2 : 1)).join(" ") }); i = j; }
+      }
+    }
+    if (question) continue;
+    let k = 0;
+    while (k < t.length && DISCOURSE.has(t[k]!)) k++;
+    if (t[k] === "לא" && t[k + 1] && PRODROP.has(t[k + 1]!)) {
+      out.push({ form: LEX.get(t[k + 1]!)!, kind: "self_reference", quote: `לא ${t[k + 1]}` });
     }
   }
   return out;

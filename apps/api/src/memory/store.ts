@@ -438,6 +438,17 @@ export class MemoryStore {
   /** Learn addressing from the session's user turns (primary turns only change the preference). Returns the new record. */
   async learnAddressing(userId: string, sessionId: string, turns: SessionTurn[]): Promise<AddressingRecord> {
     let rec = await this.addressing(userId);
+    if (rec.status === "unknown") {
+      // still undecided: re-read the stored rides as well, so a better reader also counts what was said before it
+      // (only turns that are still kept: what the user deleted is not read again)
+      const prev = await this.db.query(`SELECT t.session_id, t.text, t.attribution, t.created_at FROM turns t JOIN sessions s ON s.id=t.session_id
+        WHERE s.user_id=$1 AND s.id<>$2 AND t.role='user' ORDER BY s.started_at, t.idx`, [userId, sessionId]);
+      rec = { value: null, status: "unknown", evidence: { ...emptyEvidence(), ignored_uncertain: 0 } };
+      for (const t of prev.rows as { session_id: string; text: string; attribution: "primary" | "uncertain"; created_at: Date }[]) {
+        if (t.text.startsWith("[")) continue;
+        rec = applyObservations(rec, observe(t.text), t.attribution, { session_id: t.session_id, at: new Date(t.created_at) });
+      }
+    }
     for (const t of turns) {
       if (t.role !== "user") continue;
       rec = applyObservations(rec, observe(t.text), t.attribution, { session_id: sessionId, at: new Date(t.startedAt) });
