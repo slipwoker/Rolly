@@ -50,7 +50,7 @@ describe("relay phone <-> rolly-api <-> pod", () => {
 
     const opener = await phone.waitReply(0, 5000);
     expect(opener.seq).toBeGreaterThan(1000); // a range of its own, not 1 (see seqBase)
-    expect(opener.seq).toBeLessThan(2 ** 32);
+    expect(opener.seq).toBeLessThan(2 ** 31); // the Android audio module reads it as a signed 32-bit integer
     expect(opener.proactive).toBe(true);
     // 1.2 s at 44.1 kHz -> 1.2 s at 24 kHz (16-bit mono)
     expect(Math.abs(opener.bytes / 2 / 24000 - 1.2)).toBeLessThan(0.01);
@@ -169,7 +169,7 @@ describe("relay phone <-> rolly-api <-> pod", () => {
     const a = seqBase(1_800_000_000_000), b = seqBase(1_800_000_000_000), c = seqBase(1_800_000_005_000);
     expect(b - a).toBeGreaterThanOrEqual(1000);
     expect(c).toBeGreaterThan(b);
-    expect(seqBase(Date.UTC(2030, 0, 1))).toBeLessThan(2 ** 32);
+    for (const t of [Date.UTC(2026, 10, 26, 9, 54), Date.UTC(2030, 0, 1), Date.UTC(2031, 5, 17, 23, 59, 59)]) expect(seqBase(t) + 5000).toBeLessThan(2 ** 31);
   }, 30_000);
 
   it("one live conversation per user: a second session closes the older one, another user's session is untouched", async () => {
