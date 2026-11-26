@@ -411,3 +411,67 @@ def test_a_pause_cap_shortens_only_the_long_silences():
     got = np.frombuffer(out, dtype="<i2")
     assert int((np.abs(got) > 1000).sum()) == int((np.abs(np.frombuffer(pcm, dtype="<i2")) > 1000).sum())
     assert PauseCap(sr, 350).finish() == b""
+
+
+def test_a_lookup_request_survives_a_reply_that_is_cancelled_right_after_it():
+    """2026-11-26: the user spoke right after "אני בודק", the reply was cancelled and the request, reported only at the end of a
+    reply, was lost (then the model told the user it had found nothing).  It is reported as soon as the marker is written."""
+    import asyncio
+    from providers import base
+    from providers.modular.pipeline import ModularProvider, _Gate
+    from providers.modular.text import TurnNotes
+
+    events = []
+
+    class LLM:
+        name = "fake"
+
+        async def stream(self, messages, res, **kw):
+            for piece in ["אני בודק ", "<look", "up/>", ".", " עוד משהו אחרי"]:
+                yield piece
+                if piece == ".":
+                    await asyncio.sleep(30)  # still "speaking" when the user cuts in
+
+    class TTS:
+        name = "fake"
+
+        async def synth(self, chunk, hint=None, foreign=None):
+            return
+            yield  # an empty async generator
+
+    class Ctx:
+        system_prompt = "S"
+        language = "he"
+
+    async def go(typed_text):
+        p = ModularProvider.__new__(ModularProvider)
+        p.history, p.question_guard, p.notes, p.ctx = [], False, TurnNotes(), Ctx()
+        p.llm, p.tts, p.config, p._foreign = LLM(), TTS(), {}, None
+        p._turn_state = None
+
+        async def emit(type_, audio=None, sample_rate=0, **data):
+            events.append(type_)
+        p.emit = emit
+        gate = _Gate(p, committed=True)
+        task = asyncio.create_task(p._run_turn(gate, text=typed_text, typed=True))
+        await asyncio.sleep(0.3)
+        task.cancel()
+        try:
+            await task
+        except BaseException:
+            pass
+
+    asyncio.run(go("מה יש במבצע?"))
+    assert events.count(base.LOOKUP_REQUESTED) == 1
+    events.clear()
+    asyncio.run(go("[lookup_result - not said by the user] x"))  # a reply to a lookup result never asks for another one
+    assert base.LOOKUP_REQUESTED not in events
+
+
+def test_a_waiting_topic_is_not_shown_on_a_turn_where_the_user_asked_something():
+    from providers.modular.text import TurnNotes
+    n = TurnNotes()
+    n.add("Bring up this now: reggae.", turns=1, max_user_words=6, min_streak=1)
+    assert n.text("וואלה עובר בסדר, מה איתך?") is None  # a question: it gets an answer, not our topic
+    n.consume("וואלה עובר בסדר, מה איתך?")
+    assert "reggae" in (n.text("עובר בסדר") or "")  # the next short statement takes it

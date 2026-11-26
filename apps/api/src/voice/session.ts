@@ -69,6 +69,8 @@ export interface SessionHooks {
    * The model said it is checking something online: find the answer. Resolves with the marked message the model is
    * given next (lookup/web.ts: the facts, or that the check did not work). Never rejects in normal operation.
    */
+  /** the opening line of a conversation, as said: the next conversation of this user can start differently even if this one has not been saved yet */
+  rememberOpener?(userId: string, text: string): void;
   lookup?(args: { userId: string; sessionId: string; question: string; recent: { role: "user" | "agent"; text: string }[]; language: string }): Promise<{ message: string; ok: boolean; reason?: string }>;
   /** called at the end; returns the summary that is sent to the phone */
   finalize(args: { userId: string; sessionId: string; turns: SessionTurn[]; stats: Record<string, unknown>; endReason: string;
@@ -291,15 +293,20 @@ export class VoiceSession {
   // ------------------------------------------------------------ online lookups
   /** The model said "checking" (its reply carried the lookup marker): search, then tell it the answer at a quiet moment. */
   private startLookup() {
-    if (this.closing || this.lookupRunning || !this.hooks.lookup) return;
+    if (this.closing || !this.hooks.lookup) return;
     const users = this.turns.filter((t) => t.role === "user");
     const question = users.at(-1)?.text;
     if (!question) return;
+    if (this.lookupRunning) {
+      // one check at a time: say so in the record instead of dropping the request silently
+      this.stats.lookups.push({ at_s: Math.round((Date.now() - this.startedAt.getTime()) / 1000), ok: false, reason: "busy", search_ms: 0, delivered_after_ms: null });
+      return;
+    }
     this.lookupRunning = true;
     const t0 = Date.now();
     const at_s = Math.round((t0 - this.startedAt.getTime()) / 1000);
     const recent = this.turns.slice(-6).map((t) => ({ role: t.role, text: t.text }));
-    const guard = new Promise<{ message: string; ok: boolean; reason?: string }>((r) => setTimeout(() => r({ message: LOOKUP_TIMEOUT_MESSAGE, ok: false, reason: "timeout" }), 16_000));
+    const guard = new Promise<{ message: string; ok: boolean; reason?: string }>((r) => setTimeout(() => r({ message: LOOKUP_TIMEOUT_MESSAGE, ok: false, reason: "timeout" }), 18_000));
     Promise.race([this.hooks.lookup({ userId: this.userId, sessionId: this.sessionId, question, recent, language: this.language }), guard])
       .catch((e) => ({ message: LOOKUP_TIMEOUT_MESSAGE, ok: false, reason: String(e).slice(0, 80) }))
       .then((r) => {
@@ -420,7 +427,8 @@ export class VoiceSession {
             ...(a.why ? { uncertain_because: a.why } : {}),
           });
           const turn = this.turns[this.turns.length - 1]!;
-          this.lastUserWords = text.split(/\s+/).filter(Boolean).length;
+          // a question is something to answer: the pod shows no waiting plan item on it (providers/modular/text.py), so it counts as a long turn here
+          this.lastUserWords = /[?؟]/.test(text) ? 999 : text.split(/\s+/).filter(Boolean).length;
           // "עוד רבע שעה אני מגיע": the user's own statement resets the clock (only from a turn with no hint of another speaker)
           if (a.attribution === "primary" && this.pacer) {
             const left = parseRemainingMinutes(text);
@@ -466,6 +474,7 @@ export class VoiceSession {
         if (text) this.addTurn("agent", text, null, "primary", { proactive: this.proactiveRids.has(rid), rid, ...this.turnMetrics.get(rid),
           ...(usage && typeof usage.prompt_tokens === "number" ? { prompt_tokens: usage.prompt_tokens, completion_tokens: usage.completion_tokens ?? null } : {}) });
         this.turnMetrics.delete(rid);
+        if (text && this.stats.turns_agent === 1 && this.proactiveRids.has(rid)) this.hooks.rememberOpener?.(this.userId, text);
         if (text && !this.closing) this.afterReply(text, this.proactiveRids.has(rid));
         this.agentPartial.delete(rid);
         if (!this.closing) this.send({ type: "agent.turn_done", seq, text });

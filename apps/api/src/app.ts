@@ -59,7 +59,11 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
   const sessionAgenda = new Map<string, AgendaItem[]>();
   // server-side self-tests only: compress pacing time for a user (see runSelftest)
   const pacingScales = new Map<string, number>();
+  // the last opening line said to each user in this process: a conversation started right after another one ended
+  // (2026-11-26: one second later) must not open with the same line while the first is still being saved
+  const recentOpeners = new Map<string, string>();
   const hooks: SessionHooks = {
+    rememberOpener(userId, text) { recentOpeners.set(userId, text); },
     async prepare(userId, sessionId, start) {
       const planning = lookahead.get(userId);
       if (planning) await Promise.race([planning, new Promise((r) => setTimeout(r, 8_000))]);
@@ -70,6 +74,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
         resume = await store.lastTurns(userId, start.resume_of, 8);
       }
       const view = await store.memoryView(userId);
+      view.lastOpener = recentOpeners.get(userId) ?? view.lastOpener;
       const proactive = start.proactive ?? true;
       const { language, chosen } = resolveLanguage(start, view.profile.preferredLanguage);
       if (chosen === "he" || chosen === "en") await store.updateProfile(userId, { preferred_language: chosen });

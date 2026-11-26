@@ -188,6 +188,8 @@ class TurnNotes:
             return True
         if user_text is None or user_text.lstrip().startswith("["):  # an event prompt (the opener), not something the user said
             return False
+        if "?" in user_text or "؟" in user_text:  # a question is for answering: no topic of ours on that turn (2026-11-26)
+            return False
         words = self._words(user_text)
         if words > n["max_user_words"]:
             return False
