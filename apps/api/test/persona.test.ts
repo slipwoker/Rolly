@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { END_MARKER, NOTE, core } from "../src/persona/core.ts";
-import { buildContext, emptyMemory, resolveLanguage, type MemoryView } from "../src/persona/promptBuilder.ts";
+import { buildContext, emptyMemory, practiceLanguage, resolveLanguage, type MemoryView } from "../src/persona/promptBuilder.ts";
 import { PROMPT } from "../src/memory/select.ts";
 
 const now = new Date("2026-11-26T06:10:00Z");
@@ -123,6 +123,18 @@ describe("what the prompt does say", () => {
     expect(buildContext(check, { language: "he", now }).opener_instruction).toContain("asking lightly whether it got done");
     expect(buildContext(withSummary, { language: "he", now, resume: [{ role: "user", text: "היי" }] }).opener_instruction).toContain("connection dropped");
     expect(buildContext(mem(), { language: "auto", now }).opener_instruction).toContain("Speak this opening in Hebrew.");
+  });
+});
+
+describe("the language the user is practising (for the voice's pronunciation of foreign phrases)", () => {
+  const goal = (content: string, status: "active" | "paused" = "active") => ({ id: "g", kind: "travel_goal" as const, content, status, stateNote: null, nextStep: null });
+  it("comes from an active goal or an interest that names it; only languages the voice speaks", () => {
+    expect(practiceLanguage(mem({ goals: [goal("ללמוד קצת ספרדית לקראת הטיול בחודש הבא")] }))).toBe("es");
+    expect(practiceLanguage(mem({ profile: { ...emptyMemory().profile, interests: ["לימוד איטלקית"] } }))).toBe("it");
+    expect(practiceLanguage(mem({ goals: [goal("Improve my German before the move")] }))).toBe("de");
+    expect(practiceLanguage(mem({ goals: [goal("ללמוד צרפתית")] }))).toBeNull();
+    expect(practiceLanguage(mem({ goals: [goal("ללמוד ספרדית", "paused")] }))).toBeNull();
+    expect(practiceLanguage(mem())).toBeNull();
   });
 });
 

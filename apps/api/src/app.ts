@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { Config } from "./config.ts";
 import { createPool, migrate } from "./db/index.ts";
 import { Auth, RateLimiter, adminOk, secretOk } from "./auth.ts";
-import { buildContext, resolveLanguage } from "./persona/promptBuilder.ts";
+import { buildContext, practiceLanguage, resolveLanguage } from "./persona/promptBuilder.ts";
 import { openAiLlm, type UtilityLlm } from "./memory/llm.ts";
 import { MemoryStore } from "./memory/store.ts";
 import { summarizeSession, type SummaryResult } from "./memory/summarizer.ts";
@@ -62,12 +62,13 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       await store.startSession(sessionId, userId, built.language, built.onboarding, new Date());
       await store.markUsed(view.usedIds);
       sessionAgenda.set(sessionId, built.agenda);
+      const foreign = practiceLanguage(view);
       return {
         onboarding: built.onboarding, pacingScale: pacingScales.get(userId),
         plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })), confirm: built.confirm,
         ctx: { session_id: sessionId, user_id: userId, language: built.language, system_prompt: built.system_prompt,
           opener_instruction: built.opener_instruction, proactive, journey: start.journey ?? {}, profile: built.profile,
-          options: { llm: config.llmSampling } },
+          options: { llm: config.llmSampling, ...(foreign ? { speech: { foreign_language: foreign } } : {}) } },
       };
     },
     async onUserTurn(args) {

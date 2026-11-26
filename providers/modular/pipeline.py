@@ -27,7 +27,7 @@ from .. import base
 from ..base import VoiceProvider
 from .llm import LLMResult, OpenAICompatLLM
 from .stt import discard_reason, get_stt
-from .text import SentenceChunker, TurnNotes, clean_for_speech, echo_like, has_stop_word, question_guard_note, user_wants_to_end
+from .text import FOREIGN_LANGS, SentenceChunker, TurnNotes, clean_for_speech, echo_like, has_stop_word, question_guard_note, user_wants_to_end
 from .tts import TTSRouter
 from .vad import Endpointer, SileroVAD, VadConfig
 
@@ -134,6 +134,9 @@ class ModularProvider(VoiceProvider):
                     self._llm_extra[k] = min(hi, max(lo, float(llm_opts[k])))
                 except (TypeError, ValueError):
                     pass
+        # the language the user is practising, if the caller knows it: unclear foreign phrases are pronounced in it
+        speech = opts.get("speech") if isinstance(opts.get("speech"), dict) else {}
+        self._foreign = speech.get("foreign_language") if speech.get("foreign_language") in FOREIGN_LANGS else None
         self.endpointer = Endpointer(SileroVAD(self.config.get("vad_model", "models/silero_vad.onnx")), self.vad_cfg)
         if self.ctx.proactive and self.ctx.opener_instruction:
             gate = _Gate(self, committed=True)
@@ -389,7 +392,7 @@ class ModularProvider(VoiceProvider):
         chars, audio_s, first = 0, 0.0, True
         for chunk in chunks:
             dur = 0.0
-            async for pcm, sr, _lang, _engine in self.tts.synth(chunk, lang_hint):
+            async for pcm, sr, _lang, _engine in self.tts.synth(chunk, lang_hint, getattr(self, "_foreign", None)):
                 if first:
                     first = False
                     await gate.emit(base.METRIC, name="resume_ttfa_ms", value_ms=(time.monotonic() - t_start) * 1000, response_id=rid)
@@ -523,7 +526,7 @@ class ModularProvider(VoiceProvider):
                     t_tts = time.monotonic()
                     chunk_dur = 0.0
                     first_piece = True
-                    async for pcm, sr, lang, _engine in self.tts.synth(chunk, lang_hint):
+                    async for pcm, sr, lang, _engine in self.tts.synth(chunk, lang_hint, getattr(self, "_foreign", None)):
                         if first_piece:
                             first_piece = False
                             if first_audio:

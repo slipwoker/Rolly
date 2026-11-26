@@ -171,6 +171,17 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
   };
 }
 
+/**
+ * The language the user is practising, when one of their goals or interests names it. The pod's voice then pronounces
+ * unclear foreign phrases in that language (clear ones are recognised on the pod). Only what the voice model speaks.
+ */
+const PRACTICE: [RegExp, "es" | "it" | "de"][] = [[/ספרדית|spanish/i, "es"], [/איטלקית|italian/i, "it"], [/גרמנית|german/i, "de"]];
+export function practiceLanguage(mem: MemoryView): "es" | "it" | "de" | null {
+  const texts = [...mem.goals.filter((g) => g.status === "active").map((g) => g.content), ...mem.profile.travelGoals, ...mem.profile.interests];
+  for (const t of texts) for (const [re, lang] of PRACTICE) if (re.test(t)) return lang;
+  return null;
+}
+
 export function emptyMemory(): MemoryView {
   return {
     profile: { preferredName: null, preferredLanguage: null, interests: [], travelGoals: [], preferences: {}, addressing: { value: null, status: "unknown" } },
