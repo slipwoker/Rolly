@@ -36,11 +36,17 @@ export function useVoice() {
   const [captions, setCaptions] = useState<Caption[]>([]);
   const [lastReplyMs, setLastReplyMs] = useState<number | null>(null);
   const ctl = useRef<VoiceController | null>(null);
+  const starting = useRef(false);
 
   useEffect(() => () => { void ctl.current?.stop(); }, []);
 
   /** Transcripts always arrive from the server; `withCaptions` only marks the session as a debug-captions session. */
   const start = async (language: "he" | "en" | "auto", withCaptions = false, journey?: { duration_min?: number }, languageExplicit = false) => {
+    // one session at a time: a second tap while the first is still starting is ignored, and a controller that is still
+    // around (stopping, reconnecting) is dropped before the new one opens its socket
+    if (starting.current) return;
+    starting.current = true;
+    ctl.current?.dispose();
     setCaptions([]);
     setLastReplyMs(null);
     const c = new VoiceController({
@@ -61,7 +67,7 @@ export function useVoice() {
       }),
     });
     ctl.current = c;
-    await c.start({ language, languageExplicit, captions: withCaptions, journey });
+    try { await c.start({ language, languageExplicit, captions: withCaptions, journey }); } finally { starting.current = false; }
   };
 
   const stop = async () => { await ctl.current?.stop(); };

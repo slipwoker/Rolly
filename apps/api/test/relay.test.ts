@@ -146,4 +146,27 @@ describe("relay phone <-> rolly-api <-> pod", () => {
     expect((f.stats.notes as { kind: string }[]).map((n) => n.kind).filter((k) => k === "style")).toHaveLength(1);
     expect(f.turns.map((t) => t.text).join(" ")).not.toContain("Bring up this now");
   }, 30_000);
+
+  it("one live conversation per user: a second session closes the older one, another user's session is untouched", async () => {
+    const first = new Phone(), other = new Phone(), second = new Phone();
+    await first.connect(`ws://127.0.0.1:${port}/v1/voice?dev_user=u-twice`);
+    first.send({ type: "session.start", language: "he" });
+    await first.waitFor(() => first.events.some((e) => e.msg.type === "session.created"), 5000, "first session");
+    await other.connect(`ws://127.0.0.1:${port}/v1/voice?dev_user=u-someone-else`);
+    other.send({ type: "session.start", language: "he" });
+    await other.waitFor(() => other.events.some((e) => e.msg.type === "session.created"), 5000, "other user's session");
+    await second.connect(`ws://127.0.0.1:${port}/v1/voice?dev_user=u-twice`);
+    second.send({ type: "session.start", language: "he" });
+    await first.waitFor(() => first.events.some((e) => e.msg.type === "session.closed"), 5000, "older session closed");
+    expect(first.events.find((e) => e.msg.type === "session.closed")!.msg).toMatchObject({ reason: "superseded" });
+    await second.waitFor(() => second.events.some((e) => e.msg.type === "session.created"), 5000, "second session");
+    // the newer session works, and so does the other user's
+    const end = await second.say(speech(600));
+    await second.waitReply(end - 1, 5000);
+    expect(second.events.some((e) => e.msg.type === "session.closed")).toBe(false);
+    expect(other.events.some((e) => e.msg.type === "session.closed")).toBe(false);
+    for (const p of [second, other]) { p.send({ type: "session.end" }); await p.waitFor(() => p.events.some((e) => e.msg.type === "session.closed"), 5000, "end"); }
+    const res = await fetch(`http://127.0.0.1:${port}/healthz`);
+    expect(((await res.json()) as { active_sessions: number }).active_sessions).toBe(0);
+  }, 30_000);
 });

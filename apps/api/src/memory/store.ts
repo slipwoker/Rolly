@@ -277,6 +277,23 @@ export class MemoryStore {
     return true;
   }
 
+  /**
+   * The owner (admin) marks a memory as confirmed on the user's behalf: an unconfirmed item becomes active, and a memory
+   * that was already active no longer goes with its conversation when that conversation is deleted. With `content`, the
+   * wording is replaced as well (a correction).
+   */
+  async keepMemory(userId: string, id: string, content?: string): Promise<string | null> {
+    if (content !== undefined) return this.correctMemory(userId, id, content, "app");
+    const r = await this.db.query(
+      `UPDATE memories SET status='active', expires_at=NULL, confidence=1, updated_at=now(),
+              provenance = provenance || jsonb_build_object('confirmed', true, 'confirmed_via', 'admin')
+       WHERE user_id=$1 AND id=$2 AND status IN ('active','candidate') RETURNING kind, content`, [userId, id]);
+    if (!r.rowCount) return null;
+    if (r.rows[0].kind === "name") await this.updateProfile(userId, { preferred_name: r.rows[0].content });
+    await this.event(userId, id, "confirm", "system", null);
+    return id;
+  }
+
   async expireCandidates(userId?: string): Promise<number> {
     const r = await this.db.query(
       `UPDATE memories SET status='deleted', content='', provenance=jsonb_build_object('expired', true), updated_at=now()

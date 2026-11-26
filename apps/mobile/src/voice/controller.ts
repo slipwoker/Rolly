@@ -78,7 +78,8 @@ export class VoiceController {
   constructor(private readonly d: ControllerDeps) {}
 
   private now() { return (this.d.now ?? Date.now)(); }
-  private set(s: VoiceState, detail?: string) { this.state = s; this.d.onState?.(s, detail); }
+  private disposed = false;
+  private set(s: VoiceState, detail?: string) { this.state = s; if (!this.disposed) this.d.onState?.(s, detail); }
   private send(m: ClientMessage) { if (this.ws && this.ws.readyState === OPEN) this.ws.send(JSON.stringify(m)); }
 
   async start(opts: StartOptions): Promise<void> {
@@ -248,6 +249,23 @@ export class VoiceController {
     await this.teardownAudio();
     this.set("ended", "user");
     setTimeout(() => { try { this.ws?.close(); } catch { /* ignore */ } this.ws = null; }, 15_000);
+  }
+
+  /**
+   * Drop this controller at once, without touching the audio engine: a newer controller is taking over. Its socket is
+   * closed and it stops listening to the microphone, so two sessions never run side by side.
+   */
+  dispose(): void {
+    this.ending = true;
+    this.disposed = true; // late messages on the old socket must not change what the screen shows
+    for (const u of this.unsub.splice(0)) u();
+    const ws = this.ws;
+    this.ws = null;
+    this.ready = false;
+    if (!ws) return;
+    try { if (ws.readyState === OPEN) ws.send(JSON.stringify({ type: "session.end" })); } catch { /* ignore */ }
+    ws.onmessage = null; ws.onclose = null;
+    try { ws.close(); } catch { /* ignore */ }
   }
 
   private async teardownAudio() {
