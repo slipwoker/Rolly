@@ -226,6 +226,11 @@ def test_hebrew_pronunciation_fixes_zappy_only_as_a_word():
     assert he_pronounce("בוקר טוב מאור, מה קורה עם זאפי?") == "בוקר טוב מָאוֹר, מה קורה עם Zappy?"
     assert he_pronounce("אמרתי למאור") == "אמרתי למָאוֹר"
     assert he_pronounce("מאוד מאורגן, יש מאורות") == "מאוד מאורגן, יש מאורות"  # other words that contain the letters
+    # BlueV3 ignores vowel marks and read the name "Me-or" alone and at the end of a sentence (owner, 26.11), so it gets phonemes
+    assert he_pronounce("בוקר טוב מאור, מה קורה עם זאפי?", phonemes=True) == "בוקר טוב <he>maʔˈoʁ</he>, מה קורה עם Zappy?"
+    assert he_pronounce("תודה מאור!", phonemes=True) == "תודה <he>maʔˈoʁ</he>!"
+    assert he_pronounce("אמרתי למאור", phonemes=True) == "אמרתי <he>lemaʔˈoʁ</he>"
+    assert he_pronounce("מאוד מאורגן, יש מאורות", phonemes=True) == "מאוד מאורגן, יש מאורות"
 
 
 def test_hebrew_letters_never_go_to_the_english_voice():
