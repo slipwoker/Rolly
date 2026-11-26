@@ -610,16 +610,16 @@ footer .brand-word{font-size:18px;color:var(--ink)}
   };
   var LINES = {
     he: [
-      { who: "rolly", text: "בוקר טוב! אתמול נתקענו על המצגת ללקוח. נמשיך משם?" },
+      { who: "rolly", text: { day: "בוקר טוב! אתמול נתקענו על המצגת ללקוח. נמשיך משם?", night: "ערב טוב! הבוקר נתקענו על המצגת ללקוח. נמשיך משם?" } },
       { who: "me", text: "כן. ותזכיר לי להתקשר לדני" },
-      { who: "rolly", text: "רשמתי: להתקשר לדני אחרי הפגישה", check: true },
+      { who: "rolly", text: { day: "רשמתי: להתקשר לדני אחרי הפגישה", night: "רשמתי: להתקשר לדני מחר בבוקר" }, check: true },
       { who: "rolly", text: "נשארו לנו 12 דקות. נסגור את הפתיח של המצגת?" },
       { who: "me", text: "יאללה, תתחיל אתה" }
     ],
     en: [
-      { who: "rolly", text: "Morning! Yesterday we got stuck on the client deck. Pick up from there?" },
+      { who: "rolly", text: { day: "Morning! Yesterday we got stuck on the client deck. Pick up from there?", night: "Evening! This morning we got stuck on the client deck. Pick up from there?" } },
       { who: "me", text: "Yes. And remind me to call Danny" },
-      { who: "rolly", text: "Noted: call Danny after the meeting", check: true },
+      { who: "rolly", text: { day: "Noted: call Danny after the meeting", night: "Noted: call Danny tomorrow morning" }, check: true },
       { who: "rolly", text: "We've got 12 minutes. Shall we nail the deck's opening?" },
       { who: "me", text: "Let's go, you start" }
     ]
@@ -706,6 +706,7 @@ footer .brand-word{font-size:18px;color:var(--ink)}
   $(".daynight").addEventListener("click", function(){
     root.dataset.time = root.dataset.time === "night" ? "day" : "night";
     var d = $('[data-mascot="hero"]'); d.classList.remove("hop"); void d.offsetWidth; d.classList.add("hop");
+    restartChat();   // so ROLLY greets with "good evening" at night, "good morning" by day
   });
   $$(".lang button").forEach(function(b){
     b.addEventListener("click", function(){
@@ -754,7 +755,8 @@ footer .brand-word{font-size:18px;color:var(--ink)}
   }
   function step(){
     var lines = LINES[lang], l = lines[at % lines.length]; at++;
-    var html = (l.who === "rolly" ? "<small>ROLLY</small>" : "") + esc(l.text) + (l.check ? '<span class="check">✓</span>' : "");
+    var text = typeof l.text === "string" ? l.text : l.text[root.dataset.time === "night" ? "night" : "day"];  // greeting follows day/night
+    var html = (l.who === "rolly" ? "<small>ROLLY</small>" : "") + esc(text) + (l.check ? '<span class="check">✓</span>' : "");
     var next = function(){ chatTimer = setTimeout(step, at % lines.length === 0 ? 4200 : 2300); };
     if (at % lines.length === 1 && at > 1) $$(".bubble", box).forEach(function(x){ x.classList.add("out"); setTimeout(function(){ x.remove(); }, 450); });
     if (reduced){ addBubble(l.who, html); return; }
