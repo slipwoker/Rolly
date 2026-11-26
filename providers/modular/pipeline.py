@@ -28,6 +28,7 @@ from ..base import VoiceProvider
 from .llm import LLMResult, OpenAICompatLLM
 from .stt import discard_reason, get_stt
 from .text import FOREIGN_LANGS, LOOKUP_MARKER, MarkerFilter, SentenceChunker, TurnNotes, clean_for_speech, echo_like, has_stop_word, question_guard_note, user_wants_to_end
+from .pronounce import get_probe, usable_name
 from .tts import TTSRouter
 from .vad import Endpointer, SileroVAD, VadConfig
 
@@ -137,11 +138,34 @@ class ModularProvider(VoiceProvider):
         # the language the user is practising, if the caller knows it: unclear foreign phrases are pronounced in it
         speech = opts.get("speech") if isinstance(opts.get("speech"), dict) else {}
         self._foreign = speech.get("foreign_language") if speech.get("foreign_language") in FOREIGN_LANGS else None
+        await self._load_pronunciations()
         self.endpointer = Endpointer(SileroVAD(self.config.get("vad_model", "models/silero_vad.onnx")), self.vad_cfg)
         if self.ctx.proactive and self.ctx.opener_instruction:
             gate = _Gate(self, committed=True)
             self._gate = gate
             self._turn = asyncio.create_task(self._run_turn(gate, text=self.ctx.opener_instruction, proactive=True))
+
+    async def _load_pronunciations(self) -> None:
+        """How the Hebrew voice says the user's name in this conversation (pronounce.py).  The user's own correction, kept by
+        the caller, wins; otherwise a name whose reading depends on its place in the sentence is pinned to the reading in the
+        middle of one.  Before the opener: the greeting is where the name is said first."""
+        prof = self.ctx.profile if isinstance(self.ctx.profile, dict) else {}
+        word = usable_name(prof.get("name"))
+        chosen = prof.get("name_pron") if isinstance(prof.get("name_pron"), dict) else None
+        pins: dict[str, str] = {}
+        if word and chosen and chosen.get("ipa") and usable_name(chosen.get("name")) == word:
+            pins = {word: str(chosen["ipa"])}
+        elif word and self.ctx.language in ("he", "auto"):
+            probe = get_probe(self.config.get("pronounce_url"), self.config.get("pronounce_cache"))
+            if probe.enabled:
+                pins = await probe.pins(word, 3.0)
+        self.tts.set_pronunciations(pins)
+        if pins:
+            print(f"[pron] {self.ctx.session_id[:8]}: {pins}", flush=True)
+
+    async def set_pronunciations(self, words: dict) -> None:
+        """The caller changed how a name is said (the user corrected it): from the next piece of speech on."""
+        self.tts.set_pronunciations(words if isinstance(words, dict) else {})
 
     async def close(self) -> None:
         self._closed = True

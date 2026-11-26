@@ -217,20 +217,20 @@ def test_pipeline_adds_caller_notes_to_the_turn_only():
 
 def test_hebrew_pronunciation_fixes_zappy_only_as_a_word():
     from providers.modular.text import he_pronounce
-    # the owner's pick from listening samples (2026-11-26): "Zappy" in Latin letters, מָאוֹר with vowels
+    # the owner's pick from listening samples (2026-11-26): "Zappy" in Latin letters
     assert he_pronounce("עובדים על זאפי") == "עובדים על Zappy"
     assert he_pronounce("בזאפי, ולזאפי.") == "ב-Zappy, ול-Zappy."
     assert he_pronounce("זאפי?") == "Zappy?"
     assert he_pronounce("זאפיות") == "זאפיות"  # a longer word is left alone
     assert he_pronounce("Zappy is fine") == "Zappy is fine"
-    assert he_pronounce("בוקר טוב מאור, מה קורה עם זאפי?") == "בוקר טוב מָאוֹר, מה קורה עם Zappy?"
-    assert he_pronounce("אמרתי למאור") == "אמרתי למָאוֹר"
-    assert he_pronounce("מאוד מאורגן, יש מאורות") == "מאוד מאורגן, יש מאורות"  # other words that contain the letters
-    # BlueV3 ignores vowel marks and read the name "Me-or" alone and at the end of a sentence (owner, 26.11), so it gets phonemes
-    assert he_pronounce("בוקר טוב מאור, מה קורה עם זאפי?", phonemes=True) == "בוקר טוב <he>maʔˈoʁ</he>, מה קורה עם Zappy?"
-    assert he_pronounce("תודה מאור!", phonemes=True) == "תודה <he>maʔˈoʁ</he>!"
-    assert he_pronounce("אמרתי למאור", phonemes=True) == "אמרתי <he>lemaʔˈoʁ</he>"
-    assert he_pronounce("מאוד מאורגן, יש מאורות", phonemes=True) == "מאוד מאורגן, יש מאורות"
+    assert he_pronounce("בוקר טוב מאור, מה קורה עם זאפי?") == "בוקר טוב מאור, מה קורה עם Zappy?"
+    # no table of names: a name is pinned per conversation (pronounce.py); the voice gets it as phonemes
+    pin = {"מאור": "maʔˈoʁ"}
+    assert he_pronounce("בוקר טוב מאור, מה קורה עם זאפי?", pin) == "בוקר טוב <he>maʔˈoʁ</he>, מה קורה עם Zappy?"
+    assert he_pronounce("תודה מאור!", pin) == "תודה <he>maʔˈoʁ</he>!"
+    assert he_pronounce("אמרתי למאור", pin) == "אמרתי <he>lemaʔˈoʁ</he>"
+    assert he_pronounce("מאוד מאורגן, יש מאורות", pin) == "מאוד מאורגן, יש מאורות"
+    assert he_pronounce("תודה מאור!") == "תודה מאור!"  # nothing pinned: the voice's own reading
 
 
 def test_hebrew_letters_never_go_to_the_english_voice():
@@ -480,3 +480,50 @@ def test_a_waiting_topic_is_not_shown_on_a_turn_where_the_user_asked_something()
     assert n.text("וואלה עובר בסדר, מה איתך?") is None  # a question: it gets an answer, not our topic
     n.consume("וואלה עובר בסדר, מה איתך?")
     assert "reggae" in (n.text("עובר בסדר") or "")  # the next short statement takes it
+
+
+def test_a_name_read_differently_by_position_is_pinned_to_its_reading_in_the_middle_of_a_sentence():
+    from providers.modular.pronounce import analyze, usable_name
+
+    def fake(text):  # the voice's front end: reads מאור "me-or" alone and at the end, "ma-or" elsewhere; דנה always the same
+        if "מאור" in text:
+            ma = "maʔˈoʁ" if ("היי" in text or "אני איתך" in text) else "meʔˈoʁ"
+            return "<he>" + text.replace("מאור", ma) + "</he>"
+        return "<he>" + text.replace("דנה", "dˈana") + "</he>"
+    a = analyze("מאור", fake)
+    assert not a["stable"] and a["pinned"] == "maʔˈoʁ" and set(a["candidates"]) == {"maʔˈoʁ", "meʔˈoʁ"}
+    assert a["candidates"][0] == "meʔˈoʁ"  # most common first; the pin is not "the most common"
+    d = analyze("דנה", fake)
+    assert d["stable"] and d["candidates"] == ["dˈana"]
+    assert usable_name("מאור") == "מאור" and usable_name("מאור כהן") == "מאור" and usable_name("Dan") is None and usable_name(None) is None
+
+
+def test_the_conversation_pins_a_name_only_when_it_is_unstable_and_the_users_correction_wins(monkeypatch):
+    import asyncio
+    import providers.modular.pipeline as pl
+    from providers.modular.tts import TTSRouter
+
+    class Probe:
+        enabled = True
+
+        async def pins(self, name, timeout=None):
+            return {"מאור": "maʔˈoʁ"} if name == "מאור" else {}
+    monkeypatch.setattr(pl, "get_probe", lambda url, cache=None: Probe())
+
+    def session(profile, language="he"):
+        p = pl.ModularProvider.__new__(pl.ModularProvider)
+
+        class Ctx:
+            session_id = "abcdef123456"
+        Ctx.profile, Ctx.language = profile, language
+        p.ctx, p.config = Ctx(), {"pronounce_url": "http://x"}
+        p.tts = TTSRouter({"he": {"engine": "x"}, "default": "he"})
+        asyncio.run(p._load_pronunciations())
+        return p.tts.pronunciations
+    assert session({"name": "מאור"}) == {"מאור": "maʔˈoʁ"}
+    assert session({"name": "דנה"}) == {}  # stable: left alone
+    assert session({"name": "מאור"}, "en") == {}
+    assert session({"name": "מאור", "name_pron": {"name": "מאור", "ipa": "meʔˈoʁ"}}) == {"מאור": "meʔˈoʁ"}  # the user chose
+    assert session({"name": "מאור כהן", "name_pron": {"name": "מאור", "ipa": "meʔˈoʁ"}}) == {"מאור": "meʔˈoʁ"}
+    assert session({"name": "דנה", "name_pron": {"name": "מאור", "ipa": "meʔˈoʁ"}}) == {}  # the name changed: the choice is stale
+    assert session({"name": None}) == {}

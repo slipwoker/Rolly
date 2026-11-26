@@ -126,6 +126,23 @@ async def put_voice(name: str, request: Request):
     return {"stored": name, "bytes": len(data)}
 
 
+@app.post("/v1/phonemize")
+async def phonemize(request: Request):
+    """How the Hebrew voice reads a name in five sentence positions (providers/modular/pronounce.py): the candidates the caller
+    can pick from when the user corrects the pronunciation.  503 when the voice server has no front-end probe."""
+    _auth(request)
+    from providers.modular.pronounce import get_probe, usable_name
+    body = await request.json()
+    word = usable_name(str(body.get("word", "")))
+    if not word:
+        raise HTTPException(status_code=400, detail="a plain Hebrew word is needed")
+    probe = get_probe(os.environ.get("ROLLY_PRON_URL"), os.environ.get("ROLLY_PRON_CACHE"))
+    result = await probe.lookup(word, 8.0) if probe.enabled else None
+    if result is None:
+        raise HTTPException(status_code=503, detail="no pronunciation probe")
+    return result
+
+
 @app.get("/v1/voices")
 async def list_voices(request: Request):
     _auth(request)
@@ -181,6 +198,10 @@ async def session(ws: WebSocket):
                     mw = msg.get("max_user_words")
                     await provider.set_note(str(msg.get("text", ""))[:600], int(msg.get("turns") or 1),
                                             int(mw) if isinstance(mw, (int, float)) else None, int(msg.get("min_streak") or 1))
+                elif msg.get("type") == "pronunciations":  # how the user's name is said, changed during the conversation
+                    setter = getattr(provider, "set_pronunciations", None)
+                    if setter is not None and isinstance(msg.get("words"), dict):
+                        await setter(msg["words"])
                 elif msg.get("type") == "close":
                     break
     except (WebSocketDisconnect, asyncio.TimeoutError, RuntimeError):
