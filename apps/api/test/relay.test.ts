@@ -10,11 +10,13 @@ import { startFakePod, tone, type FakePod } from "./fakePod.ts";
 
 let pod: FakePod, app: FastifyInstance, port: number;
 const finalized: { turns: SessionTurn[]; stats: Record<string, unknown>; endReason: string }[] = [];
+const lookups: { userId: string; question: string }[] = [];
 
 beforeAll(async () => {
   pod = await startFakePod({ script: ["שלום", "מה נשמע", "רגע", "שקט", "עוד חמש דקות אני מגיע", "תרשום לי משהו", "סתם", "כלום", "בסדר"], token: "test-key",
     // a "model" that falls back on bot-speak, for the style guard
-    replyText: (t) => ({ "סתם": "הבנתי אותך.", "כלום": "צודק, נכון.", "בסדר": "בלי טעינה בבית זה לא שווה." } as Record<string, string>)[t] });
+    replyText: (t, ctx) => String(ctx.user_id).startsWith("u-lookup") ? "בודק, שנייה. <lookup/>"
+      : ({ "סתם": "הבנתי אותך.", "כלום": "צודק, נכון.", "בסדר": "בלי טעינה בבית זה לא שווה." } as Record<string, string>)[t] });
   const config = { ...loadConfig({ ROLLY_GPU_API_KEY: "test-key", ROLLY_GPU_WORKER_URL: pod.url, ROLLY_DEV_AUTH: "1" } as NodeJS.ProcessEnv), port: 0 };
   const hooks: SessionHooks = {
     async prepare(userId, sessionId, start) {
@@ -29,6 +31,13 @@ beforeAll(async () => {
       // "u-standing": the first thing they say settles how to address them, for the rest of the conversation
       if (userId === "u-standing") return recent.filter((t) => t.role === "user").length === 1 ? { text: "STANDING-NOTE", turns: 2, standing: true } : undefined;
       return turn.text.includes("תרשום") ? { text: "NOTE-FROM-HOOK", turns: 1 } : undefined;
+    },
+    // "u-lookup": the search answers in 100 ms; "u-lookup-fail": it does not work; other users have no lookups at all
+    async lookup({ userId, question }) {
+      lookups.push({ userId, question });
+      await new Promise((r) => setTimeout(r, 100));
+      return userId === "u-lookup-fail" ? { message: "[lookup_failed - not said by the user] did not work", ok: false, reason: "failed" }
+        : { message: "[lookup_result - not said by the user] What you found: 23 to 30 degrees.", ok: true };
     },
     async finalize(a) { finalized.push(a); return { ok: true }; },
   };
@@ -170,6 +179,52 @@ describe("relay phone <-> rolly-api <-> pod", () => {
     expect(standing.length).toBeGreaterThanOrEqual(3);
     expect(standing.every((n) => n.turns === 2)).toBe(true);
     expect((finalized.at(-1)!.stats.notes as { kind: string }[]).filter((n) => n.kind === "standing").length).toBe(standing.length);
+  }, 30_000);
+
+  it("an online lookup: 'checking' is said, the marker is never shown, the answer reaches the model at a quiet moment and is not stored as the user's", async () => {
+    const textsBefore = pod.texts.length;
+    const phone = new Phone();
+    await phone.connect(`ws://127.0.0.1:${port}/v1/voice?dev_user=u-lookup`);
+    phone.send({ type: "session.start", language: "he" });
+    await phone.waitReply(0, 5000);
+    const end = await phone.say(speech(600));
+    const checking = await phone.waitReply(end - 1, 5000);
+    expect(checking.text).toBe("בודק, שנייה.");
+    // the answer: a second agent turn, with no user speech in between
+    await phone.waitFor(() => [...phone.turns.values()].some((t) => t.done && t.text.startsWith("Said: [lookup_result")), 8000, "the answer turn");
+    phone.send({ type: "session.end" });
+    await phone.waitFor(() => phone.events.some((e) => e.msg.type === "session.closed"), 5000, "closed");
+
+    expect(lookups.at(-1)).toMatchObject({ userId: "u-lookup" });
+    expect(pod.texts.slice(textsBefore)).toEqual(["[lookup_result - not said by the user] What you found: 23 to 30 degrees."]);
+    // nothing of the mechanism reaches the phone: no marker in the streamed text, no "transcript" of the injected message
+    const shown = phone.events.map((e) => JSON.stringify(e.msg)).join(" ");
+    expect(shown).not.toContain("<lookup");
+    expect(phone.events.filter((e) => e.msg.type === "user.transcript").map((e) => (e.msg as { text: string }).text).some((t) => t.startsWith("["))).toBe(false);
+    const f = finalized.at(-1)!;
+    expect(f.turns.filter((t) => t.role === "user").map((t) => t.text).some((t) => t.startsWith("["))).toBe(false);
+    expect(f.turns.filter((t) => t.role === "user")).toHaveLength(1);
+    const [l] = f.stats.lookups as { ok: boolean; search_ms: number; delivered_after_ms: number }[];
+    expect(l).toMatchObject({ ok: true });
+    // the search took 100 ms, but "checking" was still playing (1.2 s): the answer waited for it to finish
+    expect(l!.delivered_after_ms).toBeGreaterThan(900);
+    // the turn that says the answer is not timed as a reply to the user
+    expect((f.stats.server_reply_ms as number[]).length).toBe(1);
+  }, 30_000);
+
+  it("a lookup that does not work is said as such; without the hook the marker is simply dropped", async () => {
+    const textsBefore = pod.texts.length;
+    const phone = new Phone();
+    await phone.connect(`ws://127.0.0.1:${port}/v1/voice?dev_user=u-lookup-fail`);
+    phone.send({ type: "session.start", language: "he" });
+    await phone.waitReply(0, 5000);
+    const end = await phone.say(speech(600));
+    await phone.waitReply(end - 1, 5000);
+    await phone.waitFor(() => pod.texts.length > textsBefore, 8000, "the failure message");
+    phone.send({ type: "session.end" });
+    await phone.waitFor(() => phone.events.some((e) => e.msg.type === "session.closed"), 5000, "closed");
+    expect(pod.texts.at(-1)).toContain("[lookup_failed");
+    expect((finalized.at(-1)!.stats.lookups as { ok: boolean; reason?: string }[])[0]).toMatchObject({ ok: false, reason: "failed" });
   }, 30_000);
 
   it("turn numbers are never reused between conversations (the phone mutes a number that was cut off before)", async () => {

@@ -54,6 +54,7 @@ AGENT_INTERRUPTED = "agent.interrupted"  # {response_id, detect_audio_ms}
 METRIC = "metric"  # {name, value_ms, response_id}
 USAGE = "usage"  # {kind, ...} raw units for cost accounting
 END_REQUESTED = "session.end_requested"  # {reason}
+LOOKUP_REQUESTED = "session.lookup_requested"  # {response_id}: the reply carried the lookup marker (the caller searches)
 ERROR = "error"  # {message, fatal}
 
 

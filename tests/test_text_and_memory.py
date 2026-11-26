@@ -3,8 +3,8 @@ import time
 from memory.context import END_MARKER, build_context, seed_store
 from memory.store import MemoryStore
 from memory.summarizer import _extract_json, fallback_summary, persist_summary
-from providers.modular.text import (SentenceChunker, clean_for_speech, dominant_language, foreign_language, he_pronounce,
-                                    mark_foreign, speech_language, user_wants_to_end)
+from providers.modular.text import (LOOKUP_MARKER, MarkerFilter, SentenceChunker, clean_for_speech, dominant_language,
+                                    foreign_language, has_words, he_pronounce, mark_foreign, speech_language, user_wants_to_end)
 
 
 def test_chunker_releases_first_clause_early_and_whole_sentences_after():
@@ -279,4 +279,29 @@ def test_the_language_the_user_is_practising_decides_unclear_phrases():
     assert foreign_language("Me encanta viajar", "fr") is None
     # a clear phrase wins over the hint
     assert foreign_language("Grazie mille", "es") == "it"
+
+
+def test_the_lookup_marker_is_never_spoken_or_shown():
+    reply = "בודק, שנייה. " + LOOKUP_MARKER
+    assert clean_for_speech(reply) == "בודק, שנייה."
+    # the chunker never cuts inside the marker, and what it hands to the voice has no marker
+    c = SentenceChunker()
+    chunks = []
+    for piece in ["בודק, ", "שנייה. ", "<", "lookup", "/>"]:
+        chunks += c.feed(piece)
+    chunks += c.flush()
+    assert chunks == ["בודק, שנייה."]
+    # the text shown while the reply streams: the marker arrives in pieces and none of them gets through
+    for pieces in (["בודק. ", "<", "lookup", "/>"], ["בודק. <look", "up/>"], ["ביי! ", "<end", "_session", "/>"], ["בודק. <lookup/>"]):
+        f = MarkerFilter()
+        shown = "".join(f.feed(p) for p in pieces) + f.flush()
+        assert "<" not in shown and shown.strip() in ("בודק.", "ביי!"), (pieces, shown)
+    # text that only looks like a tag is not swallowed
+    f = MarkerFilter()
+    assert "".join(f.feed(p) for p in ["3 < 5 ", "וגם <b>", " וזהו <"]) + f.flush() == "3 < 5 וגם <b> וזהו <"
+
+
+def test_a_piece_with_nothing_to_say_is_not_sent_to_a_voice():
+    assert not has_words("—") and not has_words("...") and not has_words(" ?! ")
+    assert has_words("כן.") and has_words("14") and has_words("Zappy")
 

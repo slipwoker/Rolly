@@ -94,7 +94,9 @@ function fit(items: string[], maxItems: number, maxChars: number): string[] {
 
 export function buildContext(mem: MemoryView, opts: { language?: Lang | null; journey?: Journey; now?: Date; timeZone?: string;
   /** the connection dropped mid-conversation: the last turns of the cut-off session */
-  resume?: { role: "user" | "agent"; text: string }[] }): BuiltContext {
+  resume?: { role: "user" | "agent"; text: string }[];
+  /** online lookups are connected (config and key): the persona then tells the model how to ask for one */
+  lookup?: boolean }): BuiltContext {
   const p = mem.profile;
   let language: Lang = opts.language ?? p.preferredLanguage ?? "he";
   if (!["he", "en", "auto"].includes(language)) language = "he";
@@ -137,7 +139,7 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
   }
   lines.push("", `Local time: ${lt.weekday} ${lt.hm} (${partOfDay}).${minutes ? ` About ${Math.round(minutes)} minutes until they arrive.` : ""}`);
 
-  const system_prompt = core(language) + "\n\n" + lines.join("\n") + "\n";
+  const system_prompt = core(language, { lookup: opts.lookup }) + "\n\n" + lines.join("\n") + "\n";
 
   // the plan for this ride: made after the previous conversation, cut to the time there is now
   const agenda = onboarding || opts.resume?.length ? [] : adaptAgenda(mem.agenda, { minutes: minutes ?? null, now });

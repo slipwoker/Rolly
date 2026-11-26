@@ -27,7 +27,7 @@ from .. import base
 from ..base import VoiceProvider
 from .llm import LLMResult, OpenAICompatLLM
 from .stt import discard_reason, get_stt
-from .text import FOREIGN_LANGS, SentenceChunker, TurnNotes, clean_for_speech, echo_like, has_stop_word, question_guard_note, user_wants_to_end
+from .text import FOREIGN_LANGS, LOOKUP_MARKER, MarkerFilter, SentenceChunker, TurnNotes, clean_for_speech, echo_like, has_stop_word, question_guard_note, user_wants_to_end
 from .tts import TTSRouter
 from .vad import Endpointer, SileroVAD, VadConfig
 
@@ -496,11 +496,12 @@ class ModularProvider(VoiceProvider):
 
             async def produce() -> None:
                 chunker = SentenceChunker()
+                shown = MarkerFilter()  # the end and lookup markers never reach the text shown on the phone
                 first_chunk = True
                 try:
                     async for delta in self.llm.stream(messages, llm_res, **getattr(self, "_llm_extra", {})):
                         state["agent_text"] += delta
-                        visible = delta.replace(END_MARKER, "")
+                        visible = shown.feed(delta)
                         if visible:
                             await gate.emit(base.AGENT_TEXT, response_id=rid, delta=visible)
                         for c in chunker.feed(delta):
@@ -510,6 +511,9 @@ class ModularProvider(VoiceProvider):
                                                 value_ms=(time.monotonic() - t_llm) * 1000, response_id=rid)
                             state["all_chunks"].append(c)
                             await chunk_q.put(c)
+                    rest = shown.flush()
+                    if rest:
+                        await gate.emit(base.AGENT_TEXT, response_id=rid, delta=rest)
                     for c in chunker.flush():
                         state["all_chunks"].append(c)
                         await chunk_q.put(c)
@@ -561,6 +565,10 @@ class ModularProvider(VoiceProvider):
                             proactive=proactive, usage={"prompt_tokens": llm_res.prompt_tokens, "completion_tokens": llm_res.completion_tokens})
             if ended:
                 await gate.emit(base.END_REQUESTED, reason="user_ended", after_s=tts_audio_s)
+            # "checking": the caller looks it up and sends the answer back as a marked message.  A reply to such a
+            # message cannot ask for another lookup (no loops).
+            elif LOOKUP_MARKER in state["agent_text"] and not (typed and (text or "").startswith("[lookup")):
+                await gate.emit(base.LOOKUP_REQUESTED, response_id=rid)
             if gate.committed:
                 await self._finalize_committed(state)
         except asyncio.CancelledError:

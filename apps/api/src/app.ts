@@ -18,6 +18,7 @@ import type { ServerDeps } from "./server.ts";
 import type { SessionHooks, SessionTurn } from "./voice/session.ts";
 import { LINES, runConversation, type Step } from "./selftest/scenarios.ts";
 import { NOTE, core } from "./persona/core.ts";
+import { lookupMessage, webLookup } from "./lookup/web.ts";
 import { AuditRecorder } from "./audit/recorder.ts";
 import { loadPricing } from "./audit/pricing.ts";
 import { auditRoutes } from "./audit/routes.ts";
@@ -72,12 +73,13 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       const proactive = start.proactive ?? true;
       const { language, chosen } = resolveLanguage(start, view.profile.preferredLanguage);
       if (chosen === "he" || chosen === "en") await store.updateProfile(userId, { preferred_language: chosen });
-      const built = buildContext(view, { language, journey: { ...start.journey, proactive }, timeZone: config.timezone, resume });
+      const lookup = config.webLookup && Boolean(llm?.search);
+      const built = buildContext(view, { language, journey: { ...start.journey, proactive }, timeZone: config.timezone, resume, lookup });
       await store.startSession(sessionId, userId, built.language, built.onboarding, new Date());
       await store.markUsed(view.usedIds);
       sessionAgenda.set(sessionId, built.agenda);
       await audit.recordPrompt({ sessionId, userId, language: built.language, onboarding: built.onboarding, systemPrompt: built.system_prompt,
-        persona: core(built.language), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })),
+        persona: core(built.language, { lookup }), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })),
         memoryIds: view.usedIds, sampling: config.llmSampling });
       const foreign = practiceLanguage(view);
       return {
@@ -96,6 +98,18 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
         const form = done.map((d) => /^addressing:(masculine|feminine|plural)$/.exec(d)?.[1]).find(Boolean) as "masculine" | "feminine" | "plural" | undefined;
         // how to address them was just said: tell the model now, and keep telling it until the conversation ends
         return form ? { text: NOTE.addressing(form), turns: 6, standing: true } : captured;
+      });
+    },
+    // the model said it is checking something online (P1-D34): search, within the user's daily allowance
+    async lookup(args) {
+      return audit.run({ userId: args.userId, sessionId: args.sessionId }, async () => {
+        const refuse = (reason: "unavailable" | "limit") => ({ message: lookupMessage({ ok: false, reason, ms: 0 }), ok: false, reason });
+        if (!config.webLookup || !llm?.search) return refuse("unavailable");
+        const used = (await db.query<{ n: number }>("SELECT count(*)::int n FROM llm_calls WHERE user_id=$1 AND purpose='lookup' AND at > now() - interval '24 hours'", [args.userId])
+          .catch(() => ({ rows: [{ n: 0 }] }))).rows[0]?.n ?? 0;
+        if (used >= config.lookupsPerDay) return refuse("limit");
+        const r = await webLookup(llm, { question: args.question, recent: args.recent, language: args.language, timeZone: config.timezone });
+        return { message: lookupMessage(r), ok: r.ok, ...(r.ok ? {} : { reason: r.reason }) };
       });
     },
     async finalize(args) {
@@ -354,7 +368,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     });
     app.post("/v1/admin/selftest", async (req, reply) => {
       if (!admin(req, reply)) return;
-      const b = parse(z.object({ scenario: z.enum(["relay", "memory", "goals", "tasks", "agenda"]), lang: z.enum(["he", "en"]).default("he"), user_id: z.string().uuid().optional() }), req.body, reply); if (!b) return;
+      const b = parse(z.object({ scenario: z.enum(["relay", "memory", "goals", "tasks", "agenda", "lookup"]), lang: z.enum(["he", "en"]).default("he"), user_id: z.string().uuid().optional() }), req.body, reply); if (!b) return;
       const job = { id: randomUUID(), scenario: b.scenario, lang: b.lang, status: "running", started: new Date().toISOString(), results: [] as unknown[], user_id: b.user_id ?? null as string | null, error: null as string | null };
       jobs.set(job.id, job);
       void runSelftest(job).catch((e) => { job.status = "failed"; job.error = String(e).slice(0, 300); });
@@ -450,6 +464,14 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       await run("t2_done", [
         { say: "כן, התקשרתי לרואה החשבון, זה סגור." },
         { say: "ביי, הגעתי." },
+      ]);
+    } else if (job.scenario === "lookup") {
+      // a question that needs current information: "checking" is said, then the answer as a turn of its own
+      await run("l1_weather_and_hours", [
+        { say: "היי, קוראים לי דני." },
+        { say: "מה מזג האוויר הצפוי בבואנוס איירס בשבוע הקרוב?", then_another_turn: true },
+        { say: "ועד איזו שעה פתוח היום שוק הכרמל בתל אביב?", then_another_turn: true },
+        { say: "תודה, ביי." },
       ]);
     } else if (job.scenario === "agenda") {
       // ride 1 leaves things open; ride 2 is a "20-minute" ride run ten times faster: halfway, wrap-up and last-word notes

@@ -81,12 +81,27 @@ export class AuditRecorder {
           throw e;
         }
       },
+      // a web lookup: tokens plus the provider's fee per search call
+      ...(inner.search ? { search: async (prompt: string, opts = {}) => {
+        const ctx = this.als.getStore() ?? {};
+        const t0 = Date.now();
+        try {
+          const r = await inner.search!(prompt, opts);
+          this.bg(this.recordCall({ ctx, purpose: "lookup", model: inner.name, ok: true, ms: r.ms ?? Date.now() - t0, promptChars: prompt.length, usage: r.usage,
+            extraUsd: r.searches * this.pricing.web_search_usd_per_call }));
+          return r;
+        } catch (e) {
+          this.bg(this.recordCall({ ctx, purpose: "lookup", model: inner.name, ok: false, error: String(e).slice(0, 300), ms: Date.now() - t0, promptChars: prompt.length }));
+          throw e;
+        }
+      } } : {}),
     };
   }
 
-  private async recordCall(c: { ctx: AuditContext; purpose: string; model: string; ok: boolean; error?: string; ms: number; promptChars: number; usage?: unknown }) {
+  private async recordCall(c: { ctx: AuditContext; purpose: string; model: string; ok: boolean; error?: string; ms: number; promptChars: number; usage?: unknown; extraUsd?: number }) {
     const u = parseUsage(c.usage);
-    const cost = c.ok ? tokenCost(this.pricing, c.model, u) : 0;
+    const tokens = c.ok ? tokenCost(this.pricing, c.model, u) : 0;
+    const cost = c.extraUsd ? (tokens ?? 0) + c.extraUsd : tokens;
     await this.db.query(
       `INSERT INTO llm_calls(user_id, session_id, purpose, model, ok, error, ms, prompt_chars, prompt_tokens, cached_tokens, completion_tokens, reasoning_tokens, cost_usd)
        SELECT $1::uuid, $2::uuid, $3::text, $4::text, $5::boolean, $6::text, $7::int, $8::int, $9::int, $10::int, $11::int, $12::int, $13::float8 WHERE $1::uuid IS NULL OR EXISTS (SELECT 1 FROM users WHERE id=$1::uuid)`,

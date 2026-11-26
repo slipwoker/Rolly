@@ -19,7 +19,7 @@ from typing import AsyncIterator, Optional
 
 import numpy as np
 
-from .text import he_pronounce, mark_foreign, speech_language
+from .text import has_words, he_pronounce, mark_foreign, speech_language
 
 
 def _to_pcm16(samples) -> bytes:
@@ -269,6 +269,8 @@ class TTSRouter:
 
         `foreign`: the language the user is practising (es / it / de), when the caller knows it.
         """
+        if not has_words(text):
+            return  # "—", "...": nothing to say (and the main Hebrew voice rejects it, which woke the backup voice)
         lang = speech_language(text, hint, self.default)
         engine = self.engine_for(lang)
         if lang == "he":

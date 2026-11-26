@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { END_MARKER, NOTE, core } from "../src/persona/core.ts";
+import { END_MARKER, LOOKUP_MARKER, NOTE, core } from "../src/persona/core.ts";
 import { buildContext, emptyMemory, practiceLanguage, resolveLanguage, type MemoryView } from "../src/persona/promptBuilder.ts";
 import { PROMPT } from "../src/memory/select.ts";
 
@@ -129,6 +129,30 @@ describe("what the prompt does say", () => {
     expect(buildContext(check, { language: "he", now }).opener_instruction).toContain("asking lightly whether it got done");
     expect(buildContext(withSummary, { language: "he", now, resume: [{ role: "user", text: "היי" }] }).opener_instruction).toContain("connection dropped");
     expect(buildContext(mem(), { language: "auto", now }).opener_instruction).toContain("Speak this opening in Hebrew.");
+  });
+});
+
+describe("online lookups (P1-D34)", () => {
+  it("the persona explains the marker only when lookups are connected, and stays within its size", () => {
+    const off = core("he"), on = core("he", { lookup: true });
+    expect(off).toContain("or check anything online: say so in a few words");
+    expect(off).not.toContain(LOOKUP_MARKER);
+    expect(on).toContain(`say you are checking, in two or three words, and append the exact marker ${LOOKUP_MARKER}`);
+    expect(on).toContain("never guess such facts");
+    expect(on).not.toContain("or check anything online");
+    // the price of the capability: about 60 tokens on top of the persona
+    expect(on.length - off.length).toBeLessThan(260);
+    expect(on.length).toBeLessThan(2_500);
+    expect(buildContext(mem(), { language: "he", now, lookup: true }).system_prompt).toContain(LOOKUP_MARKER);
+    expect(buildContext(mem(), { language: "he", now }).system_prompt).not.toContain(LOOKUP_MARKER);
+  });
+  it("a full prompt with lookups on still fits the budget", () => {
+    const long = (n: number, each: number) => Array.from({ length: n }, (_, i) => `פריט ${i} ` + "מילה ".repeat(Math.ceil(each / 5)));
+    const big = mem({ profile: { ...emptyMemory().profile, preferredName: "דני", preferences: Object.fromEntries(long(9, 300).map((v, i) => [`noted ${i}`, v])), addressing: { value: null, status: "unknown" } },
+      goals: Array.from({ length: 6 }, (_, i) => ({ id: `g${i}`, kind: "goal" as const, content: "מטרה " + "א".repeat(200), status: "active" as const, stateNote: "מצב ".repeat(200), nextStep: "צעד ".repeat(100) })),
+      facts: long(30, 200), tasks: long(20, 200).map((c, i) => ({ id: `t${i}`, content: c, createdAt: ago(i) })), summaries: [{ content: "סיכום ".repeat(400), createdAt: ago(1) }] });
+    const p = buildContext(big, { language: "he", journey: { duration_min: 40 }, now, lookup: true }).system_prompt;
+    expect(tokens(p)).toBeLessThan(1_350);
   });
 });
 
