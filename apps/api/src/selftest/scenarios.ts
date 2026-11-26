@@ -9,7 +9,9 @@ import { resolve } from "node:path";
 import type { ServerMessage } from "@rolly/contracts";
 import { Phone, gainDb, userSpeech, wav, type Turn } from "./phone.ts";
 
-export interface Step { say: string; gain_db?: number; barge_in_after_ms?: number; expect_reply?: boolean }
+export interface Step { say: string; gain_db?: number; barge_in_after_ms?: number; expect_reply?: boolean;
+  /** stay silent this long before speaking (to let ride time pass in paced scenarios) */
+  wait_ms?: number }
 export interface RunOpts {
   wsUrl: string; // full ws URL incl. ticket or dev_user
   lang: "he" | "en";
@@ -17,6 +19,8 @@ export interface RunOpts {
   steps: Step[];
   outDir?: string;
   label?: string;
+  /** expected length of the ride sent with session.start (default 20) */
+  minutes?: number;
 }
 
 export interface TurnResult {
@@ -43,13 +47,14 @@ export async function runConversation(o: RunOpts): Promise<RunResult> {
   };
   try {
     await phone.connect(o.wsUrl);
-    phone.send({ type: "session.start", language: o.lang, proactive: true, journey: { duration_min: 20 }, client: { platform: "selftest" } });
+    phone.send({ type: "session.start", language: o.lang, proactive: true, journey: { duration_min: o.minutes ?? 20 }, client: { platform: "selftest" } });
     const created = await waitEvent(phone, "session.created", 40_000);
     res.session_id = (created as { session_id: string }).session_id;
     const opener = await phone.waitReply(0, 45_000);
     save("opener", opener);
     for (let i = 0; i < o.steps.length; i++) {
       const step = o.steps[i]!;
+      if (step.wait_ms) await new Promise((r) => setTimeout(r, step.wait_ms));
       const pcm = step.gain_db ? gainDb(audio[i]!, step.gain_db) : audio[i]!;
       if (step.barge_in_after_ms !== undefined) {
         // speak while the previous reply is playing: wait for the next agent audio first

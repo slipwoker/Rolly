@@ -52,6 +52,7 @@ Return ONLY a JSON object with these keys:
       follow_up = continue something left open in this conversation; goal_step = the next step of a goal; action_check = ask
       whether an open task got done; fresh = something new and interesting connected to what the user cares about.
       Prefer what the user showed energy for. At most one action_check. Not skipped plan items the user clearly was not interested in.
+      Write "topic" as a short noun phrase about the thing itself ("רשימת עשרה לקוחות", "השיחה עם רואה החשבון"), never addressed to the user and without verbs in the second person.
 Write every text in the language the user mostly spoke ({language}). Do not invent anything that is not supported by the transcript, the summary or the lists.
 
 Goals (id: goal — how it stood before this conversation):

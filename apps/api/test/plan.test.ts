@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { adaptAgenda, fallbackAgenda, normalizeAgendaItems, normalizePlan, type StoredAgenda } from "../src/memory/plan.ts";
-import { BUDGET, score, selectWithinBudget, type Selectable } from "../src/memory/select.ts";
+import { BUDGET, sameStatement, score, selectWithinBudget, type Selectable } from "../src/memory/select.ts";
 import { buildContext, emptyMemory, type MemoryView } from "../src/persona/promptBuilder.ts";
 import { LEAD, NOTES } from "../src/persona/phase1Sections.ts";
 
@@ -121,6 +121,21 @@ describe("the plan, goals, tasks and ideas in the prompt", () => {
     // 2,700 tokens on top of the fixed instructions (~2,300): the whole prompt stays near 5,000 tokens of the model's 16k window
     expect(p.length - fixed).toBeLessThan(7_200);
     expect(fixed).toBeLessThan(9_000);
+  });
+});
+
+describe("the same statement twice is one item", () => {
+  it("ignores punctuation, niqqud and a word more or less in a long statement", () => {
+    expect(sameStatement("להתקשר לרואה החשבון מחר בבוקר", "להתקשר לרואה החשבון מחר בבוקר.")).toBe(true);
+    expect(sameStatement("לפתוח ניוזלטר שבועי ללקוחות", "לפתוח ניוזלטר שבועי ללקוחות שלי")).toBe(true);
+    expect(sameStatement("Call the accountant tomorrow morning", "call the accountant, tomorrow morning!")).toBe(true);
+    expect(sameStatement("דני", "דני.")).toBe(true);
+  });
+  it("is strict: related but different statements stay apart", () => {
+    expect(sameStatement("עובד בבנק", "עובד בבנק לאומי")).toBe(false);
+    expect(sameStatement("ללמוד ספרדית", "ללמוד איטלקית")).toBe(false);
+    expect(sameStatement("להתקשר לרואה החשבון", "להתקשר לעורך הדין מחר")).toBe(false);
+    expect(sameStatement("", "x")).toBe(false);
   });
 });
 

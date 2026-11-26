@@ -48,7 +48,10 @@ export async function handleLiveTurn(store: MemoryStore, llm: UtilityLlm | null,
   const valid = new Set(view.knownIds.map((m) => m.id));
   for (const a of actions) {
     if (!a.memory_id || !valid.has(a.memory_id)) continue;
-    if (a.action === "delete" && await store.deleteMemory(userId, a.memory_id, "voice", sessionId)) done.push(`delete:${a.memory_id}`);
+    if (a.action === "delete" && await store.deleteMemory(userId, a.memory_id, "voice", sessionId)) {
+      done.push(`delete:${a.memory_id}`);
+      turn.meta.forget_request = true; // the line naming what to forget is not kept in the transcript
+    }
     if (a.action === "replace" && a.new_content && await store.correctMemory(userId, a.memory_id, a.new_content, "voice", sessionId, turn.text)) done.push(`correct:${a.memory_id}`);
   }
   return done;

@@ -7,7 +7,7 @@ import { applyObservations, confirm as confirmAddressing, emptyEvidence, observe
 import { decide, otherSpeakersSuspected, userActionAccepted, type Decision } from "./policy.ts";
 import type { Item, SummaryResult } from "./summarizer.ts";
 import { normalizeAgendaItems, type AgendaItem, type GoalStatus, type PlanResult, type StoredAgenda } from "./plan.ts";
-import { BUDGET, selectWithinBudget, type Selectable } from "./select.ts";
+import { BUDGET, sameStatement, selectWithinBudget, type Selectable } from "./select.ts";
 import type { DerivedText } from "./scrub.ts";
 
 export type MemoryKind = "fact" | "preference" | "goal" | "travel_goal" | "interest" | "open_topic" | "action_item" | "idea" | "summary" | "outcome" | "name";
@@ -27,6 +27,9 @@ const PERSONAL_KINDS: MemoryKind[] = ["fact", "preference", "goal", "travel_goal
 const GOAL_KINDS: MemoryKind[] = ["goal", "travel_goal"];
 /** tasks and ideas: the kinds a user can tick off */
 const LIST_KINDS: MemoryKind[] = ["action_item", "idea"];
+
+/** what a transcript line is replaced by when the user asked to forget what it says */
+export const REMOVED = "[removed at the user's request]";
 
 const selectable = (m: MemoryRow): Selectable & { row: MemoryRow } => ({
   id: m.id, content: m.content, createdAt: m.created_at, updatedAt: m.updated_at, importance: m.importance, lastUsedAt: m.last_used_at,
@@ -93,11 +96,14 @@ export class MemoryStore {
     provenance: Record<string, unknown>; sessionId?: string | null; supersedes?: string | null; importance?: number | null }): Promise<string> {
     const expires = m.status === "candidate" ? new Date(Date.now() + this.opts.candidateTtlDays * 86_400_000) : null;
     // the same content already active: do not duplicate (refresh it instead)
-    const dup = await this.db.query<{ id: string; status: string }>(
-      "SELECT id, status FROM memories WHERE user_id=$1 AND kind=$2 AND lower(content)=lower($3) AND status<>'deleted' AND resolved_at IS NULL LIMIT 1",
-      [userId, m.kind, m.content]);
-    if (dup.rows[0]) {
-      const d = dup.rows[0];
+    // (for tasks and ideas also one ticked off in the last day: "I called him" must not put the call back on the list)
+    const same = await this.db.query<{ id: string; status: string; content: string; resolved_at: Date | null }>(
+      `SELECT id, status, content, resolved_at FROM memories WHERE user_id=$1 AND kind=$2 AND status<>'deleted'
+         AND (resolved_at IS NULL OR (kind = ANY($3) AND resolved_at > now() - interval '1 day')) ORDER BY created_at DESC LIMIT 200`,
+      [userId, m.kind, LIST_KINDS]);
+    const d = same.rows.find((r) => sameStatement(r.content, m.content));
+    if (d) {
+      if (d.resolved_at) return d.id;
       if (d.status === "candidate" && m.status === "active") {
         await this.db.query("UPDATE memories SET status='active', expires_at=NULL, provenance=provenance || $2, updated_at=now() WHERE id=$1", [d.id, JSON.stringify(m.provenance)]);
       } else {
@@ -201,8 +207,8 @@ export class MemoryStore {
     const prov = old.provenance ?? {};
     if (replacement === null && typeof prov.session_id === "string" && typeof prov.turn === "number") {
       await this.db.query(
-        `UPDATE turns t SET text = '[removed at the user''s request]' FROM sessions s
-         WHERE s.id = t.session_id AND s.user_id = $1 AND t.session_id = $2 AND t.idx = $3 AND t.role = 'user'`, [userId, prov.session_id, prov.turn]);
+        `UPDATE turns t SET text = $4 FROM sessions s
+         WHERE s.id = t.session_id AND s.user_id = $1 AND t.session_id = $2 AND t.idx = $3 AND t.role = 'user'`, [userId, prov.session_id, prov.turn, REMOVED]);
     }
   }
 
@@ -422,15 +428,16 @@ export class MemoryStore {
   }
 
   /**
-   * The session row keeps what describes the conversation (summary text, topic labels, counts). The extracted items
-   * are NOT copied here: they live in `memories`, where the user can correct and delete them.
+   * The session row keeps the summary text (which the scrub pass can rewrite) and counts. The extracted items and the
+   * topic labels are NOT copied here: items live in `memories`, where the user can correct and delete them.
+   * A turn marked `forget_request` (the user naming something to forget) is stored without its words.
    */
   async finishSession(args: { sessionId: string; userId: string; turns: SessionTurn[]; summary: SummaryResult | null; stats: Record<string, unknown>;
     endReason: string; describe: Record<string, unknown>; policy?: { decisions: { decision: Decision }[]; applied: string[] } | null }) {
     const { sessionId, turns, summary: s } = args;
     const userTurns = turns.filter((t) => t.role === "user").length;
     const record = s ? {
-      summary: s.summary, topics: s.topics, method: s.method, language: s.language, llm: s.llm, ms: s.ms, error: s.error,
+      summary: s.summary, method: s.method, language: s.language, llm: s.llm, ms: s.ms, error: s.error,
       other_speakers_suspected: s.other_speakers_suspected,
       counts: args.policy ? {
         active: args.policy.decisions.filter((d) => d.decision.status === "active").length,
@@ -443,7 +450,7 @@ export class MemoryStore {
     for (const t of turns) {
       await this.db.query(
         "INSERT INTO turns(session_id, idx, role, text, language, attribution, meta, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT DO NOTHING",
-        [sessionId, t.idx, t.role, t.text, t.language ?? null, t.attribution, JSON.stringify(t.meta ?? {}), new Date(t.startedAt)]);
+        [sessionId, t.idx, t.role, t.meta?.forget_request ? REMOVED : t.text, t.language ?? null, t.attribution, JSON.stringify(t.meta ?? {}), new Date(t.startedAt)]);
     }
   }
 
@@ -504,7 +511,11 @@ export class MemoryStore {
         }
         continue;
       }
-      if (c.action === "delete" && await this.deleteMemory(userId, c.memory_id, "voice", sessionId)) applied.push(`delete:${c.memory_id}`);
+      if (c.action === "delete" && await this.deleteMemory(userId, c.memory_id, "voice", sessionId)) {
+        applied.push(`delete:${c.memory_id}`);
+        const req = turns.find((t) => t.role === "user" && t.idx === c.turn);
+        if (req) req.meta.forget_request = true; // the line naming what to forget is not kept in the transcript
+      }
       if (c.action === "replace" && c.new_content && await this.correctMemory(userId, c.memory_id, c.new_content, "voice", sessionId, c.quote)) applied.push(`correct:${c.memory_id}`);
     }
     if (s.language && !others) {

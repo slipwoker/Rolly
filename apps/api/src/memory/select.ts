@@ -41,6 +41,26 @@ export function selectWithinBudget<T extends Selectable>(items: T[], budget: { m
   return out.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
+/** Words of a text without punctuation and niqqud, lower-cased (for comparing two statements). */
+export function words(text: string): string[] {
+  return text.toLowerCase().replace(/[\u0591-\u05C7]/g, "").replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
+}
+
+/**
+ * Two short statements say the same thing: equal after punctuation is ignored, or nearly all words shared. Used so that
+ * a task saved during the ride ("להתקשר לרואה החשבון מחר בבוקר") is not added again when the summary extracts it with a
+ * full stop or a word more. Deliberately strict: "works at a bank" and "works at Bank Leumi" stay two items.
+ */
+export function sameStatement(a: string, b: string, minShare = 0.8): boolean {
+  const wa = words(a), wb = words(b);
+  if (!wa.length || !wb.length) return false;
+  if (wa.join(" ") === wb.join(" ")) return true;
+  const sa = new Set(wa), sb = new Set(wb);
+  let shared = 0;
+  for (const w of sa) if (sb.has(w)) shared++;
+  return Math.min(sa.size, sb.size) >= 3 && shared / Math.max(sa.size, sb.size) >= minShare;
+}
+
 /**
  * Budgets of the memory part of the system prompt, in characters (Hebrew is roughly two to three characters per token).
  * The fixed instructions are about 2,300 tokens; with these budgets and the clips in promptBuilder.ts the memory part

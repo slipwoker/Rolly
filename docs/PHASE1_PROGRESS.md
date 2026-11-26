@@ -39,3 +39,32 @@
 - Real pod end to end through rolly-api: waiting for B1 (the sandbox cannot open WebSockets to the pod, B6).
 - Anything on the iPhone: B2. Swift not compiled: B3.
 - Measurements of brief §8: all on-phone numbers are **untested**.
+
+## 2026-11-26 (session 1, continued): memory, agenda and tasks without tools
+
+Owner's request after the capability map: build everything missing in "memory and goals", "agenda and leading" and "tasks and ideas",
+leaving tool connections (web search, Gmail, Calendar, Spotify/YouTube) and learning content for later. Decisions P1-D17..D22.
+
+**Built** (branch restarted from `main` at `fe4d69a`, after PRs #1-#7):
+- Goals with state and next step, look-ahead call after each conversation, plan for the next ride, pacing notes, spoken "time left".
+- Pod note channel (separate commit, to be applied to the pod's branch after the owner merges).
+- Tasks and ideas saved during the ride, done/reopen, Progress screen (goal cards, tick rows, ideas, share), home card shows the plan's first item.
+- Forgetting in derived text; slimmer session rows; selection by score; digests; prompt budget.
+
+**Tested here**
+- `npm test -w @rolly/api`: 74 tests (was 28). `npm test -w @rolly/mobile`: 5. `pytest tests`: 23 passed, 3 skipped (was 20).
+- Real utility model (`gpt-6-luna`), local PostgreSQL, no pod (`scripts/llm-check.ts`, three scripted Hebrew rides):
+  one-to-one rides: goal state and next step advance on each ride, progress items linked to the goal, the accountant task saved
+  live and ticked off on the next ride, plan carried over and marked done/touched/skipped, "forget what I said about the bank" →
+  no mention left anywhere in the export; digests written. Durations: summary 2.1-4.6 s, look-ahead 1.8-3.8 s, live capture
+  0.7-2.3 s, live forget ~1 s, scrub 1.7-2.4 s (all after or beside the conversation, none in the reply path).
+  Found and fixed with the real model: duplicate task (full stop), note-taking counted as progress, the forgotten subject named
+  in the new summary and in a stored topic label, second-person wording in plan topics. Seen once: the digest came back malformed
+  (skipped, retried after the next ride).
+  With a passenger line in the ride: everything stayed unconfirmed (see the open question in PHASE1_DECISIONS.md).
+
+**Not yet run**
+- Anything through the real pod: the note channel, pacing in a real conversation, the three new self-test scenarios
+  (`goals`, `tasks`, `agenda` on `POST /v1/admin/selftest`). `rolly-api` deploys from `main`, so these run after the merge.
+- Whether the conversation model actually follows the plan and the pacing notes: unknown until then.
+- Opener latency with the longer prompt. The new Progress screen on a device.

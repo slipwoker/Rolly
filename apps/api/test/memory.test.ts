@@ -305,6 +305,13 @@ describe.skipIf(!process.env.CI && false)("memory policy with PostgreSQL", () =>
     const idea = (await store.memories(uid, { kinds: ["idea"] }))[0]!;
     expect(await store.setDone(uid, idea.id, true, "app")).toBe(true);
     expect((await store.memoryView(uid)).ideas).toEqual([]);
+    // the end-of-ride summary extracts the same task with a full stop: still one item; a task ticked off today is not put back
+    const before = (await store.memories(uid, { kinds: ["action_item"], status: ["active", "candidate"] })).length;
+    await store.addMemory(uid, { kind: "action_item", content: "להתקשר לרואה החשבון מחר.", status: "active", provenance: { source: "summarizer" } });
+    expect((await store.memories(uid, { kinds: ["action_item"], status: ["active", "candidate"] })).length).toBe(before);
+    await store.setDone(uid, task.id, true, "app");
+    await store.addMemory(uid, { kind: "action_item", content: "להתקשר לרואה החשבון מחר", status: "active", provenance: { source: "summarizer" } });
+    expect((await store.memoryView(uid)).tasks).toEqual([]);
     // a fact cannot be "done"
     const fact = await store.addMemory(uid, { kind: "fact", content: "גר בחיפה", status: "active", provenance: {} });
     expect(await store.setDone(uid, fact, true, "app")).toBe(false);

@@ -11,7 +11,8 @@ import type { UtilityLlm } from "./llm.ts";
 import type { MemoryStore } from "./store.ts";
 
 export const SCRUB_PROMPT = `You maintain the notes of a voice companion. The user asked it to forget or correct something. Some of the notes below may
-still mention it. Rewrite ONLY the notes that state or clearly imply the forgotten information, so that they no longer do.
+still mention it. Rewrite ONLY the notes that state or clearly imply the forgotten information, or say what it was that the user
+asked to forget, so that they no longer do.
 Keep everything else in a note unchanged, in the same language, and keep it natural. If a note is about nothing else, return an empty text for it.
 {replacement}
 Return ONLY JSON: {"rewrites": [{"key": "<key>", "text": "<the rewritten note, or empty to remove it>"}]} — only for notes that needed a change; an empty list if none did.

@@ -280,7 +280,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     });
     app.post("/v1/admin/selftest", async (req, reply) => {
       if (!admin(req, reply)) return;
-      const b = parse(z.object({ scenario: z.enum(["relay", "memory"]), lang: z.enum(["he", "en"]).default("he"), user_id: z.string().uuid().optional() }), req.body, reply); if (!b) return;
+      const b = parse(z.object({ scenario: z.enum(["relay", "memory", "goals", "tasks", "agenda"]), lang: z.enum(["he", "en"]).default("he"), user_id: z.string().uuid().optional() }), req.body, reply); if (!b) return;
       const job = { id: randomUUID(), scenario: b.scenario, lang: b.lang, status: "running", started: new Date().toISOString(), results: [] as unknown[], user_id: b.user_id ?? null as string | null, error: null as string | null };
       jobs.set(job.id, job);
       void runSelftest(job).catch((e) => { job.status = "failed"; job.error = String(e).slice(0, 300); });
@@ -323,7 +323,13 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     const p = await store.profile(uid);
     return { profile: { preferred_name: p.preferred_name, preferred_language: p.preferred_language, addressing: { value: p.addressing_value, status: p.addressing_status, evidence: p.addressing_evidence } },
       memories: all.map((m) => ({ kind: m.kind, status: m.status, content: m.content, confidence: m.confidence, reason: m.provenance.reason, attribution: m.provenance.attribution })),
-      progress: (await store.progress(uid)).map((r) => r.text), next_opener_instruction: buildContext(view, { timeZone: config.timezone }).opener_instruction,
+      progress: (await store.progress(uid)).map((r) => ({ text: r.text, linked_to_goal: !!r.goal_id })),
+      goals: (await store.goals(uid)).map((g) => ({ content: g.content, status: g.status, state_note: g.state_note, next_step: g.next_step, sessions_count: g.sessions_count })),
+      tasks_open: view.tasks.map((t) => t.content), ideas: view.ideas,
+      tasks_done: (await store.memories(uid, { kinds: ["action_item", "idea"], done: true })).map((m) => m.content),
+      next_agenda: view.agenda?.items ?? [], digest: view.digest, scrub_pending: (await store.scrubQueue(uid)).length,
+      sessions: (await db.query("SELECT started_at, stats->'notes' AS notes, stats->'plan' AS plan, stats->'lookahead_ms' AS lookahead_ms, stats->'server_reply_ms_median' AS reply_ms FROM sessions WHERE user_id=$1 ORDER BY started_at", [uid])).rows,
+      next_opener_instruction: buildContext(view, { timeZone: config.timezone }).opener_instruction,
       addressing_section_in_next_prompt: buildContext(view, { timeZone: config.timezone, language: "he" }).system_prompt.split("\n\n").find((s) => s.startsWith("How to address")) ?? null };
   };
   async function runSelftest(job: { scenario: string; lang: "he" | "en"; status: string; results: unknown[]; user_id: string | null }) {
@@ -331,14 +337,65 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     job.user_id = uid;
     const base = `ws://127.0.0.1:${config.port}`;
     const pod = { url: config.gpuWorkerUrl, apiKey: config.gpuApiKey };
-    const run = async (label: string, steps: Step[]) => {
+    const run = async (label: string, steps: Step[], minutes?: number) => {
       const { ticket } = await auth.createTicket(uid);
-      const r = await runConversation({ wsUrl: `${base}/v1/voice?ticket=${ticket}`, lang: job.lang, pod, steps, label });
+      const r = await runConversation({ wsUrl: `${base}/v1/voice?ticket=${ticket}`, lang: job.lang, pod, steps, label, minutes });
       job.results.push({ label, ...r });
+      // the next conversation of a scenario builds on this one's look-ahead (goal notes, plan): let it finish
+      await Promise.race([lookahead.get(uid) ?? Promise.resolve(), new Promise((res) => setTimeout(res, 45_000))]);
       return r;
     };
     if (job.scenario === "relay") await run("relay", LINES[job.lang].relay);
-    else {
+    else if (job.scenario === "goals") {
+      // a goal over three rides: stated, moved forward, moved again; its notes and the plan should follow
+      await run("g1_goal_stated", [
+        { say: "היי, קוראים לי דני." },
+        { say: "אני רוצה לנצל את הנסיעות כדי לתכנן את המעבר שלי לעבודה עצמאית." },
+        { say: "אני חושב שהצעד הראשון הוא לבנות רשימה של עשרה לקוחות אפשריים." },
+        { say: "טוב, הגעתי, ביי." },
+      ]);
+      await run("g2_progress", [
+        { say: "כן, התחלתי את הרשימה, יש לי כבר ארבעה שמות." },
+        { say: "אני צריך עוד שישה, אולי אפנה לקולגות מהעבודה הקודמת." },
+        { say: "יאללה, נמשיך בפעם הבאה, ביי." },
+      ]);
+      await run("g3_next_step", [
+        { say: "סיימתי את הרשימה, יש לי עשרה לקוחות." },
+        { say: "עכשיו אני רוצה לנסח הודעת פנייה ראשונה ללקוחות." },
+        { say: "ביי, הגעתי." },
+      ]);
+    } else if (job.scenario === "tasks") {
+      // "note that for me": saved during the ride; "I did it" on the next ride ticks it off
+      await run("t1_note_task_and_idea", [
+        { say: "היי, תרשום לי בבקשה להתקשר לרואה החשבון מחר בבוקר." },
+        { say: "ויש לי רעיון, תשמור אותו: לפתוח ניוזלטר שבועי ללקוחות." },
+        { say: "טוב, זה הכל להיום, ביי." },
+      ]);
+      job.results.push({ label: "state_after_t1", state: await stateOf(uid) });
+      await run("t2_done", [
+        { say: "כן, התקשרתי לרואה החשבון, זה סגור." },
+        { say: "ביי, הגעתי." },
+      ]);
+    } else if (job.scenario === "agenda") {
+      // ride 1 leaves things open; ride 2 is a "20-minute" ride run ten times faster: halfway, wrap-up and last-word notes
+      await run("a1_leaves_things_open", [
+        { say: "היי, קוראים לי דני, אני מתכנן טיול משפחתי ליוון בקיץ." },
+        { say: "עוד לא החלטתי אם לטוס לאתונה או לאחד האיים." },
+        { say: "וגם רציתי לחזור לרוץ פעמיים בשבוע, אבל אין לי כוח." },
+        { say: "טוב, הגעתי, נדבר, ביי." },
+      ]);
+      pacingScales.set(uid, 0.1);
+      try {
+        await run("a2_paced_ride", [
+          { say: "האמת שאני נוטה לאי, נשמע לי רגוע יותר.", wait_ms: 8_000 },
+          { say: "כן, אולי כרתים, יש שם גם מה לעשות עם הילדים.", wait_ms: 12_000 },
+          { say: "נכון. ומה לגבי הריצה, יש לך רעיון איך להתחיל?", wait_ms: 12_000 },
+          { say: "אוקיי, אני אנסה ביום ראשון בבוקר.", wait_ms: 14_000 },
+          { say: "סבבה.", wait_ms: 14_000 },
+          { say: "טוב, הגעתי, ביי.", wait_ms: 10_000 },
+        ], 20);
+      } finally { pacingScales.delete(uid); }
+    } else {
       // 1: first conversation (onboarding): name, travel goal, feminine self-references, a quiet second voice stating a fact
       await run("s1_onboarding", [
         { say: "היי! קוראים לי נועה." },

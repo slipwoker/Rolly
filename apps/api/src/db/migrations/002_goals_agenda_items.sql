@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS scrub_queue (
 CREATE INDEX IF NOT EXISTS scrub_queue_user ON scrub_queue (user_id);
 
 -- The per-session JSON kept every extracted item verbatim (a second copy of personal facts that "forget" could not
--- reach). Keep only what describes the conversation; the items themselves live in memories.
+-- reach), and topic labels. Keep only the summary text; the items themselves live in memories.
 UPDATE sessions SET summary = jsonb_strip_nulls(jsonb_build_object(
-  'summary', summary->'summary', 'topics', summary->'topics', 'method', summary->'method', 'language', summary->'language'))
-WHERE summary IS NOT NULL AND (summary ? 'facts' OR summary ? 'policy' OR summary ? 'travel_goals');
+  'summary', summary->'summary', 'method', summary->'method', 'language', summary->'language'))
+WHERE summary IS NOT NULL AND (summary ? 'facts' OR summary ? 'policy' OR summary ? 'travel_goals' OR summary ? 'topics');

@@ -15,12 +15,12 @@ by weak acoustic hints as possibly someone else. Attribute cautiously: only trea
 when the words clearly say so in the first person ("I work at...", "my goal is...") and nothing suggests another speaker.
 
 Return ONLY a JSON object with these keys:
-  "summary": two to four sentences, third person, stating what was discussed and decided. Write it in the language the USER mostly spoke (Hebrew or English). Mention other people only as far as needed to understand the conversation; no personal details about them.
+  "summary": two to four sentences, third person, stating what was discussed and decided. Write it in the language the USER mostly spoke (Hebrew or English). Mention other people only as far as needed to understand the conversation; no personal details about them. If the user asked Rolly to forget or correct something, do not say what it was about: at most "asked to forget something".
   "topics": list of short topic labels,
   "decisions": list of decisions the user made,
   "unresolved_topics": list of topics opened but not concluded, worth continuing next time,
   "resolved_topics": list of previously open topics (from the list below) that were concluded in this conversation, copied exactly,
-  "progress": list of at most three short statements of what this conversation actually moved forward for the user (a decision, a plan, an idea clarified). Empty if nothing moved.
+  "progress": list of at most three short statements of what this conversation actually moved forward for the user (a decision, a plan, an idea clarified, something done). Noting a task or saving an idea is not progress. Empty if nothing moved.
   "suggested_next_opener": one sentence Rolly could use to open the next journey,
   "preferred_name": ITEM or null — what the user wants to be called, only if they said it about themselves,
   "travel_goals": list of ITEM — what the user said would make their travel time valuable,
@@ -83,8 +83,10 @@ export interface SummaryResult {
 }
 
 export function formatTranscript(turns: SessionTurn[], maxChars = 24_000): string {
+  // a line in which the user named something to forget was already acted on during the ride: its words are not shown again
   const lines = turns.filter((t) => t.text).map((t) =>
-    `${t.idx} ${t.role === "agent" ? "AGENT" : t.attribution === "uncertain" ? "USER?" : "USER"}: ${t.text}`);
+    `${t.idx} ${t.role === "agent" ? "AGENT" : t.attribution === "uncertain" ? "USER?" : "USER"}: ${
+      t.meta?.forget_request ? "[asked Rolly to forget something; already done]" : t.text}`);
   let text = lines.join("\n");
   if (text.length > maxChars) text = text.slice(0, maxChars / 3) + "\n[...]\n" + text.slice(-(2 * maxChars) / 3);
   return text;
