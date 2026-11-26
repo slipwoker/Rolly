@@ -66,6 +66,11 @@ class _Gate:
             await self._p.emit(type_, audio=audio, sample_rate=sr, **data)
 
 
+# per-session sampling options the caller may set (`options.llm`), with the range each is clamped to
+LLM_OPTION_BOUNDS = {"temperature": (0.0, 1.2), "top_p": (0.1, 1.0), "presence_penalty": (-1.0, 1.5),
+                     "frequency_penalty": (-1.0, 1.5), "repetition_penalty": (1.0, 1.3)}
+
+
 class ModularProvider(VoiceProvider):
     architecture = "modular"
 
@@ -119,6 +124,16 @@ class ModularProvider(VoiceProvider):
                   "bargein_floor_db"):
             if k in opts:
                 setattr(self.vad_cfg, k, float(opts[k]))
+        # Sampling for this conversation, chosen by the caller (it measures them against bot-like phrasing): a short
+        # whitelist with bounded values, applied to this session's requests only.
+        llm_opts = opts.get("llm") if isinstance(opts.get("llm"), dict) else {}
+        self._llm_extra = {}
+        for k, (lo, hi) in LLM_OPTION_BOUNDS.items():
+            if k in llm_opts:
+                try:
+                    self._llm_extra[k] = min(hi, max(lo, float(llm_opts[k])))
+                except (TypeError, ValueError):
+                    pass
         self.endpointer = Endpointer(SileroVAD(self.config.get("vad_model", "models/silero_vad.onnx")), self.vad_cfg)
         if self.ctx.proactive and self.ctx.opener_instruction:
             gate = _Gate(self, committed=True)
@@ -207,8 +222,8 @@ class ModularProvider(VoiceProvider):
     async def interrupt(self) -> None:
         await self._cancel_turn(emit_interrupt=True)
 
-    async def set_note(self, text: str, turns: int = 1) -> None:
-        self.notes.add(text, turns)
+    async def set_note(self, text: str, turns: int = 1, max_user_words: int | None = None, min_streak: int = 1) -> None:
+        self.notes.add(text, turns, max_user_words, min_streak)
 
     # -- turn handling -----------------------------------------------------------
     async def _cancel_turn(self, emit_interrupt: bool, detect_audio_ms: float | None = None) -> None:
@@ -310,7 +325,7 @@ class ModularProvider(VoiceProvider):
             spoken = clean_for_speech(state.get("agent_text", ""))
             if spoken:
                 self.history.append({"role": "assistant", "content": spoken})
-                self.notes.consume()  # a full reply was given with the caller's notes in view (a cut-off one does not count)
+                self.notes.consume(user_text)  # a full reply was given with the caller's notes in view (a cut-off one does not count)
         if len(self.history) > self.max_history_turns * 2 and (self._compacting is None or self._compacting.done()):
             self._compacting = asyncio.create_task(self._compact_history())
 
@@ -402,7 +417,7 @@ class ModularProvider(VoiceProvider):
         note = question_guard_note(self.history) if self.question_guard else None
         if note:
             msgs[-1]["content"] += "\n\n" + note
-        caller_notes = self.notes.text()
+        caller_notes = self.notes.text(user_text)
         if caller_notes:
             msgs[-1]["content"] += "\n\n" + caller_notes
         return msgs
@@ -480,7 +495,7 @@ class ModularProvider(VoiceProvider):
                 chunker = SentenceChunker()
                 first_chunk = True
                 try:
-                    async for delta in self.llm.stream(messages, llm_res):
+                    async for delta in self.llm.stream(messages, llm_res, **getattr(self, "_llm_extra", {})):
                         state["agent_text"] += delta
                         visible = delta.replace(END_MARKER, "")
                         if visible:

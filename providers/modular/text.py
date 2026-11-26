@@ -65,35 +65,71 @@ class TurnNotes:
     """Notes from the caller (the app that owns the conversation) for the model's next turns: pacing of the ride
     ("three minutes left, start wrapping up"), memory hints.  Like the question guard they are appended to the user's
     message for a turn and never stored in history; unlike it they come from outside and live for a set number of
-    turns.  They never start a turn and never interrupt one."""
+    turns.  They never start a turn and never interrupt one.
+
+    A note can be CONDITIONAL: `max_user_words` (with `min_streak`) shows it only on a turn where the user said at most
+    that many words, for at least that many turns in a row, i.e. when the conversation has run dry.  The condition is
+    checked here because only this side knows what the user said before the reply is generated; the small model obeys
+    a note as a command, so "if they give you little, bring up X" in the text itself made it bring up X in answer to
+    a real question (measured, 2026-11-26).  A conditional note waits, unconsumed, until its turn comes or it expires."""
 
     MAX_CHARS = 600
     MAX_TURNS = 6
-    MAX_NOTES = 3
+    MAX_NOTES = 4
+    MAX_WAIT = 14  # replies a conditional note may wait before it is dropped
 
     def __init__(self) -> None:
-        self._notes: list[list] = []  # [text, turns left]
+        self._notes: list[dict] = []
+        self._dry_streak = 0  # consecutive user turns of at most DRY_WORDS words, before the current one
+        self._shown: list[dict] = []
 
-    def add(self, text: str, turns: int = 1) -> None:
+    DRY_WORDS = 2
+
+    def add(self, text: str, turns: int = 1, max_user_words: int | None = None, min_streak: int = 1) -> None:
         text = " ".join(str(text or "").split())[: self.MAX_CHARS]
         if not text:
             return
         turns = max(1, min(self.MAX_TURNS, int(turns or 1)))
-        self._notes = [n for n in self._notes if n[0] != text]  # the same note again just renews it
-        self._notes.append([text, turns])
+        self._notes = [n for n in self._notes if n["text"] != text]  # the same note again just renews it
+        self._notes.append({"text": text, "turns": turns, "waited": 0,
+                            "max_user_words": None if max_user_words is None else max(0, int(max_user_words)),
+                            "min_streak": max(1, int(min_streak or 1))})
         self._notes = self._notes[-self.MAX_NOTES:]
 
-    def text(self) -> str | None:
-        """What to append to this turn's user message, or None."""
-        if not self._notes:
-            return None
-        return "\n".join(f"[Note for this turn, not said by the user: {n[0]}]" for n in self._notes)
+    @staticmethod
+    def _words(user_text: str | None) -> int:
+        return len((user_text or "").split())
 
-    def consume(self) -> None:
-        """One reply was given with the notes in view."""
+    def _applies(self, n: dict, user_text: str | None) -> bool:
+        if n["max_user_words"] is None:
+            return True
+        if user_text is None or user_text.lstrip().startswith("["):  # an event prompt (the opener), not something the user said
+            return False
+        words = self._words(user_text)
+        if words > n["max_user_words"]:
+            return False
+        streak = (self._dry_streak if words <= self.DRY_WORDS else 0) + 1
+        return streak >= n["min_streak"]
+
+    def text(self, user_text: str | None = None) -> str | None:
+        """What to append to this turn's user message, or None.  Remembers which notes were shown (for `consume`)."""
+        self._shown = [n for n in self._notes if self._applies(n, user_text)]
+        if not self._shown:
+            return None
+        return "\n".join(f"[Note for this turn, not said by the user: {n['text']}]" for n in self._shown)
+
+    def consume(self, user_text: str | None = None) -> None:
+        """One reply was given.  Notes that were in view lose a turn; conditional notes that were not keep waiting."""
+        shown = {id(n) for n in self._shown}
         for n in self._notes:
-            n[1] -= 1
-        self._notes = [n for n in self._notes if n[1] > 0]
+            if id(n) in shown:
+                n["turns"] -= 1
+            elif n["max_user_words"] is not None:
+                n["waited"] += 1
+        self._notes = [n for n in self._notes if n["turns"] > 0 and n["waited"] < self.MAX_WAIT]
+        self._shown = []
+        if user_text is not None and not user_text.lstrip().startswith("["):
+            self._dry_streak = self._dry_streak + 1 if self._words(user_text) <= self.DRY_WORDS else 0
 
     def __len__(self) -> int:
         return len(self._notes)

@@ -29,7 +29,7 @@ Return ONLY a JSON object with these keys:
   "action_items": list of ITEM — concrete things the user said THEY will do, or asked Rolly to note as a task,
   "ideas": list of ITEM — ideas the user came up with or asked Rolly to note or keep (not tasks),
   "facts": list of ITEM — other durable facts about the user (work, family situation, routines), only if stated by the user about themselves,
-  "preferences": list of ITEM — how the user likes to talk or be talked to,
+  "preferences": list of ITEM — how the user likes to talk or be talked to. Feedback about Rolly itself (how it talks, that it sounds robotic, how to pronounce a name) belongs HERE, phrased as what the user wants; it is never an unresolved topic, never progress, and gets at most a few words in the summary,
   "candidate_confirmations": list of {"id": "<id from the 'Not confirmed' list>", "answer": "yes"|"no", "turn": <turn number>} for items the user was asked about and answered,
   "corrections": list of {"memory_id": "<id from 'Known memories'>"|null, "action": "replace"|"delete", "new_content": "<corrected text>"|null, "turn": <turn number>, "quote": "<the user's words>"} when the user said something remembered is wrong or asked to forget it,
   "other_speakers_suspected": true if anything in the transcript suggests more than one person was talking (someone addressed by name, replies that do not fit, "USER?" lines), else false,

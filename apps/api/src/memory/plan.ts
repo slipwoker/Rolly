@@ -14,8 +14,10 @@ import { formatTranscript } from "./summarizer.ts";
 export type GoalStatus = "active" | "paused" | "achieved" | "dropped";
 export type AgendaKind = "follow_up" | "goal_step" | "action_check" | "fresh";
 
-export interface AgendaItem { topic: string; why: string; kind: AgendaKind; ref_id: string | null }
-export interface StoredAgenda { created_at: string; session_id: string | null; items: AgendaItem[] }
+/** `take`: Rolly's own opinion or angle on the topic, written by the stronger model so the small one has something real to say */
+export interface AgendaItem { topic: string; why: string; kind: AgendaKind; ref_id: string | null; take?: string }
+/** `opened_with`: the topic that opened the ride this plan was made after, when the user did not take it up */
+export interface StoredAgenda { created_at: string; session_id: string | null; items: AgendaItem[]; opened_with?: string | null }
 
 export interface GoalUpdate {
   goal_id: string; state_note: string | null; next_step: string | null;
@@ -48,10 +50,12 @@ Return ONLY a JSON object with these keys:
   "completed_action_items": [{"id": "<id from the open tasks>", "turn": <turn number>, "quote": "<the user's exact words>"}] for tasks the USER said they have done or no longer need.
   "agenda_outcome": [{"index": <number from the plan for this ride>, "outcome": "done" | "touched" | "skipped"}]
   "next_agenda": two or three things for Rolly to bring up on the NEXT ride, most valuable first:
-      {"topic": "<short, concrete>", "why": "<one short sentence: why it is worth the user's time>", "kind": "follow_up" | "goal_step" | "action_check" | "fresh", "ref_id": "<id of the goal or task it is about, or null>"}
+      {"topic": "<short, concrete>", "take": "<Rolly's own opinion or angle on it, one sentence a friend would say>", "why": "<one short sentence: why it is worth the user's time>", "kind": "follow_up" | "goal_step" | "action_check" | "fresh", "ref_id": "<id of the goal or task it is about, or null>"}
       follow_up = continue something left open in this conversation; goal_step = the next step of a goal; action_check = ask
       whether an open task got done; fresh = something new and interesting connected to what the user cares about.
       Prefer what the user showed energy for. At most one action_check. Not skipped plan items the user clearly was not interested in.
+      Always include one "fresh" item that is light: a small debate, an odd observation or a playful question connected to what the user cares about.
+      "take" is what gives Rolly something real to say: a clear stance ("better one small investor who believes than months chasing a big fund"), a concrete angle, or a side in a small debate. Opinions and angles, not facts: state a fact only if it is certainly true. No general wisdom about life, nothing that starts with "sometimes". Leave "take" empty for an action_check.
       Write "topic" as a short noun phrase about the thing itself ("רשימת עשרה לקוחות", "השיחה עם רואה החשבון"), never addressed to the user and without verbs in the second person.
 Write every text in the language the user mostly spoke ({language}). Do not invent anything that is not supported by the transcript, the summary or the lists.
 
@@ -87,7 +91,7 @@ export function normalizeAgendaItems(v: unknown, validRefs?: Set<string>): Agend
     if (!topic) continue;
     const ref = str(o.ref_id);
     out.push({
-      topic: topic.slice(0, 200), why: str(o.why).slice(0, 240),
+      topic: topic.slice(0, 200), why: str(o.why).slice(0, 240), ...(str(o.take) ? { take: str(o.take).slice(0, 220) } : {}),
       kind: KINDS.includes(o.kind as AgendaKind) ? (o.kind as AgendaKind) : "fresh",
       ref_id: ref && (!validRefs || validRefs.has(ref)) ? ref : null,
     });
@@ -160,6 +164,8 @@ export function adaptAgenda(stored: StoredAgenda | null, opts: { minutes?: numbe
   const now = opts.now ?? new Date();
   const days = (now.getTime() - new Date(stored.created_at).getTime()) / 86_400_000;
   let items = stored.items.filter((i) => !i.ref_id || !opts.validRefs || opts.validRefs.has(i.ref_id));
+  // what opened the last ride and was not taken up does not open this one too (four rides in a row began with the same question)
+  if (stored.opened_with && items.length > 1 && items[0]!.topic === stored.opened_with) items = [...items.slice(1), items[0]!];
   if (days > 7) items = [...items.filter((i) => i.kind !== "follow_up"), ...items.filter((i) => i.kind === "follow_up")];
   if (days > 30) items = items.filter((i) => i.kind !== "follow_up" && i.kind !== "action_check");
   const m = opts.minutes ?? null;

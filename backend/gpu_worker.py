@@ -178,7 +178,9 @@ async def session(ws: WebSocket):
                 elif msg.get("type") == "interrupt":
                     await provider.interrupt()
                 elif msg.get("type") == "note":  # for the model's next turns; does not start or interrupt a turn
-                    await provider.set_note(str(msg.get("text", ""))[:600], int(msg.get("turns") or 1))
+                    mw = msg.get("max_user_words")
+                    await provider.set_note(str(msg.get("text", ""))[:600], int(msg.get("turns") or 1),
+                                            int(mw) if isinstance(mw, (int, float)) else None, int(msg.get("min_streak") or 1))
                 elif msg.get("type") == "close":
                     break
     except (WebSocketDisconnect, asyncio.TimeoutError, RuntimeError):

@@ -133,9 +133,14 @@ export class PodSession {
   interrupt(): void { this.send({ type: "interrupt" }); }
   /**
    * A note for the model's next `turns` turns (pacing, memory hints). It is shown to the model next to the user's words,
-   * never stored in the conversation history and never interrupts speech. A worker without the note channel ignores it.
+   * never stored in the conversation history and never interrupts speech. With `when`, the pod holds it until a turn
+   * in which the user said at most `maxUserWords` words (`minStreak` turns in a row): the conversation has run dry.
+   * A worker without the note channel ignores it.
    */
-  note(text: string, turns = 1): void { this.send({ type: "note", text: text.slice(0, 600), turns: Math.min(6, Math.max(1, Math.round(turns))) }); }
+  note(text: string, turns = 1, when?: { maxUserWords: number; minStreak?: number }): void {
+    this.send({ type: "note", text: text.slice(0, 600), turns: Math.min(6, Math.max(1, Math.round(turns))),
+      ...(when ? { max_user_words: when.maxUserWords, min_streak: when.minStreak ?? 1 } : {}) });
+  }
 
   close(): void {
     if (this.closed) return;

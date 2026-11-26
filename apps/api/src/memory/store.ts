@@ -371,8 +371,9 @@ export class MemoryStore {
     return true;
   }
 
-  async saveAgenda(userId: string, sessionId: string | null, items: AgendaItem[]): Promise<void> {
-    const agenda: StoredAgenda = { created_at: new Date().toISOString(), session_id: sessionId, items: normalizeAgendaItems(items) };
+  /** `openedWith`: the topic that opened the ride just ended, if the user did not take it up (it will not open the next one) */
+  async saveAgenda(userId: string, sessionId: string | null, items: AgendaItem[], openedWith: string | null = null): Promise<void> {
+    const agenda: StoredAgenda = { created_at: new Date().toISOString(), session_id: sessionId, items: normalizeAgendaItems(items), opened_with: openedWith };
     await this.db.query("UPDATE profiles SET next_agenda=$2 WHERE user_id=$1", [userId, JSON.stringify(agenda)]);
   }
 
@@ -407,7 +408,6 @@ export class MemoryStore {
       if (!acc.ok) { refused.push(`done:${c.id}:${acc.reason}`); continue; }
       if (await this.setDone(userId, c.id, true, "voice", sessionId)) applied.push(`done:${c.id}`);
     }
-    if (plan.next_agenda.length) await this.saveAgenda(userId, sessionId, plan.next_agenda);
     return { applied, refused };
   }
 

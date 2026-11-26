@@ -62,23 +62,29 @@ export function sameStatement(a: string, b: string, minShare = 0.8): boolean {
 }
 
 /**
- * Budgets of the memory part of the system prompt, in characters (Hebrew is roughly two to three characters per token).
- * The fixed instructions are about 2,300 tokens; with these budgets and the clips in promptBuilder.ts the memory part
- * (plan for the ride included) stays under about 2,700 more, so the whole prompt is at most ~5,000 tokens of the model's
- * 16k window. The pod caches the prompt within a conversation, so its length is paid once, on the opener.
+ * How many memories of each kind the store hands to the prompt builder (chosen by score). The prompt itself is capped
+ * again by PROMPT below; open topics and ideas are selected for the look-ahead step and the app, not for the prompt.
  */
 export const BUDGET = {
-  facts: { maxItems: 10, maxChars: 700 },
-  interests: { maxItems: 8, maxChars: 250 },
-  preferences: { maxItems: 5, maxChars: 300 },
+  facts: { maxItems: 5, maxChars: 400 },
+  interests: { maxItems: 4, maxChars: 120 },
+  preferences: { maxItems: 3, maxChars: 300 },
   openTopics: { maxItems: 5, maxChars: 350 },
-  tasks: { maxItems: 6, maxChars: 400 },
+  tasks: { maxItems: 3, maxChars: 200 },
   ideas: { maxItems: 4, maxChars: 250 },
-  goals: { maxItems: 4, maxChars: 1500 },
+  goals: { maxItems: 2, maxChars: 600 },
 } as const;
 
-/** Longest text of each kind that the prompt builder lets through (longer text is cut at a word boundary). */
-export const CLIP = { summary: 300, digest: 400, historyDigest: 450, goalState: 160, goalNext: 90, candidates: 3, progress: 3 } as const;
+/**
+ * What the system prompt may hold about the user, in characters (P1-D24). With the persona (about 2,000 characters) the
+ * whole prompt stays under PROMPT.total, about 1,000 tokens in practice: the conversation model is small, and the
+ * previous prompt of about 2,500 tokens made it sound like a bot. test/persona.test.ts enforces `total`.
+ */
+export const PROMPT = {
+  total: 4_800,
+  digest: 350, facts: 5, factsChars: 400, interestsChars: 120, prefs: 3, prefsChars: 300,
+  goals: 2, goalState: 120, goalNext: 80, tasks: 3, tasksChars: 200, summary: 250,
+} as const;
 
 export function clip(text: string, max: number): string {
   if (text.length <= max) return text;
