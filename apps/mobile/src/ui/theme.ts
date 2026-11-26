@@ -1,6 +1,6 @@
 /**
  * ROLLY design tokens: one source of truth for colour, type, spacing, radius, shadow and motion.
- * Look: soft lavender gradients, white floating cards, ink-black primary actions, a violet→magenta orb.
+ * Look: soft lavender gradients, white floating cards, ink-black primary actions, ROLLY as a little driver on a day/night sky (RollyAvatar).
  */
 import { useColorScheme, type TextStyle } from "react-native";
 
@@ -63,7 +63,7 @@ export function useTheme(): Palette {
   return useColorScheme() === "dark" ? dark : light;
 }
 
-/** Orb colours are fixed in both modes: they are the brand. */
+/** Brand violet→magenta colours, fixed in both modes. */
 export const orb = {
   violet: "#6D28D9",
   indigo: "#5B21F5",

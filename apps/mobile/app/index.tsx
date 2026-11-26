@@ -182,7 +182,7 @@ function Transcript() {
       {v.captions.map((m, i) =>
         m.role === "agent" ? (
           <Animated.View key={i} entering={FadeInUp.duration(260)} style={s.agentRow}>
-            <View style={s.avatar}><RollyAvatar size={34} still /></View>
+            <View style={s.avatar}><RollyAvatar size={34} still framed /></View>
             <View style={[cardStyle(c), s.bubble, s.agentBubble]}><Txt variant="body">{m.text}</Txt></View>
           </Animated.View>
         ) : (

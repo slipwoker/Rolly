@@ -2,6 +2,8 @@
  * ROLLY's avatar: a little white driver peeking over a steering wheel. It steers gently, bobs over the road, blinks,
  * and gets livelier while ROLLY talks (no mouth, by design: the eyes carry the face). The backdrop follows the local
  * clock: a sunny sky with drifting clouds by day, a violet night with a moon and twinkling stars after 19:00.
+ * There is no frame: the sky is a soft glow that fades out towards the edges, so it melts into whatever screen it
+ * sits on (`framed` clips it to a crisp circle instead, for tiny chat avatars where a fuzzy edge would read as blur).
  * Everything is drawn in a 1024×1024 space and scaled to `size`. Animation runs on the UI thread (Reanimated);
  * `still` (or the OS "reduce motion" setting) renders a static frame.
  */
@@ -37,8 +39,28 @@ function sparkle(cx: number, cy: number, s: number): string {
     + `Q${cx - k},${cy + k} ${cx - s},${cy} Q${cx - k},${cy - k} ${cx},${cy - s} Z`;
 }
 
-const STARS_A = [[150, 430, 16], [640, 130, 20], [900, 480, 14], [120, 640, 12]] as const;
-const STARS_B = [[380, 150, 14], [930, 330, 18], [210, 520, 10], [880, 650, 12]] as const;
+const STARS_A = [[190, 470, 16], [620, 170, 20], [860, 500, 14], [170, 650, 12]] as const;
+const STARS_B = [[420, 160, 14], [860, 340, 18], [250, 560, 10], [850, 660, 12]] as const;
+/** Sun / moon and the big sparkle sit inside the glow so they stay crisp while the edges fade. */
+const SUN = { x: 300, y: 300 };
+const SPARK = { x: 740, y: 290 };
+
+/** Radial fade used to dissolve the sky into the screen behind it (white = visible). */
+function SoftEdge({ id }: { id: string }) {
+  return (
+    <>
+      <RadialGradient id={`${id}g`} cx="512" cy="540" r="512" gradientUnits="userSpaceOnUse">
+        <Stop offset="0" stopColor="#fff" stopOpacity={1} />
+        <Stop offset="0.6" stopColor="#fff" stopOpacity={1} />
+        <Stop offset="0.82" stopColor="#fff" stopOpacity={0.45} />
+        <Stop offset="1" stopColor="#fff" stopOpacity={0} />
+      </RadialGradient>
+      <Mask id={id} maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+        <Rect width={1024} height={1024} fill={`url(#${id}g)`} />
+      </Mask>
+    </>
+  );
+}
 
 /** Follows the clock and re-renders right when day turns to night (and back). */
 export function useNight(): boolean {
@@ -61,8 +83,9 @@ function Layer({ size, style, children }: { size: number; style?: ComponentProps
   );
 }
 
-export function RollyAvatar({ size, state = "idle", still = false, night: forceNight }: {
-  size: number; state?: VoiceState; still?: boolean; /** override the clock (previews/tests) */ night?: boolean;
+export function RollyAvatar({ size, state = "idle", still = false, framed = false, night: forceNight }: {
+  size: number; state?: VoiceState; still?: boolean; framed?: boolean;
+  /** override the clock (previews/tests) */ night?: boolean;
 }) {
   const reduced = useReducedMotion();
   const animate = !still && !reduced;
@@ -71,12 +94,13 @@ export function RollyAvatar({ size, state = "idle", still = false, night: forceN
   const sc = night ? SCENE.night : SCENE.day;
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const k = size / 1024;
+  const soft = !framed;
 
   const steer = useSharedValue(0);   // -1..1, the wheel turning
   const bob = useSharedValue(0);     // 0..1, road bumps
   const blink = useSharedValue(0);   // 0..1, eyelids closing
   const twinkle = useSharedValue(0); // 0..1, stars / sparkle
-  const drift = useSharedValue(0);   // 0..1, clouds crossing
+  const drift = useSharedValue(0.5); // 0..1, clouds crossing (0.5 = mid-sky for the still frame)
   const energy = useSharedValue(ENERGY[state]);
   const dark = useSharedValue(night ? 1 : 0);
 
@@ -95,6 +119,7 @@ export function RollyAvatar({ size, state = "idle", still = false, night: forceN
       withDelay(140, withTiming(1, { duration: 70 })), withTiming(0, { duration: 110 }),
     ), -1, false));
     twinkle.set(withRepeat(withTiming(1, { duration: 1400, easing: EASE_IN_OUT }), -1, true));
+    drift.set(0);
     drift.set(withRepeat(withTiming(1, { duration: 26000, easing: Easing.linear }), -1, false));
   }, [animate, steer, bob, blink, twinkle, drift]);
 
@@ -105,8 +130,15 @@ export function RollyAvatar({ size, state = "idle", still = false, night: forceN
   const dayStyle = useAnimatedStyle(() => ({ opacity: 1 - dark.get() }));
   const starsA = useAnimatedStyle(() => ({ opacity: 0.35 + 0.65 * twinkle.get() }));
   const starsB = useAnimatedStyle(() => ({ opacity: 1 - 0.65 * twinkle.get() }));
-  const cloud1 = useAnimatedStyle(() => ({ transform: [{ translateX: (0.65 - 1.3 * drift.get()) * size }] }));
-  const cloud2 = useAnimatedStyle(() => ({ transform: [{ translateX: (0.65 - 1.3 * ((drift.get() + 0.55) % 1)) * size }] }));
+  // clouds drift across the glow and fade in/out at its soft edges instead of sliding past a hard border
+  const cloud1 = useAnimatedStyle(() => {
+    const d = drift.get();
+    return { opacity: Math.sin(Math.PI * d) ** 2, transform: [{ translateX: (0.3 - 0.6 * d) * size }] };
+  });
+  const cloud2 = useAnimatedStyle(() => {
+    const d = (drift.get() + 0.55) % 1;
+    return { opacity: Math.sin(Math.PI * d) ** 2, transform: [{ translateX: (0.3 - 0.6 * d) * size }] };
+  });
   const sparkleStyle = useAnimatedStyle(() => ({ transform: [{ scale: 0.8 + 0.25 * twinkle.get() }] }));
 
   const headStyle = useAnimatedStyle(() => {
@@ -126,7 +158,7 @@ export function RollyAvatar({ size, state = "idle", still = false, night: forceN
   const eyesStyle = useAnimatedStyle(() => ({ transform: [{ scaleY: 1 - 0.9 * blink.get() }] }));
 
   return (
-    <View style={{ width: size, height: size, borderRadius: size * 0.225, overflow: "hidden" }}
+    <View style={{ width: size, height: size, borderRadius: framed ? size / 2 : 0, overflow: "hidden" }}
       accessibilityRole="image" accessibilityLabel="ROLLY" pointerEvents="none">
       {/* day sky */}
       <Layer size={size}>
@@ -137,14 +169,17 @@ export function RollyAvatar({ size, state = "idle", still = false, night: forceN
           <RadialGradient id={`sun${uid}`} cx="50%" cy="50%" r="50%">
             <Stop offset="0.45" stopColor="#FFE58A" stopOpacity={0.55} /><Stop offset="1" stopColor="#FFE58A" stopOpacity={0} />
           </RadialGradient>
+          <SoftEdge id={`sd${uid}`} />
         </Defs>
-        <Rect width={1024} height={1024} fill={`url(#d${uid})`} />
-        <Circle cx={220} cy={230} r={170} fill={`url(#sun${uid})`} />
-        <Circle cx={220} cy={230} r={84} fill="#FFD45A" />
+        <G mask={soft ? `url(#sd${uid})` : undefined}>
+          <Rect width={1024} height={1024} fill={`url(#d${uid})`} />
+          <Circle cx={SUN.x} cy={SUN.y} r={150} fill={`url(#sun${uid})`} />
+          <Circle cx={SUN.x} cy={SUN.y} r={72} fill="#FFD45A" />
+        </G>
       </Layer>
       <Animated.View style={[StyleSheet.absoluteFill, dayStyle]} pointerEvents="none">
         <Layer size={size} style={cloud1}><Cloud x={512} y={300} s={1} /></Layer>
-        <Layer size={size} style={cloud2}><Cloud x={512} y={170} s={0.6} /></Layer>
+        <Layer size={size} style={cloud2}><Cloud x={512} y={215} s={0.6} /></Layer>
       </Animated.View>
 
       {/* night sky, cross-faded in after dark */}
@@ -159,19 +194,22 @@ export function RollyAvatar({ size, state = "idle", still = false, night: forceN
             </RadialGradient>
             <Mask id={`m${uid}`}>
               <Rect width={1024} height={1024} fill="#fff" />
-              <Circle cx={262} cy={200} r={74} fill="#000" />
+              <Circle cx={SUN.x + 36} cy={SUN.y - 26} r={64} fill="#000" />
             </Mask>
+            <SoftEdge id={`sn${uid}`} />
           </Defs>
-          <Rect width={1024} height={1024} fill={`url(#n${uid})`} />
-          <Rect width={1024} height={1024} fill={`url(#ng${uid})`} />
-          <Circle cx={220} cy={230} r={84} fill="#FDF1C7" mask={`url(#m${uid})`} />
+          <G mask={soft ? `url(#sn${uid})` : undefined}>
+            <Rect width={1024} height={1024} fill={`url(#n${uid})`} />
+            <Rect width={1024} height={1024} fill={`url(#ng${uid})`} />
+          </G>
+          <Circle cx={SUN.x} cy={SUN.y} r={72} fill="#FDF1C7" mask={`url(#m${uid})`} />
         </Layer>
-        <Layer size={size} style={starsA}>{STARS_A.map(([x, y, s], i) => <Path key={i} d={sparkle(x, y, s)} fill="#fff" />)}</Layer>
-        <Layer size={size} style={starsB}>{STARS_B.map(([x, y, s], i) => <Path key={i} d={sparkle(x, y, s)} fill="#fff" />)}</Layer>
+        <Layer size={size} style={starsA}>{STARS_A.map(([x, y, r], i) => <Path key={i} d={sparkle(x, y, r)} fill="#fff" />)}</Layer>
+        <Layer size={size} style={starsB}>{STARS_B.map(([x, y, r], i) => <Path key={i} d={sparkle(x, y, r)} fill="#fff" />)}</Layer>
       </Animated.View>
 
-      <Layer size={size} style={[sparkleStyle, { transformOrigin: [800 * k, 250 * k, 0] }]}>
-        <Path d={sparkle(800, 250, 58)} fill="#fff" />
+      <Layer size={size} style={[sparkleStyle, { transformOrigin: [SPARK.x * k, SPARK.y * k, 0] }]}>
+        <Path d={sparkle(SPARK.x, SPARK.y, 50)} fill="#fff" />
       </Layer>
 
       {/* the driver */}
@@ -197,11 +235,20 @@ export function RollyAvatar({ size, state = "idle", still = false, night: forceN
           <LinearGradient id={`r${uid}`} x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={sc.ringHi} /><Stop offset="1" stopColor={sc.ring} />
           </LinearGradient>
+          {/* the wheel sinks out of view below the hub instead of being cut by the bottom edge */}
+          <LinearGradient id={`wf${uid}`} x1="0" y1="780" x2="0" y2="990" gradientUnits="userSpaceOnUse">
+            <Stop offset="0" stopColor="#fff" stopOpacity={1} /><Stop offset="1" stopColor="#fff" stopOpacity={0} />
+          </LinearGradient>
+          <Mask id={`wm${uid}`} maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+            <Rect width={1024} height={1024} fill={`url(#wf${uid})`} />
+          </Mask>
         </Defs>
-        <Circle cx={WHEEL.cx} cy={WHEEL.cy} r={WHEEL.r} fill="none" stroke={`url(#r${uid})`} strokeWidth={62} />
-        <Path d={`M${WHEEL.cx - WHEEL.r},${WHEEL.cy} L${WHEEL.cx + WHEEL.r},${WHEEL.cy}`} stroke={sc.ring} strokeWidth={54} strokeLinecap="round" />
-        <Circle cx={WHEEL.cx} cy={WHEEL.cy} r={92} fill={sc.ring} />
-        <Circle cx={WHEEL.cx} cy={WHEEL.cy} r={40} fill={sc.hub} />
+        <G mask={soft ? `url(#wm${uid})` : undefined}>
+          <Circle cx={WHEEL.cx} cy={WHEEL.cy} r={WHEEL.r} fill="none" stroke={`url(#r${uid})`} strokeWidth={62} />
+          <Path d={`M${WHEEL.cx - WHEEL.r},${WHEEL.cy} L${WHEEL.cx + WHEEL.r},${WHEEL.cy}`} stroke={sc.ring} strokeWidth={54} strokeLinecap="round" />
+          <Circle cx={WHEEL.cx} cy={WHEEL.cy} r={92} fill={sc.ring} />
+          <Circle cx={WHEEL.cx} cy={WHEEL.cy} r={40} fill={sc.hub} />
+        </G>
         {[-42, 42].map((a) => {
           const x = WHEEL.cx + WHEEL.r * Math.sin((a * Math.PI) / 180);
           const y = WHEEL.cy - WHEEL.r * Math.cos((a * Math.PI) / 180);
