@@ -93,11 +93,11 @@ instruction; sends are capped (40 per 24 h, 4 s apart by default).
 deletes the session, chats, messages, transcripts and send log of that user at once. Deleting the Rolly account does the same.
 
 **Open points.** Passengers hear messages that are read aloud in the car (no mitigation yet except the attribution check for requests);
-the session keys are not sealed; a database backup older than a deletion still contains what was deleted (retention of backups is not defined);
+the session keys are not sealed; a database backup older than a deletion still contains what was deleted, until it ages out of Render's backup window (3 days on a Hobby workspace, 7 days on Pro or higher; logical exports 7 days; `docs/SECURITY.md`);
 the gateway has no in-app consent screen yet (the API requires the flag; the screen is not built).
 
 ## Connected services (calendar, mail, music)
 
-- **Google (calendar + mail)** is read only (`calendar.readonly`, `gmail.readonly`). The refresh token is stored encrypted (AES-256-GCM) in `integrations`, deleted on disconnect or account deletion, and revoked at Google at that moment. Rolly never sends, replies, accepts or changes anything.
+- **Google (calendar + mail)** is read only (`calendar.readonly`, `gmail.readonly`). The refresh token is stored encrypted (AES-256-GCM) in `integrations`, under a key that only the service's environment holds (`ROLLY_INTEGRATIONS_KEY`, never in the database; P1-D40, `docs/SECURITY.md`), deleted on disconnect or account deletion, and revoked at Google at that moment. Rolly never sends, replies, accepts or changes anything.
 - When the user asks about their calendar or mail, only the events (title, time, place) or at most five messages (sender, subject, Google's snippet, never full bodies) needed for that one question are fetched and sent to the utility model to be put into a spoken answer. Nothing from mail or calendar is written to memory or the transcript store beyond what the user hears Rolly say.
 - **Spotify** uses the app's own credentials to search the public catalogue; no user account is connected and no user data is sent except the search words.

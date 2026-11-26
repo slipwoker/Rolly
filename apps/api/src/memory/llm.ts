@@ -36,6 +36,8 @@ export function openAiLlm(cfg: { baseUrl: string; apiKey: string; model: string;
       const body: Record<string, unknown> = {
         model: cfg.model, messages: [{ role: "user", content: prompt }],
         max_completion_tokens: opts.maxTokens ?? 1500, response_format: { type: "json_object" },
+        // never kept for OpenAI's stored completions (the default is already false; said explicitly, P1-D40)
+        store: false,
       };
       if (cfg.reasoning) body.reasoning_effort = cfg.reasoning;
       const d = proxyDispatcher();
@@ -55,6 +57,8 @@ export function openAiLlm(cfg: { baseUrl: string; apiKey: string; model: string;
       const t0 = Date.now();
       const body: Record<string, unknown> = {
         model: cfg.model, input: prompt, max_output_tokens: opts.maxTokens ?? 500,
+        // the Responses API stores responses (30 days) unless told not to (P1-D40); nothing here needs a stored response
+        store: false,
         tools: [{ type: "web_search", search_context_size: "low",
           user_location: { type: "approximate", country: opts.country ?? "IL", ...(opts.timezone ? { timezone: opts.timezone } : {}) } }],
       };

@@ -4,7 +4,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { Config } from "./config.ts";
 import { createPool, migrate } from "./db/index.ts";
-import { Auth, RateLimiter, adminOk, secretOk } from "./auth.ts";
+import { AdminGate, Auth, RateLimiter, secretOk } from "./auth.ts";
 import { waitlistRoutes } from "./waitlist.ts";
 import { buildContext, practiceLanguage, resolveLanguage } from "./persona/promptBuilder.ts";
 import { openAiLlm, type UtilityLlm } from "./memory/llm.ts";
@@ -22,7 +22,7 @@ import { lookupMessage } from "./lookup/web.ts";
 import { runTool, type Connections } from "./integrations/tools.ts";
 import { realHttp } from "./integrations/http.ts";
 import * as googleApi from "./integrations/google.ts";
-import { seal, unseal, signState, verifyState } from "./integrations/crypto.ts";
+import { TokenVault, readSealedToken, resealLegacyTokens, signState, verifyState } from "./integrations/crypto.ts";
 import { GatewayError, httpGateway } from "./whatsapp/gateway.ts";
 import { WhatsAppFlow } from "./whatsapp/flow.ts";
 import { AuditRecorder } from "./audit/recorder.ts";
@@ -82,13 +82,17 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       return Array.isArray(j.candidates) ? j.candidates.filter((c): c is string => typeof c === "string") : null;
     },
   };
-  // connected services (src/integrations): Google refresh tokens are kept sealed in PostgreSQL, keyed by the server's auth secret
-  const sealKey = authSecret;
+  // connected services (src/integrations): Google refresh tokens are kept sealed in PostgreSQL under ROLLY_INTEGRATIONS_KEY,
+  // which only the environment holds (P1-D40); rows sealed before that (keyed by the auth secret) are re-sealed here
+  if (config.integrationsKey && config.integrationsKey === authSecret) throw new Error("ROLLY_INTEGRATIONS_KEY must differ from the auth secret");
+  if (!config.integrationsKey) console.warn("ROLLY_INTEGRATIONS_KEY is not set: sealing connected-service tokens with a development key (refused in production)");
+  const vault = new TokenVault(config.integrationsKey ?? `dev-only.${authSecret}`.padEnd(32, "."), authSecret);
+  const resealed = await resealLegacyTokens(db, vault).catch((e) => { console.error("re-sealing stored tokens failed", String(e).slice(0, 200)); return null; });
+  if (resealed && (resealed.resealed || resealed.unreadable)) console.log(`stored tokens re-sealed under the integrations key: ${resealed.resealed}, unreadable: ${resealed.unreadable}`);
   const googleCfg = config.google ? { ...config.google, redirectUri: `${config.publicUrl}/v1/integrations/google/callback` } : null;
   const connections: Connections = {
     async googleRefresh(userId) {
-      const r = await db.query<{ refresh_enc: string }>("SELECT refresh_enc FROM integrations WHERE user_id=$1 AND provider='google'", [userId]);
-      return r.rows[0] ? unseal(r.rows[0].refresh_enc, sealKey) : null;
+      return readSealedToken(db, vault, userId, "google");
     },
     async dropGoogle(userId) { await db.query("DELETE FROM integrations WHERE user_id=$1 AND provider='google'", [userId]); },
   };
@@ -219,10 +223,13 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     });
   }
 
+  // the admin token, with failed attempts rate-limited (P1-D40)
+  const adminGate = new AdminGate(config.adminToken);
+  const isAdmin = (req: FastifyRequest) => adminGate.check(req.headers.authorization, req.ip);
   const routes = async (app: FastifyInstance) => {
     await auditRoutes(app, { db, audit, llm, timeZone: config.timezone, retentionDays: config.transcriptRetentionDays,
-      isAdmin: (req) => adminOk(req.headers.authorization, config.adminToken) });
-    await waitlistRoutes(app, { db, timeZone: config.timezone, isAdmin: (req) => adminOk(req.headers.authorization, config.adminToken) });
+      isAdmin: (req) => isAdmin(req) === "ok" });
+    await waitlistRoutes(app, { db, timeZone: config.timezone, isAdmin: (req) => isAdmin(req) === "ok" });
     const user = (req: FastifyRequest, reply: FastifyReply): string | null => {
       const h = req.headers.authorization;
       const id = auth.verifyAccess(h?.startsWith("Bearer ") ? h.slice(7) : undefined);
@@ -230,8 +237,9 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       return id;
     };
     const admin = (req: FastifyRequest, reply: FastifyReply): boolean => {
-      if (adminOk(req.headers.authorization, config.adminToken)) return true;
-      void reply.code(401).send({ error: "unauthorized" });
+      const r = isAdmin(req);
+      if (r === "ok") return true;
+      void (r === "limited" ? reply.code(429).send({ error: "too many attempts" }) : reply.code(401).send({ error: "unauthorized" }));
       return false;
     };
     const parse = <T>(schema: z.ZodType<T>, body: unknown, reply: FastifyReply): T | null => {
@@ -301,7 +309,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       const g = await googleApi.exchangeCode(realHttp, googleCfg, q.code).catch(() => null);
       if (!g) return page(false);
       await db.query(`INSERT INTO integrations(user_id, provider, refresh_enc, scopes, account_label) VALUES ($1,'google',$2,$3,$4)
-        ON CONFLICT (user_id, provider) DO UPDATE SET refresh_enc=$2, scopes=$3, account_label=$4, created_at=now()`, [uid, seal(g.refreshToken, sealKey), g.scopes, g.email]);
+        ON CONFLICT (user_id, provider) DO UPDATE SET refresh_enc=$2, scopes=$3, account_label=$4, created_at=now()`, [uid, vault.seal(g.refreshToken), g.scopes, g.email]);
       app.log.info({ user_id: uid }, "google connected");
       return page(true);
     });
