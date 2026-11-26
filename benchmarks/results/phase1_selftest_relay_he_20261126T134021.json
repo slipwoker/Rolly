@@ -1,0 +1,335 @@
+{
+    "id": "fe9263aa-46ef-43f1-a371-0696ef83b06b",
+    "scenario": "relay",
+    "lang": "he",
+    "status": "done",
+    "started": "2026-11-26T13:39:39.257Z",
+    "results": [
+        {
+            "label": "relay",
+            "ok": true,
+            "lang": "he",
+            "turns": [
+                {
+                    "label": "opener",
+                    "seq": 1700379001,
+                    "text": "צהריים טובים, מה השם שלך וספר לי לאן הדרך הזאת מובילה?",
+                    "audio_s": 5.02,
+                    "interrupted": false,
+                    "proactive": true
+                },
+                {
+                    "label": "reply1",
+                    "seq": 1700379002,
+                    "text": "בהצלחה, לקוחות חדשים הם תמיד קצת מלחיצים בגלל הניסיון להרשים.",
+                    "audio_s": 5.57,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 638,
+                    "user_said": "היי, אני בדרך לעבודה, יש לי פגישה חשובה עם לקוח חדש היום."
+                },
+                {
+                    "label": "reply2",
+                    "seq": 1700379003,
+                    "text": "אני לא מומחה, אבל לפעמים פשוט להקשיב יותר מאשר לדבר עושה את כל ההבדל.",
+                    "audio_s": 0.05,
+                    "interrupted": true,
+                    "proactive": false,
+                    "reply_latency_ms": 673,
+                    "user_said": "אני קצת לחוץ, תן לי טיפ אחד קצר לפגישה.",
+                    "interrupt_received_ms_after_barge_start": 400
+                },
+                {
+                    "label": "after_barge_in_3",
+                    "seq": 1700379004,
+                    "text": "אוקיי. לפעמים עדיף פשוט להגיע עם משהו מוכן ומדויק במקום לנסות להיות חכם מדי.",
+                    "audio_s": 6.13,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 473,
+                    "user_said": "רגע, רגע, בעצם בוא נדבר על משהו אחר."
+                }
+            ],
+            "transcripts": [
+                {
+                    "text": "היי, אני בדרך לעבודה, יש לי פגישה חשובה עם לקוח חדש היום.",
+                    "language": "he"
+                },
+                {
+                    "text": "אני קצת לחוץ, תן לי טיפ אחד קצר לפגישה.",
+                    "language": "he"
+                },
+                {
+                    "text": "רגע, רגע, בעצם בוא נדבר על משהו אחר.",
+                    "language": "he"
+                }
+            ],
+            "events": [
+                {
+                    "t": 392,
+                    "type": "session.created"
+                },
+                {
+                    "t": 432,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 890,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 1097,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 6333,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 11335,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 11335,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 11335,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 11643,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 11737,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 17693,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 21094,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 21128,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 21128,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 21589,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 21733,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 22694,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 22694,
+                    "type": "agent.interrupted"
+                },
+                {
+                    "t": 26216,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 26216,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 26216,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 26607,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 26733,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 34701,
+                    "type": "session.summary"
+                },
+                {
+                    "t": 34701,
+                    "type": "session.closed"
+                }
+            ],
+            "session_id": "f620c3e5-68f3-4d12-9bd9-5b2091be3e38",
+            "summary": {
+                "type": "session.summary",
+                "session_id": "f620c3e5-68f3-4d12-9bd9-5b2091be3e38",
+                "summary": {
+                    "summary": "בדרך לעבודה עלתה פגישה חשובה עם לקוח חדש, והתבקשה עצה קצרה לקראתה. לאחר מכן ביקש לעבור לנושא אחר.",
+                    "progress": [],
+                    "method": "llm"
+                },
+                "stats": {
+                    "end_reason": "client_end",
+                    "duration_s": 33,
+                    "turns_user": 3,
+                    "turns_agent": 4,
+                    "interruptions": 1,
+                    "errors": 0,
+                    "audio_in_s": 32.7,
+                    "audio_out_s": 22.3,
+                    "voice_s_by_rate": {
+                        "44100": 22.3
+                    },
+                    "server_reply_ms": [
+                        307,
+                        495,
+                        382
+                    ],
+                    "server_reply_ms_median": 382,
+                    "client_first_audio_ms": [],
+                    "client_first_audio_ms_median": null,
+                    "client_flush_ms": [],
+                    "audio_events": [],
+                    "notes": [
+                        {
+                            "kind": "style",
+                            "at_s": 22
+                        },
+                        {
+                            "kind": "style",
+                            "at_s": 27
+                        }
+                    ],
+                    "lookups": [],
+                    "pod_metrics_median": {
+                        "tts_ttfa_ms": 107.49939805828035,
+                        "pipeline_ms": 606.6166890086606,
+                        "llm_ttft_ms": 58.980058995075524,
+                        "llm_total_ms": 328.720654011704,
+                        "stt_ms": 202.86625600419939,
+                        "stt_queue_ms": 0.10820897296071053
+                    },
+                    "pod_metrics_count": {
+                        "tts_ttfa_ms": 4,
+                        "pipeline_ms": 4,
+                        "llm_ttft_ms": 4,
+                        "llm_total_ms": 4,
+                        "stt_ms": 3,
+                        "stt_queue_ms": 3
+                    },
+                    "usage": {
+                        "llm": {
+                            "calls": 4,
+                            "prompt_tokens": 3489,
+                            "completion_tokens": 118,
+                            "cached_tokens": 0,
+                            "max_prompt_tokens": 970,
+                            "model": "local@http://127.0.0.1:8081/v1"
+                        },
+                        "tts": {
+                            "chars": 260,
+                            "audio_s": 22.29,
+                            "engine": "en=bluev3:jonathan:speed1:whole@http://127.0.0.1:1920/v1 | he=bluev3:ariel:speed1:whole@http://127.0.0.1:1920/v1"
+                        },
+                        "stt": {
+                            "audio_s": 12.58,
+                            "engine": "routed[he=faster-whisper:ivrit-ai/whisper-large-v3-turbo-ct2:cuda:float16, en=faster-whisper:deepdml/faster-whisper-large-v3-turbo-ct2:cuda:float16; mixed->he]"
+                        }
+                    },
+                    "summary_ms": 1868
+                }
+            }
+        }
+    ],
+    "user_id": "dcd3fb2e-0a23-43ea-ac15-6b70e9fec017",
+    "error": null,
+    "state": {
+        "profile": {
+            "preferred_name": null,
+            "preferred_language": "he",
+            "addressing": {
+                "value": null,
+                "status": "unknown",
+                "evidence": {
+                    "examples": [
+                        {
+                            "at": "2026-11-26T13:40:00.400Z",
+                            "form": "masculine",
+                            "quote": "אני קצת לחוץ",
+                            "session_id": "f620c3e5-68f3-4d12-9bd9-5b2091be3e38"
+                        }
+                    ],
+                    "feminine": 0,
+                    "masculine": 1,
+                    "ignored_uncertain": 0
+                }
+            }
+        },
+        "memories": [
+            {
+                "kind": "summary",
+                "status": "active",
+                "content": "בדרך לעבודה עלתה פגישה חשובה עם לקוח חדש, והתבקשה עצה קצרה לקראתה. לאחר מכן ביקש לעבור לנושא אחר.",
+                "confidence": null
+            }
+        ],
+        "progress": [],
+        "goals": [],
+        "tasks_open": [],
+        "ideas": [],
+        "tasks_done": [],
+        "next_agenda": [
+            {
+                "why": "הפגישה תוארה כחשובה, והיה לחץ לקראתה.",
+                "kind": "follow_up",
+                "take": "הקשבה לצורך של הלקוח עדיפה על ניסיון להרשים בכוח.",
+                "topic": "הפגישה עם הלקוח החדש",
+                "ref_id": null
+            },
+            {
+                "why": "זו דרך קלילה לחזור לנושא העבודה בלי להעמיס.",
+                "kind": "fresh",
+                "take": "בפגישה ראשונה, מה עדיף: להגיע עם מצגת מלוטשת או עם שאלות חדות?",
+                "topic": "שאלה קלילה על לקוחות חדשים",
+                "ref_id": null
+            }
+        ],
+        "digest": null,
+        "scrub_pending": 0,
+        "sessions": [
+            {
+                "started_at": "2026-11-26T13:39:39.288Z",
+                "notes": [
+                    {
+                        "at_s": 22,
+                        "kind": "style"
+                    },
+                    {
+                        "at_s": 27,
+                        "kind": "style"
+                    }
+                ],
+                "plan": {
+                    "ms": 3450,
+                    "method": "llm",
+                    "applied": [],
+                    "refused": [],
+                    "next_agenda": 2,
+                    "agenda_outcome": []
+                },
+                "lookahead_ms": 3461,
+                "reply_ms": 382
+            }
+        ],
+        "next_opener_instruction": "[journey_start - not said by the user] The ride has just started. Open now: a short hello for the afternoon, and one easy, light question about them: how their morning or day is going, or how the ride is starting. Do not bring up anything from before, nothing about yourself. Under twelve words in total. Your last opening was \"צהריים טובים, מה השם שלך וספר לי לאן הדרך הזאת מובילה?\": open differently this time.",
+        "next_prompt_chars": 2669,
+        "next_prompt_memory_part": "## What you know about them\nTheir name: not known yet (you are Rolly). You do not know whether to address them as a man or a woman: phrase things without gendered second person (impersonal or plural forms), and never ask about it. If they tell you, follow it at once.\nLast time (earlier today): בדרך לעבודה עלתה פגישה חשובה עם לקוח חדש, והתבקשה עצה קצרה לקראתה. לאחר מכן ביקש לעבור לנושא אחר.\n\nLocal time: Thursday 15:40 (afternoon).\n"
+    }
+}
