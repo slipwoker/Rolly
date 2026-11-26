@@ -24,7 +24,7 @@ export interface FlowArgs {
 }
 export interface FlowResult { message: string; ok: boolean; reason?: string }
 
-interface Pending { draftId: string; chatName: string; text: string; atUserTurn: number; at: number }
+interface Pending { kind: "message" | "disconnect"; draftId: string; chatName: string; text: string; atUserTurn: number; at: number }
 
 const norm = (s: string) => s.toLowerCase().replace(/["'׳״`.,\-_\s]+/g, "");
 
@@ -52,14 +52,14 @@ export class WhatsAppFlow {
   endSession(sessionId: string, userId: string) {
     const p = this.pending.get(sessionId);
     this.pending.delete(sessionId);
-    if (p) void this.gw.cancel(userId, p.draftId).catch(() => {}); // a draft nobody confirmed is dropped
+    if (p?.kind === "message") void this.gw.cancel(userId, p.draftId).catch(() => {}); // a draft nobody confirmed is dropped
   }
 
   /** null = not about WhatsApp (the caller does a web lookup). */
   async handle(a: FlowArgs): Promise<FlowResult | null> {
     if (!(await this.linked(a.userId))) return null;
     const p = this.pending.get(a.sessionId) ?? null;
-    const intent = await interpret(this.llm, { question: a.question, recent: a.recent, language: a.language, pending: p ? { chatName: p.chatName, text: p.text } : null });
+    const intent = await interpret(this.llm, { question: a.question, recent: a.recent, language: a.language, pending: p ? { chatName: p.chatName, text: p.kind === "disconnect" ? "(disconnect WhatsApp and delete what is kept)" : p.text } : null });
     if (intent.kind === "other") return null;
     if (a.attribution === "uncertain") return { message: F.notYourVoiceMessage(), ok: false, reason: "not_user_voice" };
     try {
@@ -68,6 +68,7 @@ export class WhatsAppFlow {
         case "send": return await this.draft(a, intent);
         case "confirm": return await this.confirm(a);
         case "cancel": return await this.cancel(a);
+        case "disconnect": return await this.askDisconnect(a);
       }
     } catch (e) {
       return this.failure(e);
@@ -132,13 +133,13 @@ export class WhatsAppFlow {
   private async draft(a: FlowArgs, i: Extract<Intent, { kind: "send" }>): Promise<FlowResult> {
     const old = this.pending.get(a.sessionId);
     let contact = i.contact;
-    if (!contact && old) contact = old.chatName; // "change it to ...": same person
+    if (!contact && old?.kind === "message") contact = old.chatName; // "change it to ...": same person
     if (!contact) return { message: F.askWhoMessage(), ok: false, reason: "no_contact" };
     const r = await this.resolve(a.userId, contact);
     if ("error" in r) return r.error;
-    if (old) { await this.gw.cancel(a.userId, old.draftId).catch(() => {}); this.pending.delete(a.sessionId); }
+    if (old) { if (old.kind === "message") await this.gw.cancel(a.userId, old.draftId).catch(() => {}); this.pending.delete(a.sessionId); }
     const d = await this.gw.draft(a.userId, r.chat.ref, i.text);
-    this.pending.set(a.sessionId, { draftId: d.draft_id, chatName: d.chat_name, text: d.text, atUserTurn: a.userTurns ?? 0, at: Date.now() });
+    this.pending.set(a.sessionId, { kind: "message", draftId: d.draft_id, chatName: d.chat_name, text: d.text, atUserTurn: a.userTurns ?? 0, at: Date.now() });
     return { message: F.draftMessage(d), ok: true };
   }
 
@@ -147,6 +148,12 @@ export class WhatsAppFlow {
     if (!p) return { message: F.nothingWaiting(), ok: false, reason: "nothing_waiting" };
     // the yes must come in a user turn AFTER the one that produced the draft
     if ((a.userTurns ?? 0) <= p.atUserTurn) return { message: F.awaitingAnswer(), ok: false, reason: "same_turn" };
+    if (p.kind === "disconnect") {
+      await this.gw.unlink(a.userId); // deletes the link on WhatsApp's side and everything stored for the user
+      this.pending.delete(a.sessionId);
+      this.forget(a.userId);
+      return { message: F.disconnected(), ok: true };
+    }
     try {
       const sent = await this.gw.confirm(a.userId, p.draftId);
       this.pending.delete(a.sessionId);
@@ -157,9 +164,17 @@ export class WhatsAppFlow {
     }
   }
 
+  /** Disconnecting is destructive (the stored messages go): it takes the same two steps as sending. */
+  private async askDisconnect(a: FlowArgs): Promise<FlowResult> {
+    const old = this.pending.get(a.sessionId);
+    if (old?.kind === "message") await this.gw.cancel(a.userId, old.draftId).catch(() => {});
+    this.pending.set(a.sessionId, { kind: "disconnect", draftId: "", chatName: "WhatsApp", text: "", atUserTurn: a.userTurns ?? 0, at: Date.now() });
+    return { message: F.disconnectAsk(), ok: true };
+  }
+
   private async cancel(a: FlowArgs): Promise<FlowResult> {
     const p = this.pending.get(a.sessionId);
-    if (p) { this.pending.delete(a.sessionId); await this.gw.cancel(a.userId, p.draftId).catch(() => {}); }
+    if (p) { this.pending.delete(a.sessionId); if (p.kind === "message") await this.gw.cancel(a.userId, p.draftId).catch(() => {}); }
     return { message: F.cancelledMessage(), ok: true };
   }
 }

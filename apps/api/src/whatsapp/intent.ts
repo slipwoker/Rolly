@@ -11,6 +11,7 @@ export type Intent =
   | { kind: "send"; contact: string | null; text: string }
   | { kind: "confirm" }
   | { kind: "cancel" }
+  | { kind: "disconnect" }
   | { kind: "other" };
 
 export interface IntentArgs { question: string; recent: { role: "user" | "agent"; text: string }[]; pending: { chatName: string; text: string } | null; language: string }
@@ -24,6 +25,7 @@ kinds:
 - "send": they want a WhatsApp message sent to someone, or they change the wording of the message that is waiting.
 - "confirm": ONLY when a message is waiting (see below) and they clearly agree to send it as read back (yes, send it, go ahead).
 - "cancel": a message is waiting and they say no, stop, never mind, or change their mind.
+- "disconnect": they want to disconnect or unlink WhatsApp from Rolly, or delete what Rolly keeps from WhatsApp.
 - "other": anything else (weather, chat, facts, a question about something online).
 
 ${a.pending ? `A message is waiting for their yes or no: to "${a.pending.chatName}": "${a.pending.text.slice(0, 300)}".` : "No message is waiting, so \"confirm\" and \"cancel\" are not possible."}
@@ -38,7 +40,7 @@ ${recent}
 
 The user's last words: ${a.question.replace(/\s+/g, " ").slice(0, 400)}
 
-Answer with JSON only: {"kind":"read|send|confirm|cancel|other","contact":string|null,"text":string|null,"since_hours":number|null}`;
+Answer with JSON only: {"kind":"read|send|confirm|cancel|disconnect|other","contact":string|null,"text":string|null,"since_hours":number|null}`;
 }
 
 const clean = (v: unknown, max: number): string | null => (typeof v === "string" && v.trim() ? v.replace(/[\u0000-\u0008\u000b-\u001f\u007f‮​]/g, "").trim().slice(0, max) : null);
@@ -57,6 +59,7 @@ export function parseIntent(obj: Record<string, unknown>, _pendingExists = false
     // with nothing waiting the flow answers "nothing is waiting" (flow.ts); it must not become a web search for "yes"
     case "confirm": return { kind: "confirm" };
     case "cancel": return { kind: "cancel" };
+    case "disconnect": return { kind: "disconnect" };
     default: return { kind: "other" };
   }
 }

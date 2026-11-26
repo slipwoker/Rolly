@@ -24,6 +24,7 @@ type Server struct {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]any{"ok": true}) })
+	mux.Handle("GET /v1/stats", s.auth(http.HandlerFunc(s.stats)))
 	mux.Handle("POST /v1/users/{uid}/link", s.auth(http.HandlerFunc(s.link)))
 	mux.Handle("GET /v1/users/{uid}", s.auth(http.HandlerFunc(s.status)))
 	mux.Handle("DELETE /v1/users/{uid}", s.auth(http.HandlerFunc(s.unlink)))
@@ -63,20 +64,21 @@ func (s *Server) link(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body struct {
-		Mode  string `json:"mode"`
-		Phone string `json:"phone"`
+		Mode    string `json:"mode"`
+		Phone   string `json:"phone"`
+		Consent bool   `json:"consent"` // the user accepted the terms shown in the app
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&body); err != nil {
 		writeJSON(w, 400, map[string]string{"error": "invalid JSON"})
 		return
 	}
-	info, err := s.m.StartLink(r.Context(), id, body.Mode, body.Phone)
+	info, err := s.m.StartLink(r.Context(), id, body.Mode, body.Phone, body.Consent)
 	switch {
 	case errors.Is(err, ErrAlreadyLinked):
 		writeJSON(w, 409, map[string]string{"error": err.Error()})
 	case errors.Is(err, ErrAccountLimit):
 		writeJSON(w, 429, map[string]string{"error": err.Error()})
-	case errors.Is(err, ErrBadPhone), errors.Is(err, ErrBadMode):
+	case errors.Is(err, ErrBadPhone), errors.Is(err, ErrBadMode), errors.Is(err, ErrConsent):
 		writeJSON(w, 400, map[string]string{"error": err.Error()})
 	case err != nil:
 		writeJSON(w, 502, map[string]string{"error": err.Error()})
@@ -303,4 +305,14 @@ func (s *Server) cancelDraft(w http.ResponseWriter, r *http.Request) {
 	}
 	s.m.CancelDraft(id, r.PathValue("id"))
 	writeJSON(w, 200, map[string]bool{"ok": true})
+}
+
+// GET /v1/stats: counts only, for monitoring and alerts.
+func (s *Server) stats(w http.ResponseWriter, r *http.Request) {
+	st, err := s.m.Stats(r.Context())
+	if err != nil {
+		writeJSON(w, 500, map[string]string{"error": "internal error"})
+		return
+	}
+	writeJSON(w, 200, st)
 }

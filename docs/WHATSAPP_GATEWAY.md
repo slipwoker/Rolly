@@ -134,6 +134,15 @@ service, `DATABASE_URL`, `WA_GATEWAY_TOKEN`, `WA_STT_URL`, optional `WA_STT_TOKE
 - intent classifier (`gpt-6-luna`, no reasoning): 14/15 on a Hebrew set; the miss is a bare "yes" with nothing waiting, which is the safe answer.
 - live against a linked account: read of a chat with two voice notes about 1 s end to end (transcripts cached), draft and cancel work.
 
+### Stage 5 (ops), built 2026-11-26
+- Message content is sealed in the database (AES-256-GCM, per-user key from `WA_DATA_KEY`; the gateway refuses to start without it unless `WA_ALLOW_PLAINTEXT=1`).
+- Linking needs `consent: true` (the app must show the terms); the time is stored. `GET /v1/stats` (gateway) and `GET /v1/admin/whatsapp` (rolly-api, admin token): counts by state, live connections, stored messages, sends; no user data.
+- "Disconnect WhatsApp" by voice: asked first, a later yes unlinks and deletes everything (marker 4/4, intent 4/4 on the real models).
+- Regression tests for the link-timer race (a paired client is never dropped; state is set before the timer is cancelled).
+- `apps/wa-gateway/Dockerfile` and `render.wa-gateway.yaml` (private service, ONE instance, own database, manual deploys). **Not applied**:
+  the Docker image could not be built here (no Docker daemon); the Go build with the same flags works. Creating the services costs money and touches
+  the shared Render workspace, so it waits for the owner. `PRIVACY.md` has the new WhatsApp section.
+
 ### Known gaps
 - Linking: the code flow fails for **WhatsApp Business** accounts until `whatsmeow` issue 1360 is fixed; QR works. Personal accounts by code: not yet tried (no personal test number).
 - Not yet: link/relink screens in the app, voice command "disconnect WhatsApp", encryption of session keys per user, monitoring, a real

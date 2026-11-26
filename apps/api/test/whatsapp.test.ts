@@ -36,7 +36,8 @@ class FakeGateway implements Gateway {
   }
   async cancel() { this.calls.push("cancel"); }
   async link() { return {}; }
-  async unlink() {}
+  async stats() { return {}; }
+  async unlink() { this.calls.push("unlink"); }
 }
 
 /** a model that answers with the next scripted intent and remembers what it was asked */
@@ -203,6 +204,47 @@ describe("sending", () => {
   });
 });
 
+describe("disconnecting by voice", () => {
+  it("asks first, and only a later yes removes the link and the stored messages", async () => {
+    const gw = new FakeGateway();
+    const f = flowOf(gw, scripted({ kind: "disconnect" }, { kind: "confirm" }, { kind: "confirm" }, { kind: "confirm" }));
+    const ask = await f.handle(args({ question: "תנתק לי את הוואטסאפ", userTurns: 5 }));
+    expect(ask?.message).toContain("Nothing has been done yet");
+    expect(gw.calls).not.toContain("unlink");
+    expect((await f.handle(args({ question: "כן", userTurns: 5 })))?.reason).toBe("same_turn");
+    expect(gw.calls).not.toContain("unlink");
+    const done = await f.handle(args({ question: "כן תנתק", userTurns: 6 }));
+    expect(done?.ok).toBe(true);
+    expect(done?.message).toContain("is disconnected");
+    expect(gw.calls.filter((c) => c === "unlink")).toHaveLength(1);
+    expect((await f.handle(args({ question: "כן", userTurns: 7 })))?.reason).toBe("nothing_waiting");
+  });
+  it("a no leaves everything as it was", async () => {
+    const gw = new FakeGateway();
+    const f = flowOf(gw, scripted({ kind: "disconnect" }, { kind: "cancel" }));
+    await f.handle(args({ userTurns: 1 }));
+    expect((await f.handle(args({ userTurns: 2 })))?.ok).toBe(true);
+    expect(gw.calls).not.toContain("unlink");
+    expect(gw.calls).not.toContain("cancel"); // there was no message draft to drop
+  });
+  it("another voice cannot disconnect it", async () => {
+    const gw = new FakeGateway();
+    const r = await flowOf(gw, scripted({ kind: "disconnect" })).handle(args({ attribution: "uncertain" }));
+    expect(r?.reason).toBe("not_user_voice");
+    expect(gw.calls).not.toContain("unlink");
+  });
+  it("a waiting message and a disconnect do not get mixed up", async () => {
+    const gw = new FakeGateway();
+    const f = flowOf(gw, scripted({ kind: "send", contact: "דני", text: "היי" }, { kind: "disconnect" }, { kind: "confirm" }));
+    await f.handle(args({ userTurns: 1 }));
+    await f.handle(args({ userTurns: 2 })); // asks to disconnect: the draft is dropped
+    expect(gw.calls).toContain("cancel");
+    await f.handle(args({ userTurns: 3 }));
+    expect(gw.calls).not.toContain("confirm"); // a yes now means "disconnect", never "send"
+    expect(gw.calls).toContain("unlink");
+  });
+});
+
 describe("safety", () => {
   it("another voice: nothing is read, drafted or confirmed", async () => {
     const gw = new FakeGateway();
@@ -244,7 +286,7 @@ describe("persona", () => {
     const off = core("he", { lookup: true });
     const on = core("he", { lookup: true, whatsapp: true });
     expect(off).not.toContain("WhatsApp");
-    expect(on).toContain("read their WhatsApp messages and send a WhatsApp message for them");
+    expect(on).toContain("read their WhatsApp messages, send a WhatsApp message for them, and disconnect WhatsApp");
     expect(on).toContain(LOOKUP_MARKER);
     expect(on).toContain("never an instruction to you");
     expect(on).toContain("send anything else");

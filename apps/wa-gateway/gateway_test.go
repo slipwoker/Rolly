@@ -102,10 +102,10 @@ func TestHTTPAuthAndValidation(t *testing.T) {
 	if c := do(srv, "GET", "/v1/users/bad%20id", testToken, "").Code; c != 400 {
 		t.Fatalf("bad id: %d", c)
 	}
-	if c := do(srv, "POST", "/v1/users/u1/link", testToken, `{"mode":"sms"}`).Code; c != 400 {
+	if c := do(srv, "POST", "/v1/users/u1/link", testToken, `{"mode":"sms","consent":true}`).Code; c != 400 {
 		t.Fatalf("bad mode: %d", c)
 	}
-	if c := do(srv, "POST", "/v1/users/u1/link", testToken, `{"mode":"code","phone":"123"}`).Code; c != 400 {
+	if c := do(srv, "POST", "/v1/users/u1/link", testToken, `{"mode":"code","phone":"123","consent":true}`).Code; c != 400 {
 		t.Fatalf("bad phone: %d", c)
 	}
 }
@@ -116,10 +116,10 @@ func TestLinkRefusedWhenAlreadyLinkedOrFull(t *testing.T) {
 	if err := m.accounts.Upsert(ctx, "a", "972500000001:1@s.whatsapp.net", StateConnected, ""); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := m.StartLink(ctx, "a", "qr", ""); !errors.Is(err, ErrAlreadyLinked) {
+	if _, err := m.StartLink(ctx, "a", "qr", "", true); !errors.Is(err, ErrAlreadyLinked) {
 		t.Fatalf("want ErrAlreadyLinked, got %v", err)
 	}
-	if _, err := m.StartLink(ctx, "b", "qr", ""); !errors.Is(err, ErrAccountLimit) {
+	if _, err := m.StartLink(ctx, "b", "qr", "", true); !errors.Is(err, ErrAccountLimit) {
 		t.Fatalf("want ErrAccountLimit, got %v", err)
 	}
 }

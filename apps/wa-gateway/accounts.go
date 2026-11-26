@@ -53,6 +53,7 @@ func (s *AccountStore) Migrate(ctx context.Context) error {
 		state      TEXT NOT NULL,
 		last_error TEXT NOT NULL DEFAULT '',
 		linked_at  BIGINT NOT NULL DEFAULT 0,
+		consent_at BIGINT NOT NULL DEFAULT 0,
 		updated_at BIGINT NOT NULL
 	)`)
 	return err
@@ -131,4 +132,29 @@ func (s *AccountStore) Count(ctx context.Context) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM wa_accounts`).Scan(&n)
 	return n, err
+}
+
+// MarkConsent records when the user accepted the terms of linking (unofficial, can get the number restricted).
+func (s *AccountStore) MarkConsent(ctx context.Context, userID string, at time.Time) error {
+	_, err := s.db.ExecContext(ctx, s.rebind(`UPDATE wa_accounts SET consent_at = ? WHERE user_id = ?`), at.Unix(), userID)
+	return err
+}
+
+// StateCounts is for monitoring: how many accounts are in each state. No user ids.
+func (s *AccountStore) StateCounts(ctx context.Context) (map[State]int, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT state, COUNT(*) FROM wa_accounts GROUP BY state`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[State]int{}
+	for rows.Next() {
+		var st string
+		var n int
+		if err := rows.Scan(&st, &n); err != nil {
+			return nil, err
+		}
+		out[State(st)] = n
+	}
+	return out, rows.Err()
 }

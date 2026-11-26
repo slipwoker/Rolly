@@ -21,6 +21,7 @@ var (
 	ErrAlreadyLinked = errors.New("this user already has a linked WhatsApp")
 	ErrAccountLimit  = errors.New("account limit reached")
 	ErrBadMode       = errors.New("mode must be qr or code")
+	ErrConsent       = errors.New("the user must accept the linking terms first")
 	ErrBadPhone      = errors.New("phone number must be digits with country code, for example 972501234567")
 )
 
@@ -56,7 +57,7 @@ type Manager struct {
 }
 
 func NewManager(cfg Config, container *sqlstore.Container, accounts *AccountStore, log waLog.Logger) *Manager {
-	msgs := NewMessageStore(accounts.db, accounts.pg)
+	msgs := NewMessageStore(accounts.db, accounts.pg, cfg.Sealer)
 	retention := time.Duration(cfg.RetentionDays) * 24 * time.Hour
 	if cfg.RetentionDays <= 0 {
 		retention = 30 * 24 * time.Hour
@@ -205,9 +206,12 @@ type LinkInfo struct {
 }
 
 // StartLink opens a link attempt. mode is "qr" or "code" (code needs phone: digits with country code).
-func (m *Manager) StartLink(ctx context.Context, userID, mode, phone string) (*LinkInfo, error) {
+func (m *Manager) StartLink(ctx context.Context, userID, mode, phone string, consent bool) (*LinkInfo, error) {
 	if mode != "qr" && mode != "code" {
 		return nil, ErrBadMode
+	}
+	if !consent {
+		return nil, ErrConsent // the app shows the terms; the gateway refuses to link without the user's yes
 	}
 	phone = digits(phone)
 	if mode == "code" && (len(phone) < 8 || len(phone) > 15) {
@@ -236,6 +240,7 @@ func (m *Manager) StartLink(ctx context.Context, userID, mode, phone string) (*L
 		cancel()
 		return nil, err
 	}
+	_ = m.accounts.MarkConsent(ctx, userID, m.now())
 
 	qrCh, err := l.client.GetQRChannel(lctx)
 	if err != nil {
@@ -439,4 +444,32 @@ func (m *Manager) Transcribe(ctx context.Context, userID, chatRef, msgID string)
 		return "", err
 	}
 	return text, nil
+}
+
+// Stats is for monitoring and has no user data in it.
+type Stats struct {
+	Accounts      map[State]int `json:"accounts"`
+	Live          int           `json:"live_connections"`
+	Messages      int           `json:"messages"`
+	Chats         int           `json:"chats"`
+	OldestMessage int64         `json:"oldest_message_ts,omitempty"`
+	Sends24h      int           `json:"sends_24h"`
+	STT           bool          `json:"transcription_configured"`
+}
+
+func (m *Manager) Stats(ctx context.Context) (*Stats, error) {
+	counts, err := m.accounts.StateCounts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	s := &Stats{Accounts: counts, STT: m.stt.Enabled()}
+	m.mu.Lock()
+	for _, l := range m.live {
+		if l.client.IsConnected() {
+			s.Live++
+		}
+	}
+	m.mu.Unlock()
+	s.Messages, s.Chats, s.OldestMessage, s.Sends24h, err = m.msgs.Totals(ctx, m.now().Add(-24*time.Hour))
+	return s, err
 }

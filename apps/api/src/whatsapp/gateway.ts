@@ -23,7 +23,9 @@ export interface Gateway {
   draft(userId: string, chatRef: string, text: string): Promise<GatewayDraft>;
   confirm(userId: string, draftId: string): Promise<GatewaySent>;
   cancel(userId: string, draftId: string): Promise<void>;
-  link(userId: string, mode: "qr" | "code", phone?: string): Promise<Record<string, unknown>>;
+  link(userId: string, mode: "qr" | "code", phone: string | undefined, consent: boolean): Promise<Record<string, unknown>>;
+  /** counts only, for the owner (no user data) */
+  stats(): Promise<Record<string, unknown>>;
   unlink(userId: string): Promise<void>;
 }
 
@@ -50,7 +52,8 @@ export function httpGateway(cfg: { url: string; token: string }): Gateway {
     draft: (userId, chatRef, text) => call("POST", `${u(userId)}/send/draft`, { chat_ref: chatRef, text }),
     confirm: (userId, draftId) => call("POST", `${u(userId)}/send/confirm`, { draft_id: draftId }, 15_000),
     cancel: async (userId, draftId) => { await call("DELETE", `${u(userId)}/send/drafts/${encodeURIComponent(draftId)}`); },
-    link: (userId, mode, phone) => call("POST", `${u(userId)}/link`, { mode, ...(phone ? { phone } : {}) }, 20_000),
+    link: (userId, mode, phone, consent) => call("POST", `${u(userId)}/link`, { mode, consent, ...(phone ? { phone } : {}) }, 20_000),
+    stats: () => call("GET", "/v1/stats"),
     unlink: async (userId) => { await call("DELETE", u(userId)); },
   };
 }

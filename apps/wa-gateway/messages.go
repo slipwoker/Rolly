@@ -13,12 +13,13 @@ import (
 // MessageStore keeps the last RetentionDays of each user's messages. It never stores audio: a voice note keeps only the
 // encrypted media pointer until it is transcribed on request, then only the transcript.
 type MessageStore struct {
-	db *sql.DB
-	pg bool
+	db     *sql.DB
+	pg     bool
+	sealer *Sealer // nil = plaintext (tests only; LoadConfig refuses it unless WA_ALLOW_PLAINTEXT=1)
 }
 
-func NewMessageStore(db *sql.DB, postgres bool) *MessageStore {
-	return &MessageStore{db: db, pg: postgres}
+func NewMessageStore(db *sql.DB, postgres bool, sealer *Sealer) *MessageStore {
+	return &MessageStore{db: db, pg: postgres, sealer: sealer}
 }
 
 func (s *MessageStore) q(query string) string { return rebind(s.pg, query) }
@@ -129,9 +130,17 @@ func (s *MessageStore) AddMessage(ctx context.Context, userID, chatRef string, m
 	if m.FromMe {
 		from = 1
 	}
-	_, err := s.db.ExecContext(ctx, s.q(`INSERT INTO wa_messages (user_id, chat_ref, msg_id, sender_name, from_me, ts, kind, body, media, expires_at)
+	body, err := s.sealer.SealString(userID, m.Text)
+	if err != nil {
+		return err
+	}
+	sealedMedia, err := s.sealer.SealBytes(userID, media)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.ExecContext(ctx, s.q(`INSERT INTO wa_messages (user_id, chat_ref, msg_id, sender_name, from_me, ts, kind, body, media, expires_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (user_id, chat_ref, msg_id) DO NOTHING`),
-		userID, chatRef, m.ID, m.Sender, from, m.TS, m.Kind, m.Text, media, expiresAt)
+		userID, chatRef, m.ID, m.Sender, from, m.TS, m.Kind, body, sealedMedia, expiresAt)
 	return err
 }
 
@@ -203,7 +212,14 @@ func (s *MessageStore) Messages(ctx context.Context, userID, chatRef string, sin
 			return nil, err
 		}
 		m.FromMe = from == 1
-		m.Transcript = tr.String
+		if m.Text, err = s.sealer.OpenString(userID, m.Text); err != nil {
+			return nil, err
+		}
+		if tr.Valid {
+			if m.Transcript, err = s.sealer.OpenString(userID, tr.String); err != nil {
+				return nil, err
+			}
+		}
 		m.CanTranscribe = can && !tr.Valid
 		out = append(out, m)
 	}
@@ -222,13 +238,20 @@ func (s *MessageStore) Media(ctx context.Context, userID, chatRef, msgID string)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
-	return b, err
+	if err != nil {
+		return nil, err
+	}
+	return s.sealer.OpenBytes(userID, b)
 }
 
 // SetTranscript stores the transcript and drops the media pointer: nothing to download from here on.
 func (s *MessageStore) SetTranscript(ctx context.Context, userID, chatRef, msgID, text string) error {
-	_, err := s.db.ExecContext(ctx, s.q(`UPDATE wa_messages SET transcript = ?, media = NULL WHERE user_id = ? AND chat_ref = ? AND msg_id = ?`),
-		text, userID, chatRef, msgID)
+	sealed, err := s.sealer.SealString(userID, text)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.ExecContext(ctx, s.q(`UPDATE wa_messages SET transcript = ?, media = NULL WHERE user_id = ? AND chat_ref = ? AND msg_id = ?`),
+		sealed, userID, chatRef, msgID)
 	return err
 }
 
@@ -271,5 +294,19 @@ func (s *MessageStore) SendStats(ctx context.Context, userID string, since time.
 	if minTS.Valid {
 		oldest = time.UnixMilli(minTS.Int64)
 	}
+	return
+}
+
+// Totals are counts for monitoring.
+func (s *MessageStore) Totals(ctx context.Context, since time.Time) (messages, chats int, oldest int64, sends int, err error) {
+	var o sql.NullInt64
+	if err = s.db.QueryRowContext(ctx, `SELECT COUNT(*), MIN(ts) FROM wa_messages`).Scan(&messages, &o); err != nil {
+		return
+	}
+	oldest = o.Int64
+	if err = s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM wa_chats`).Scan(&chats); err != nil {
+		return
+	}
+	err = s.db.QueryRowContext(ctx, s.q(`SELECT COUNT(*) FROM wa_sends WHERE ts >= ?`), since.UnixMilli()).Scan(&sends)
 	return
 }
