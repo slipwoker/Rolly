@@ -7,5 +7,5 @@ The driver is the same drawing as the app's `apps/mobile/src/ui/RollyAvatar.tsx`
 - **Waiting list**: the forms post to `POST https://rolly-api.onrender.com/v1/waitlist` (`apps/api/src/waitlist.ts`,
   table `waitlist`). To point the page at another API, add `<meta name="rolly-api" content="https://…">` to the head.
 - **Who signed up** (owner, admin token): `GET /v1/admin/waitlist` (JSON) or `GET /v1/admin/waitlist?format=csv`.
-- **Hosting**: any static host. On Render: a Static Site with publish directory `apps/site`, no build command.
+- **Hosting**: Render Static Site `rolly-site` (publish directory `apps/site`, no build command), served at https://heyrolly.ai (DNS on Cloudflare: CNAME `@` and `www` → `rolly-site.onrender.com`, DNS only).
 - **Social preview**: `assets/og.png` is a 1200×630 capture of the hero; recapture it when the hero changes.
