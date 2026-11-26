@@ -151,7 +151,7 @@ class BlueTTS(OpenAICompatTTS):
         super().__init__({"base_url": cfg.get("blue_url", "http://127.0.0.1:1920/v1"), "model": "bluev3",
                           "voice": cfg.get("blue_voice", "ariel"), "sample_rate": int(cfg.get("blue_sample_rate", 44100)),
                           "extra_body": {"speed": float(cfg.get("blue_speed", 1.0)), "language": cfg.get("blue_language", "he"), "stream": self.stream}})
-        self.name = f"bluev3:{self.voice}:speed{self.extra['speed']:g}@{self.base_url}"
+        self.name = f"bluev3:{self.voice}:speed{self.extra['speed']:g}{'' if self.stream else ':whole'}{':trim' if self.trim else ''}{f':cap{self.pause_cap_ms}' if self.pause_cap_ms else ''}@{self.base_url}"
         # the model also speaks Spanish, Italian and German in the same voice inside <es>…</es> style tags
         self.language_spans = True
 
