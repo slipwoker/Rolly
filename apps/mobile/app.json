@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "android": {
       "package": "com.zappy.rolly",
-      "adaptiveIcon": { "foregroundImage": "./assets/icon.png", "backgroundColor": "#F7F6FA" },
+      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-fg.png", "backgroundImage": "./assets/adaptive-bg.png", "backgroundColor": "#7FA6FB" },
       "permissions": ["RECORD_AUDIO", "MODIFY_AUDIO_SETTINGS", "FOREGROUND_SERVICE", "FOREGROUND_SERVICE_MICROPHONE"]
     },
     "ios": {
@@ -46,12 +46,12 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash-orb.png",
-          "imageWidth": 180,
+          "image": "./assets/splash-avatar.png",
+          "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#F7F6FA",
           "dark": {
-            "image": "./assets/splash-orb.png",
+            "image": "./assets/splash-avatar-dark.png",
             "backgroundColor": "#0D0B13"
           }
         }
