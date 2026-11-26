@@ -320,6 +320,11 @@ footer .brand-word{font-size:18px;color:var(--ink)}
   .skills{grid-template-columns:1fr}
   .portrait{order:-1;width:min(340px,80%);margin-inline:auto}
   .skill-col .skill:nth-child(2),.skill-col.end .skill:nth-child(2){margin:0}
+  /* single column: cards are full-width, so the desktop sideways slide-in would push them past the viewport (sideways scroll in RTL) */
+  .js .reveal.side{transform:translateY(36px) scale(.96)}
+  /* the spinning .orbit's rotated box is ~1.36x the portrait and can poke past the screen edge:
+     stretch the section to the viewport edges (over the .wrap gutter) and clip there, so nothing visible is cut */
+  #skills{overflow-x:clip;margin-inline:-16px;padding-inline:16px}
   .plan-body{grid-template-columns:minmax(0,1fr)}
   section{padding-block:96px 0}
 }
