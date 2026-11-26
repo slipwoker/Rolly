@@ -1,8 +1,8 @@
 /** Personalisation: what ROLLY remembers (correct / delete / confirm), Hebrew addressing, language, connected services
- *  (placeholders), export and account deletion. */
+ *  (Google calendar + mail, music search), export and account deletion. */
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
-import { Alert, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { Alert, AppState, Linking, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { api, forgetDevice } from "../src/api";
@@ -13,7 +13,7 @@ import { radius, spacing, type, useTheme } from "../src/ui/theme";
 interface Me {
   preferred_name: string | null; preferred_language: "he" | "en" | null;
   addressing: { value: "masculine" | "feminine" | "plural" | null; status: "unknown" | "inferred" | "confirmed"; evidence_count: number };
-  connected_services: { id: string; status: string }[];
+  connected_services: { id: string; provider: "google" | "spotify"; status: "connected" | "not_connected" | "not_available"; account: string | null }[];
 }
 interface Memory { id: string; kind: string; content: string; status: "active" | "candidate"; quote: string | null }
 
@@ -27,6 +27,11 @@ export default function Personalisation() {
     api<{ memories: Memory[] }>("/v1/memories").then((r) => setMems(r.memories)).catch(() => {});
   }, []);
   useFocusEffect(load);
+  // coming back from the browser after the Google consent page
+  useEffect(() => { const sub = AppState.addEventListener("change", (st) => { if (st === "active") load(); }); return () => sub.remove(); }, [load]);
+  const connectGoogle = () => act(async () => { const r = await api<{ url: string }>("/v1/integrations/google/start", { method: "POST", body: {} }); await Linking.openURL(r.url); });
+  const google = me?.connected_services.find((x) => x.provider === "google");
+  const spotify = me?.connected_services.find((x) => x.provider === "spotify");
 
   const act = async (fn: () => Promise<unknown>) => { try { await fn(); } finally { load(); } };
   const confirmDanger = (msg: string, fn: () => void) => Alert.alert(msg, t.sure, [{ text: t.cancel, style: "cancel" }, { text: t.delete, style: "destructive", onPress: fn }]);
@@ -110,12 +115,27 @@ export default function Personalisation() {
           <Animated.View entering={enter()}>
             <Card style={s.card}>
               <View style={s.head}><IconTile icon="link" /><Txt variant="headline">{t.services}</Txt></View>
-              {(me?.connected_services ?? []).map((x) => (
-                <View key={x.id} style={s.service}>
-                  <Txt variant="body" style={{ flex: 1 }}>{x.id}</Txt>
-                  <View style={[s.badge, { backgroundColor: c.accentSoft }]}><Txt variant="micro" tone="accent">{t.soon}</Txt></View>
+              {google ? (
+                <View style={s.service}>
+                  <View style={{ flex: 1 }}>
+                    <Txt variant="body">{t.googleService}</Txt>
+                    <Txt variant="caption" tone="dim">{google.status === "connected" ? (google.account ?? t.connected) : t.googleWhy}</Txt>
+                  </View>
+                  {google.status === "connected"
+                    ? <Button icon="x" label={t.disconnect} onPress={() => confirmDanger(t.disconnect, () => act(() => api("/v1/integrations/google", { method: "DELETE" })))} />
+                    : google.status === "not_connected" ? <Button variant="primary" icon="link" label={t.connect} onPress={connectGoogle} />
+                    : <View style={[s.badge, { backgroundColor: c.accentSoft }]}><Txt variant="micro" tone="accent">{t.soon}</Txt></View>}
                 </View>
-              ))}
+              ) : null}
+              {spotify ? (
+                <View style={s.service}>
+                  <View style={{ flex: 1 }}>
+                    <Txt variant="body">{t.musicService}</Txt>
+                    <Txt variant="caption" tone="dim">{t.musicWhy}</Txt>
+                  </View>
+                  <View style={[s.badge, { backgroundColor: c.accentSoft }]}><Txt variant="micro" tone="accent">{spotify.status === "connected" ? t.connected : t.soon}</Txt></View>
+                </View>
+              ) : null}
             </Card>
           </Animated.View>
 

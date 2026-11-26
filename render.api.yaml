@@ -53,6 +53,16 @@ projects:
                 sync: false
               - key: ROLLY_ENROLLMENT_KEY
                 sync: false
+              - key: ROLLY_PUBLIC_URL
+                value: https://rolly-api.onrender.com
+              - key: GOOGLE_CLIENT_ID
+                sync: false
+              - key: GOOGLE_CLIENT_SECRET
+                sync: false
+              - key: SPOTIFY_CLIENT_ID
+                sync: false
+              - key: SPOTIFY_CLIENT_SECRET
+                sync: false
         databases:
           - name: rolly-api-db
             plan: basic-256mb
