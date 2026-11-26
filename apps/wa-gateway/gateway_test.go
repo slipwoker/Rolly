@@ -34,7 +34,11 @@ const testToken = "test-token-0123456789-abcdefghij"
 func testManager(t *testing.T, max int) *Manager {
 	t.Helper()
 	cfg := Config{Token: testToken, MaxAccounts: max, LinkTimeout: 5}
-	return NewManager(cfg, nil, testStore(t), waLog.Noop)
+	m := NewManager(cfg, nil, testStore(t), waLog.Noop)
+	if err := m.msgs.Migrate(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	return m
 }
 
 func TestUpsertKeepsJIDWhenStateOnly(t *testing.T) {

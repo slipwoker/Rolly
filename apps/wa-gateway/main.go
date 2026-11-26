@@ -42,6 +42,23 @@ func main() {
 	}
 
 	mgr := NewManager(cfg, container, accounts, wlog)
+	if err := mgr.msgs.Migrate(ctx); err != nil {
+		log.Fatalf("migrate messages: %v", err)
+	}
+	go func() { // retention: expired messages are deleted every hour
+		for {
+			if n, err := mgr.msgs.Purge(ctx, time.Now()); err != nil {
+				log.Printf("purge: %v", err)
+			} else if n > 0 {
+				log.Printf("purged %d expired messages", n)
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(time.Hour):
+			}
+		}
+	}()
 	go func() {
 		if err := mgr.Start(ctx); err != nil && !errors.Is(err, context.Canceled) {
 			log.Printf("start: %v", err)

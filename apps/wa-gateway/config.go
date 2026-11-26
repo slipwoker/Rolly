@@ -9,20 +9,28 @@ import (
 
 // Config comes from the environment only. No secret has a default.
 type Config struct {
-	Addr        string // listen address, default :8080
-	DatabaseURL string // postgres://... (production) or file:gateway.db?_foreign_keys=on (local, SQLite)
-	Token       string // bearer token rolly-api presents (WA_GATEWAY_TOKEN)
-	MaxAccounts int    // refuse to link more users than this (WA_MAX_ACCOUNTS, default 50)
-	LinkTimeout int    // seconds an unfinished link attempt lives (default 170, the QR channel lasts about 160)
+	Addr          string // listen address, default :8080
+	DatabaseURL   string // postgres://... (production) or file:gateway.db?_foreign_keys=on (local, SQLite)
+	Token         string // bearer token rolly-api presents (WA_GATEWAY_TOKEN)
+	MaxAccounts   int    // refuse to link more users than this (WA_MAX_ACCOUNTS, default 50)
+	LinkTimeout   int    // seconds an unfinished link attempt lives (default 170, the QR channel lasts about 160)
+	RetentionDays int    // how long a stored message lives (WA_RETENTION_DAYS, default 30)
+	STTURL        string // speech-to-text endpoint for voice notes (WA_STT_URL); empty = voice notes are not transcribed
+	STTToken      string // bearer token for it (WA_STT_TOKEN)
+	STTLanguage   string // WA_STT_LANGUAGE, default he
 }
 
 func LoadConfig() (Config, error) {
 	c := Config{
-		Addr:        envOr("WA_ADDR", ":8080"),
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		Token:       os.Getenv("WA_GATEWAY_TOKEN"),
-		MaxAccounts: envInt("WA_MAX_ACCOUNTS", 50),
-		LinkTimeout: envInt("WA_LINK_TIMEOUT_S", 170),
+		Addr:          envOr("WA_ADDR", ":8080"),
+		DatabaseURL:   os.Getenv("DATABASE_URL"),
+		Token:         os.Getenv("WA_GATEWAY_TOKEN"),
+		MaxAccounts:   envInt("WA_MAX_ACCOUNTS", 50),
+		LinkTimeout:   envInt("WA_LINK_TIMEOUT_S", 170),
+		RetentionDays: envInt("WA_RETENTION_DAYS", 30),
+		STTURL:        os.Getenv("WA_STT_URL"),
+		STTToken:      os.Getenv("WA_STT_TOKEN"),
+		STTLanguage:   envOr("WA_STT_LANGUAGE", "he"),
 	}
 	if c.DatabaseURL == "" {
 		return c, fmt.Errorf("DATABASE_URL is required")

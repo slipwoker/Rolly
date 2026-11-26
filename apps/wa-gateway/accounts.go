@@ -59,8 +59,10 @@ func (s *AccountStore) Migrate(ctx context.Context) error {
 }
 
 // rebind turns ? placeholders into $1.. for Postgres.
-func (s *AccountStore) rebind(q string) string {
-	if !s.pg {
+func (s *AccountStore) rebind(q string) string { return rebind(s.pg, q) }
+
+func rebind(pg bool, q string) string {
+	if !pg {
 		return q
 	}
 	var b strings.Builder

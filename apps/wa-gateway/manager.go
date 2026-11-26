@@ -9,10 +9,12 @@ import (
 	"time"
 
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -40,6 +42,9 @@ type Manager struct {
 	cfg       Config
 	container *sqlstore.Container
 	accounts  *AccountStore
+	msgs      *MessageStore
+	ingest    *Ingester
+	stt       *Transcriber
 	log       waLog.Logger
 
 	mu   sync.Mutex
@@ -47,7 +52,17 @@ type Manager struct {
 }
 
 func NewManager(cfg Config, container *sqlstore.Container, accounts *AccountStore, log waLog.Logger) *Manager {
-	return &Manager{cfg: cfg, container: container, accounts: accounts, log: log, live: map[string]*live{}}
+	msgs := NewMessageStore(accounts.db, accounts.pg)
+	retention := time.Duration(cfg.RetentionDays) * 24 * time.Hour
+	if cfg.RetentionDays <= 0 {
+		retention = 30 * 24 * time.Hour
+	}
+	return &Manager{
+		cfg: cfg, container: container, accounts: accounts, log: log, live: map[string]*live{},
+		msgs:   msgs,
+		ingest: &Ingester{msgs: msgs, retention: retention, now: time.Now},
+		stt:    &Transcriber{URL: cfg.STTURL, Token: cfg.STTToken, Language: cfg.STTLanguage},
+	}
 }
 
 // Start reconnects every linked account, staggered so a restart does not look like a burst.
@@ -118,6 +133,18 @@ func (m *Manager) onEvent(l *live, e any) {
 		if err := m.accounts.Upsert(ctx, l.userID, v.ID.String(), StatePairing, ""); err != nil {
 			m.log.Errorf("save jid %s: %v", l.userID, err)
 		}
+	case *events.Message:
+		if err := m.ingest.Message(ctx, l.userID, clientDir{l.client}, v, ""); err != nil {
+			m.log.Errorf("store message %s: %v", l.userID, err) // never log the message itself
+		}
+	case *events.HistorySync:
+		go func() { // can be hundreds of chats; must not block the event queue
+			n, err := m.ingest.History(context.Background(), l.userID, l.client, clientDir{l.client}, v)
+			if err != nil {
+				m.log.Errorf("history %s: %v", l.userID, err)
+			}
+			m.log.Infof("history sync %s: stored %d messages", l.userID, n)
+		}()
 	case *events.Connected:
 		l.mu.Lock()
 		l.qr, l.code = "", ""
@@ -331,6 +358,9 @@ func (m *Manager) Unlink(ctx context.Context, userID string) error {
 			}
 		}
 	}
+	if err := m.msgs.DeleteUser(ctx, userID); err != nil {
+		return err
+	}
 	return m.accounts.Delete(ctx, userID)
 }
 
@@ -351,4 +381,43 @@ func digits(s string) string {
 		}
 	}
 	return b.String()
+}
+
+var (
+	ErrNotConnected = errors.New("WhatsApp is not connected for this user")
+	ErrNoVoiceNote  = errors.New("no voice note waiting for transcription")
+	ErrSTTDisabled  = errors.New("transcription is not configured")
+)
+
+// Transcribe downloads one stored voice note, transcribes it and keeps only the transcript.
+func (m *Manager) Transcribe(ctx context.Context, userID, chatRef, msgID string) (string, error) {
+	if !m.stt.Enabled() {
+		return "", ErrSTTDisabled
+	}
+	raw, err := m.msgs.Media(ctx, userID, chatRef, msgID)
+	if err != nil || len(raw) == 0 {
+		return "", ErrNoVoiceNote
+	}
+	m.mu.Lock()
+	l := m.live[userID]
+	m.mu.Unlock()
+	if l == nil || !l.client.IsConnected() {
+		return "", ErrNotConnected
+	}
+	var audio waE2E.AudioMessage
+	if err := proto.Unmarshal(raw, &audio); err != nil {
+		return "", ErrNoVoiceNote
+	}
+	data, err := l.client.Download(ctx, &audio)
+	if err != nil {
+		return "", fmt.Errorf("download: %w", err)
+	}
+	text, err := m.stt.Transcribe(ctx, data)
+	if err != nil {
+		return "", err
+	}
+	if err := m.msgs.SetTranscript(ctx, userID, chatRef, msgID, text); err != nil {
+		return "", err
+	}
+	return text, nil
 }

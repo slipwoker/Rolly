@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
+	"sync"
+	"time"
 )
 
 var userIDRe = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
@@ -23,6 +27,8 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /v1/users/{uid}/link", s.auth(http.HandlerFunc(s.link)))
 	mux.Handle("GET /v1/users/{uid}", s.auth(http.HandlerFunc(s.status)))
 	mux.Handle("DELETE /v1/users/{uid}", s.auth(http.HandlerFunc(s.unlink)))
+	mux.Handle("GET /v1/users/{uid}/chats", s.auth(http.HandlerFunc(s.chats)))
+	mux.Handle("GET /v1/users/{uid}/chats/{ref}/messages", s.auth(http.HandlerFunc(s.messages)))
 	return mux
 }
 
@@ -115,4 +121,112 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+var refRe = regexp.MustCompile(`^[0-9a-f]{16}$`)
+
+func intParam(r *http.Request, name string, def, min, max int) int {
+	v, err := strconv.Atoi(r.URL.Query().Get(name))
+	if err != nil {
+		return def
+	}
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
+}
+
+func int64Param(r *http.Request, name string) int64 {
+	v, _ := strconv.ParseInt(r.URL.Query().Get(name), 10, 64)
+	return v
+}
+
+// GET /v1/users/{uid}/chats?q=name&groups=1|0&limit=20  -> chats, newest first. Chats are addressed by an opaque ref.
+func (s *Server) chats(w http.ResponseWriter, r *http.Request) {
+	id, ok := uid(w, r)
+	if !ok {
+		return
+	}
+	var groups *bool
+	switch r.URL.Query().Get("groups") {
+	case "1":
+		t := true
+		groups = &t
+	case "0":
+		f := false
+		groups = &f
+	}
+	list, err := s.m.msgs.Chats(r.Context(), id, r.URL.Query().Get("q"), groups, intParam(r, "limit", 20, 1, 100))
+	if err != nil {
+		writeJSON(w, 500, map[string]string{"error": "internal error"})
+		return
+	}
+	writeJSON(w, 200, map[string]any{"chats": list})
+}
+
+// GET /v1/users/{uid}/chats/{ref}/messages?since=<unix>&before=<unix>&limit=30&transcribe=1
+// Returns the newest `limit` messages in the window, oldest first. transcribe=1 transcribes up to 5 voice notes of the page.
+func (s *Server) messages(w http.ResponseWriter, r *http.Request) {
+	id, ok := uid(w, r)
+	if !ok {
+		return
+	}
+	ref := r.PathValue("ref")
+	if !refRe.MatchString(ref) {
+		writeJSON(w, 400, map[string]string{"error": "bad chat ref"})
+		return
+	}
+	name, found := s.m.msgs.ChatName(r.Context(), id, ref)
+	if !found {
+		writeJSON(w, 404, map[string]string{"error": "chat not found"})
+		return
+	}
+	list, err := s.m.msgs.Messages(r.Context(), id, ref, int64Param(r, "since"), int64Param(r, "before"), intParam(r, "limit", 30, 1, 200))
+	if err != nil {
+		writeJSON(w, 500, map[string]string{"error": "internal error"})
+		return
+	}
+	if r.URL.Query().Get("transcribe") == "1" {
+		s.transcribePage(r.Context(), id, ref, list)
+	}
+	if list == nil {
+		list = []StoredMessage{}
+	}
+	writeJSON(w, 200, map[string]any{"chat": map[string]any{"ref": ref, "name": name}, "messages": list})
+}
+
+// transcribePage fills in transcripts for the voice notes of one page: at most 5, three at a time, 25 s in total.
+func (s *Server) transcribePage(ctx context.Context, userID, ref string, list []StoredMessage) {
+	ctx, cancel := context.WithTimeout(ctx, 25*time.Second)
+	defer cancel()
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 3)
+	n := 0
+	for i := len(list) - 1; i >= 0 && n < 5; i-- { // newest voice notes first
+		if !list[i].CanTranscribe {
+			continue
+		}
+		n++
+		wg.Add(1)
+		go func(m *StoredMessage) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			text, err := s.m.Transcribe(ctx, userID, ref, m.ID)
+			switch {
+			case err == nil:
+				m.Transcript, m.CanTranscribe = text, false
+			case errors.Is(err, ErrNotConnected):
+				m.TranscribeError = "not_connected"
+			case errors.Is(err, ErrSTTDisabled):
+				m.TranscribeError = "stt_disabled"
+			default:
+				m.TranscribeError = "failed"
+			}
+		}(&list[i])
+	}
+	wg.Wait()
 }
