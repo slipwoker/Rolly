@@ -1,6 +1,6 @@
 /**
  * ROLLY's avatar: a little white driver peeking over a steering wheel. It steers gently, bobs over the road, blinks,
- * and opens its mouth while ROLLY talks; how lively it is follows the voice state. The backdrop follows the local
+ * and gets livelier while ROLLY talks (no mouth, by design: the eyes carry the face). The backdrop follows the local
  * clock: a sunny sky with drifting clouds by day, a violet night with a moon and twinkling stars after 19:00.
  * Everything is drawn in a 1024×1024 space and scaled to `size`. Animation runs on the UI thread (Reanimated);
  * `still` (or the OS "reduce motion" setting) renders a static frame.
@@ -75,7 +75,6 @@ export function RollyAvatar({ size, state = "idle", still = false, night: forceN
   const steer = useSharedValue(0);   // -1..1, the wheel turning
   const bob = useSharedValue(0);     // 0..1, road bumps
   const blink = useSharedValue(0);   // 0..1, eyelids closing
-  const talk = useSharedValue(0);    // 0..1, mouth flapping
   const twinkle = useSharedValue(0); // 0..1, stars / sparkle
   const drift = useSharedValue(0);   // 0..1, clouds crossing
   const energy = useSharedValue(ENERGY[state]);
@@ -95,10 +94,9 @@ export function RollyAvatar({ size, state = "idle", still = false, night: forceN
       withDelay(3400, withTiming(1, { duration: 80 })), withTiming(0, { duration: 110 }),
       withDelay(140, withTiming(1, { duration: 70 })), withTiming(0, { duration: 110 }),
     ), -1, false));
-    talk.set(withRepeat(withTiming(1, { duration: 170, easing: EASE_IN_OUT }), -1, true));
     twinkle.set(withRepeat(withTiming(1, { duration: 1400, easing: EASE_IN_OUT }), -1, true));
     drift.set(withRepeat(withTiming(1, { duration: 26000, easing: Easing.linear }), -1, false));
-  }, [animate, steer, bob, blink, talk, twinkle, drift]);
+  }, [animate, steer, bob, blink, twinkle, drift]);
 
   useEffect(() => { energy.set(withTiming(ENERGY[state], { duration: 600, easing: EASE_OUT })); }, [state, energy]);
   useEffect(() => { dark.set(withTiming(night ? 1 : 0, { duration: 1200, easing: EASE_IN_OUT })); }, [night, dark]);
@@ -126,10 +124,6 @@ export function RollyAvatar({ size, state = "idle", still = false, night: forceN
     return { transform: [{ translateY: -bob.get() * 3 * e * k }, { rotate: `${steer.get() * (5 + 9 * e)}deg` }] };
   });
   const eyesStyle = useAnimatedStyle(() => ({ transform: [{ scaleY: 1 - 0.9 * blink.get() }] }));
-  const mouthStyle = useAnimatedStyle(() => {
-    const speaking = Math.max(0, energy.get() - 0.85) / 0.15; // only while ROLLY talks
-    return { transform: [{ scaleY: 0.3 + 0.75 * speaking * talk.get() }] };
-  });
 
   return (
     <View style={{ width: size, height: size, borderRadius: size * 0.225, overflow: "hidden" }}
@@ -194,9 +188,6 @@ export function RollyAvatar({ size, state = "idle", still = false, night: forceN
         <Layer size={size} style={[eyesStyle, { transformOrigin: `50% ${pct(455)}` }]}>
           <Ellipse cx={453} cy={455} rx={25} ry={38} fill="#141018" transform="rotate(8 453 455)" />
           <Ellipse cx={557} cy={455} rx={25} ry={38} fill="#141018" transform="rotate(8 557 455)" />
-        </Layer>
-        <Layer size={size} style={[mouthStyle, { transformOrigin: `50% ${pct(530)}` }]}>
-          <Ellipse cx={507} cy={530} rx={20} ry={18} fill="#141018" />
         </Layer>
       </Animated.View>
 
