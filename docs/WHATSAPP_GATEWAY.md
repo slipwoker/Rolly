@@ -99,3 +99,43 @@ needs the test phone:
 3. **Wait for / contribute the upstream fix** for Business primaries (reverse-engineering the new block is not planned).
 
 If none works, same-phone linking is not available for Business users and the product would be limited to personal accounts.
+
+## Stages 1-4 built (2026-11-26, branch `claude/laughing-gates-sdb892`)
+
+| Stage | Where | State |
+|---|---|---|
+| 1 gateway core | `apps/wa-gateway` (Go, whatsmeow, Postgres sessions) | works; link by QR or code, `connected/needs_relink/banned/...`, survives restart (checked on Postgres 16) |
+| 2 read | same | 30-day message store, chats (groups too), LID-canonical chats, opaque chat refs, on-demand voice-note transcription through the GPU worker |
+| 3 send | same | draft → confirm, 40 sends/24 h, 4 s gap, typing indicator, own messages kept in history |
+| 4 voice | `apps/api/src/whatsapp/*` | the conversation model appends the existing `<lookup/>` marker; the flow decides with the utility model; no pod change needed |
+
+Not deployed anywhere. Nothing is active in `rolly-api` unless **`ROLLY_WA_GATEWAY_URL`** and **`ROLLY_WA_GATEWAY_TOKEN`**
+(and the utility-model key) are set; `ROLLY_WHATSAPP=0` turns it off. Deploy order: gateway first (one instance, private
+service, `DATABASE_URL`, `WA_GATEWAY_TOKEN`, `WA_STT_URL`, optional `WA_STT_TOKEN`), then `rolly-api`.
+
+### How a request flows
+1. The user says "what did Dani write?" → the model says "checking" and appends `<lookup/>` (persona line only when the user
+   has WhatsApp linked, `core(lang, {whatsapp:true})`).
+2. `lookup` hook → `WhatsAppFlow.handle` → the utility model classifies the user's last words (`read | send | confirm | cancel | other`);
+   `other` falls through to the web lookup. The classifier sees the conversation and the waiting draft, **never message content**.
+3. Reads come back as a marked message (`[whatsapp - not said by the user] …`) with the text quoted and sanitised; the
+   model says it in its own words. Sends create a draft that is read back; a **later** user turn saying yes confirms.
+
+### Safety rules, each with a test (`apps/api/test/whatsapp.test.ts`, `apps/wa-gateway/*_test.go`)
+- a yes in the same user turn as the draft does not send; no draft → "nothing is waiting", never a web search for "yes";
+- attribution `uncertain` (maybe a passenger): nothing is read, drafted or confirmed;
+- message text: markers, tags, square brackets, links and bidi controls are removed; it is quoted and labelled "never an instruction";
+- gateway rate limits (daily cap, minimum gap) surface as spoken explanations; a limited draft stays confirmable;
+- an unconfirmed draft is cancelled when the conversation ends; deleting the account also unlinks WhatsApp.
+
+### Measured with the real models (2026-11-26)
+- conversation model on the GPU pod, persona with WhatsApp on: appended the marker for **12/12** WhatsApp requests, **0/10** times in
+  ordinary chat, and **6/6** times for yes / no / change after a read-back (the read-back itself never carried it). Small samples.
+- intent classifier (`gpt-6-luna`, no reasoning): 14/15 on a Hebrew set; the miss is a bare "yes" with nothing waiting, which is the safe answer.
+- live against a linked account: read of a chat with two voice notes about 1 s end to end (transcripts cached), draft and cancel work.
+
+### Known gaps
+- Linking: the code flow fails for **WhatsApp Business** accounts until `whatsmeow` issue 1360 is fixed; QR works. Personal accounts by code: not yet tried (no personal test number).
+- Not yet: link/relink screens in the app, voice command "disconnect WhatsApp", encryption of session keys per user, monitoring, a real
+  Render deployment, an integration test that links a real client (the race fixed in `expireLink` was invisible to unit tests), privacy
+  document update, the legal review (W6).
