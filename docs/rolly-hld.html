@@ -1,0 +1,95 @@
+<title>Rolly HLD</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root{--bg:#f6f7f9;--fg:#1b2230;--mut:#5d6778;--line:#9aa4b5;--card:#ffffff;--c-client:#e6f0ff;--c-render:#e8f6ee;--c-gpu:#fff0e0;--c-ext:#f1e9fb;--acc:#0b6bcb;--grp:#eef0f4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12161e;--fg:#e6eaf2;--mut:#98a2b5;--line:#6b768a;--card:#1b212c;--c-client:#17293f;--c-render:#16301f;--c-gpu:#3a2812;--c-ext:#2a1f3d;--acc:#5aa6ff;--grp:#181e29;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12161e;--fg:#e6eaf2;--mut:#98a2b5;--line:#6b768a;--card:#1b212c;--c-client:#17293f;--c-render:#16301f;--c-gpu:#3a2812;--c-ext:#2a1f3d;--acc:#5aa6ff;--grp:#181e29;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,sans-serif;padding-block:24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:1040px;margin:auto}
+h1{font-size:1.5rem;margin:0 0 4px}
+.sub{color:var(--mut);margin:0 0 16px}
+.scroll{overflow-x:auto}
+svg{display:block;min-width:760px;width:100%;height:auto;color:var(--fg)}
+svg text{fill:var(--fg);font-family:system-ui,sans-serif}
+.t{font-size:13px;font-weight:600}.s{font-size:11px;fill:var(--mut)}.g{font-size:12px;font-weight:700;letter-spacing:.06em;fill:var(--mut)}
+.box{stroke:var(--line);stroke-width:1.2}
+.grp{fill:var(--grp);stroke:var(--line);stroke-dasharray:5 4}
+.ar{stroke:var(--fg);stroke-width:1.5;fill:none}
+.al{font-size:11px;fill:var(--acc);font-weight:600}
+figcaption{color:var(--mut);margin-top:12px;font-size:.9rem}
+</style>
+<main dir="rtl" lang="he">
+<h1>Rolly – ארכיטקטורה ברמה גבוהה</h1>
+<p class="sub">מצב נוכחי (נובמבר 2026), לפי הקוד והקונפיגורציה בריפו</p>
+<figure style="margin:0"><div class="scroll" dir="ltr">
+<svg viewBox="0 0 1000 620" role="img" aria-label="HLD של Rolly: לקוחות מתחברים ל-rolly-api ול-rolly-voice ב-Render, שמעבירים את הקול ל-pod GPU ב-RunPod ומשתמשים ב-OpenAI">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+
+<text class="g" x="20" y="24">CLIENTS</text>
+<text class="g" x="300" y="24">RENDER · FRANKFURT</text>
+<text class="g" x="720" y="24">RUNPOD · 1×L40S</text>
+
+<rect class="grp" x="295" y="32" width="370" height="430" rx="10"/>
+<rect class="grp" x="715" y="32" width="270" height="430" rx="10"/>
+
+<!-- clients -->
+<rect class="box" fill="var(--c-client)" x="20" y="40" width="210" height="75" rx="8"/>
+<text class="t" x="34" y="64">Landing site</text><text class="s" x="34" y="84">apps/site · static</text><text class="s" x="34" y="100">waitlist sign-up</text>
+<rect class="box" fill="var(--c-client)" x="20" y="150" width="210" height="125" rx="8"/>
+<text class="t" x="34" y="174">iPhone app</text><text class="s" x="34" y="194">Expo SDK 58 + Router</text><text class="s" x="34" y="210">Swift module rolly-audio</text><text class="s" x="34" y="226">pairing · Conversation</text><text class="s" x="34" y="242">Progress · Personalisation</text><text class="s" x="34" y="258">Hebrew RTL</text>
+<rect class="box" fill="var(--c-client)" x="20" y="340" width="210" height="100" rx="8"/>
+<text class="t" x="34" y="364">Browser tester</text><text class="s" x="34" y="384">frontend/ · no build</text><text class="s" x="34" y="400">drive · blind eval</text><text class="s" x="34" y="416">telemetry dashboard</text>
+
+<!-- rolly-api -->
+<rect class="box" fill="var(--c-render)" x="315" y="50" width="330" height="205" rx="8"/>
+<text class="t" x="329" y="74">rolly-api  (Node 22 / TypeScript, Fastify)</text>
+<text class="s" x="329" y="98">auth: pairing codes · device tokens · tickets</text>
+<text class="s" x="329" y="116">voice session relay + resampler + resume</text>
+<text class="s" x="329" y="134">persona / prompt builder · pacing · style guard</text>
+<text class="s" x="329" y="152">memory: policy · addressing · live capture</text>
+<text class="s" x="329" y="170">post-ride: summariser · look-ahead · plan</text>
+<text class="s" x="329" y="188">goals · tasks · ideas · forget / scrub</text>
+<text class="s" x="329" y="206">web lookup · backoffice audit + LLM judge</text>
+<text class="s" x="329" y="224">server-side self-test · retention purge</text>
+<text class="s" x="329" y="242">waitlist API</text>
+
+<rect class="box" fill="var(--c-render)" x="315" y="280" width="330" height="48" rx="8"/>
+<text class="t" x="329" y="302">rolly-api-db  PostgreSQL 17</text><text class="s" x="329" y="318">users · memories · sessions · turns · audit</text>
+
+<!-- rolly-voice -->
+<rect class="box" fill="var(--c-render)" x="315" y="350" width="330" height="95" rx="8"/>
+<text class="t" x="329" y="374">rolly-voice  (Python / FastAPI, research tester)</text>
+<text class="s" x="329" y="394">sessions · memory · telemetry · blind eval</text>
+<text class="s" x="329" y="410">SQLite on 1 GB disk · selftest API</text>
+<text class="s" x="329" y="426">agents: A relay · B hybrid-api · D Realtime</text>
+
+<!-- GPU pod -->
+<rect class="box" fill="var(--c-gpu)" x="735" y="50" width="235" height="395" rx="8"/>
+<text class="t" x="749" y="74">GPU worker  :8000</text><text class="s" x="749" y="92">WSS /v1/session · bearer token</text>
+<rect class="box" fill="var(--card)" x="749" y="108" width="207" height="48" rx="6"/><text class="t" x="761" y="128">VAD / endpointing</text><text class="s" x="761" y="144">Silero · barge-in · speculative turn</text>
+<rect class="box" fill="var(--card)" x="749" y="176" width="207" height="48" rx="6"/><text class="t" x="761" y="196">STT</text><text class="s" x="761" y="212">Whisper he / en</text>
+<rect class="box" fill="var(--card)" x="749" y="244" width="207" height="48" rx="6"/><text class="t" x="761" y="264">LLM · vLLM :8081</text><text class="s" x="761" y="280">conversation model, streaming</text>
+<rect class="box" fill="var(--card)" x="749" y="312" width="207" height="48" rx="6"/><text class="t" x="761" y="332">TTS</text><text class="s" x="761" y="348">BlueV3 (Hebrew) · Piper (English)</text>
+<path class="ar" d="M852 156V176M852 224V244M852 292V312" marker-end="url(#a)"/>
+<text class="s" x="749" y="385">status :8001 (public, no secrets)</text>
+<text class="s" x="749" y="402">self-updates from git every 30 s</text>
+<text class="s" x="749" y="419">persistent volume: models, venvs</text>
+
+<!-- OpenAI -->
+<rect class="box" fill="var(--c-ext)" x="300" y="520" width="360" height="75" rx="8"/>
+<text class="t" x="314" y="544">OpenAI API</text>
+<text class="s" x="314" y="564">utility LLM gpt-6-luna + web search · transcribe</text>
+<text class="s" x="314" y="580">Realtime (agent D) · judge · summaries</text>
+
+<!-- arrows -->
+<path class="ar" d="M230 78H315" marker-end="url(#a)"/><text class="al" x="236" y="70">POST</text>
+<path class="ar" d="M230 212H315" marker-start="url(#a)" marker-end="url(#a)"/><text class="al" x="234" y="204">WSS · HTTPS</text>
+<path class="ar" d="M230 390H315" marker-start="url(#a)" marker-end="url(#a)"/><text class="al" x="238" y="382">WSS /ws</text>
+<path class="ar" d="M480 255V280" marker-end="url(#a)"/><text class="al" x="488" y="272">SQL</text>
+<path class="ar" d="M645 150H735" marker-start="url(#a)" marker-end="url(#a)"/><text class="al" x="656" y="142">WSS</text><text class="al" x="656" y="170">relay</text>
+<path class="ar" d="M645 400H735" marker-start="url(#a)" marker-end="url(#a)"/><text class="al" x="656" y="392">WSS</text><text class="al" x="656" y="420">relay</text>
+<path class="ar" d="M645 225H690V545H660M645 435H690" marker-end="url(#a)"/><text class="al" x="696" y="500" transform="rotate(-90 696 500)">HTTPS</text>
+</svg></div>
+<figcaption>הטלפון מדבר עם rolly-api, שמנהל זיכרון ופרסונה ומעביר את האודיו ב-WebSocket ל-pod ה-GPU, שמריץ VAD → STT → LLM → TTS. rolly-voice הוא המבחן הישן מהמחקר ומשתמש באותו pod. OpenAI משמש רק למשימות עזר (סיכומים, חיפוש, שיפוט) ולסוכנים B ו-D של הבוחן.</figcaption>
+</figure>
+</main>
