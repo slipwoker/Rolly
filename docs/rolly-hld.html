@@ -22,7 +22,7 @@ figcaption{color:var(--mut);margin-top:12px;font-size:.9rem}
 <h1>Rolly – ארכיטקטורה ברמה גבוהה</h1>
 <p class="sub">מצב נוכחי (נובמבר 2026), לפי הקוד והקונפיגורציה בריפו</p>
 <figure style="margin:0"><div class="scroll" dir="ltr">
-<svg viewBox="0 0 1000 620" role="img" aria-label="HLD של Rolly: לקוחות (אפליקציית iOS ו-Android) מתחברים ל-rolly-api ול-rolly-voice ב-Render, שמעבירים את הקול ל-pod GPU ב-RunPod ומשתמשים ב-OpenAI">
+<svg viewBox="0 0 1000 620" role="img" aria-label="HLD של Rolly: לקוחות (אפליקציית iOS ו-Android, Backoffice) מתחברים ל-rolly-api ול-rolly-voice ב-Render, שמעבירים את הקול ל-pod GPU ב-RunPod ומשתמשים ב-OpenAI">
 <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
 
 <text class="g" x="20" y="24">CLIENTS</text>
@@ -33,10 +33,12 @@ figcaption{color:var(--mut);margin-top:12px;font-size:.9rem}
 <rect class="grp" x="715" y="32" width="270" height="430" rx="10"/>
 
 <!-- clients -->
-<rect class="box" fill="var(--c-client)" x="20" y="40" width="210" height="75" rx="8"/>
-<text class="t" x="34" y="64">Landing site</text><text class="s" x="34" y="84">apps/site · static</text><text class="s" x="34" y="100">waitlist sign-up</text>
-<rect class="box" fill="var(--c-client)" x="20" y="150" width="210" height="125" rx="8"/>
-<text class="t" x="34" y="174">Mobile app (iOS + Android)</text><text class="s" x="34" y="194">Expo SDK 58 + Router</text><text class="s" x="34" y="210">native rolly-audio (Swift / Kotlin)</text><text class="s" x="34" y="226">pairing · Conversation</text><text class="s" x="34" y="242">Progress · Personalisation</text><text class="s" x="34" y="258">Hebrew RTL</text>
+<rect class="box" fill="var(--c-client)" x="20" y="40" width="210" height="62" rx="8"/>
+<text class="t" x="34" y="62">Landing site</text><text class="s" x="34" y="82">apps/site · static · waitlist</text>
+<rect class="box" fill="var(--c-client)" x="20" y="117" width="210" height="80" rx="8"/>
+<text class="t" x="34" y="140">Backoffice (web /admin)</text><text class="s" x="34" y="160">audit · costs · prompts</text><text class="s" x="34" y="176">session review · LLM judge · users</text>
+<rect class="box" fill="var(--c-client)" x="20" y="215" width="210" height="125" rx="8"/>
+<text class="t" x="34" y="239">Mobile app (iOS + Android)</text><text class="s" x="34" y="259">Expo SDK 58 + Router</text><text class="s" x="34" y="275">native rolly-audio (Swift / Kotlin)</text><text class="s" x="34" y="291">pairing · Conversation</text><text class="s" x="34" y="307">Progress · Personalisation</text><text class="s" x="34" y="323">Hebrew RTL</text>
 <rect class="box" fill="var(--c-client)" x="20" y="340" width="210" height="100" rx="8"/>
 <text class="t" x="34" y="364">Browser tester</text><text class="s" x="34" y="384">frontend/ · no build</text><text class="s" x="34" y="400">drive · blind eval</text><text class="s" x="34" y="416">telemetry dashboard</text>
 
@@ -49,7 +51,7 @@ figcaption{color:var(--mut);margin-top:12px;font-size:.9rem}
 <text class="s" x="329" y="152">memory: policy · addressing · live capture</text>
 <text class="s" x="329" y="170">post-ride: summariser · look-ahead · plan</text>
 <text class="s" x="329" y="188">goals · tasks · ideas · forget / scrub</text>
-<text class="s" x="329" y="206">web lookup · backoffice audit + LLM judge</text>
+<text class="s" x="329" y="206">web lookup · audit recorder · LLM judge · /admin</text>
 <text class="s" x="329" y="224">server-side self-test · retention purge</text>
 <text class="s" x="329" y="242">waitlist API</text>
 
@@ -82,14 +84,15 @@ figcaption{color:var(--mut);margin-top:12px;font-size:.9rem}
 <text class="s" x="314" y="580">Realtime (agent D) · judge · summaries</text>
 
 <!-- arrows -->
-<path class="ar" d="M230 78H315" marker-end="url(#a)"/><text class="al" x="236" y="70">POST</text>
-<path class="ar" d="M230 212H315" marker-start="url(#a)" marker-end="url(#a)"/><text class="al" x="234" y="204">WSS · HTTPS</text>
+<path class="ar" d="M230 71H315" marker-end="url(#a)"/><text class="al" x="236" y="63">POST</text>
+<path class="ar" d="M230 150H315" marker-end="url(#a)"/><text class="al" x="236" y="142">HTTPS</text>
+<path class="ar" d="M230 245H315" marker-start="url(#a)" marker-end="url(#a)"/><text class="al" x="234" y="237">WSS · HTTPS</text>
 <path class="ar" d="M230 390H315" marker-start="url(#a)" marker-end="url(#a)"/><text class="al" x="238" y="382">WSS /ws</text>
 <path class="ar" d="M480 255V280" marker-end="url(#a)"/><text class="al" x="488" y="272">SQL</text>
 <path class="ar" d="M645 150H735" marker-start="url(#a)" marker-end="url(#a)"/><text class="al" x="656" y="142">WSS</text><text class="al" x="656" y="170">relay</text>
 <path class="ar" d="M645 400H735" marker-start="url(#a)" marker-end="url(#a)"/><text class="al" x="656" y="392">WSS</text><text class="al" x="656" y="420">relay</text>
 <path class="ar" d="M645 225H690V545H660M645 435H690" marker-end="url(#a)"/><text class="al" x="696" y="500" transform="rotate(-90 696 500)">HTTPS</text>
 </svg></div>
-<figcaption>אפליקציית המובייל (iOS ו-Android) מדברת עם rolly-api, שמנהל זיכרון ופרסונה ומעביר את האודיו ב-WebSocket ל-pod ה-GPU, שמריץ VAD → STT → LLM → TTS. rolly-voice הוא המבחן הישן מהמחקר ומשתמש באותו pod. OpenAI משמש רק למשימות עזר (סיכומים, חיפוש, שיפוט) ולסוכנים B ו-D של הבוחן.</figcaption>
+<figcaption>ה-Backoffice הוא ממשק web בנתיב /admin שמוגש מ-rolly-api עצמו: ביקורת שיחות, עלויות, פרומפטים ושופט LLM. אפליקציית המובייל (iOS ו-Android) מדברת עם rolly-api, שמנהל זיכרון ופרסונה ומעביר את האודיו ב-WebSocket ל-pod ה-GPU, שמריץ VAD → STT → LLM → TTS. rolly-voice הוא המבחן הישן מהמחקר ומשתמש באותו pod. OpenAI משמש רק למשימות עזר (סיכומים, חיפוש, שיפוט) ולסוכנים B ו-D של הבוחן.</figcaption>
 </figure>
 </main>
