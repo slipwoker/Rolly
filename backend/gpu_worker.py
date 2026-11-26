@@ -10,7 +10,8 @@ Runs on the GPU host next to vLLM (which serves the language model).
     POST /v1/audio/speech            {"input", "language"?} -> raw PCM16 mono   (the pipeline's voices)
     GET  /healthz
 
-Everything except /healthz needs `Authorization: Bearer $ROLLY_GPU_API_KEY`.
+Everything except /healthz needs `Authorization: Bearer $ROLLY_GPU_API_KEY`.  Without that key every such request is
+refused (fail closed, decision P1-D40); /healthz then reports `"auth": "no key"`.
 The pipeline is the provider `$ROLLY_WORKER_PROVIDER` (default `modular-selfhosted`) from
 `$ROLLY_WORKER_PROVIDERS_FILE` (default `config/providers.yaml`) - the configuration that was benchmarked.
 
@@ -86,7 +87,10 @@ app = FastAPI(title="Rolly GPU worker", lifespan=lifespan)
 
 
 def _token_ok(header: str | None) -> bool:
-    return not TOKEN or hmac.compare_digest((header or "").encode(), f"Bearer {TOKEN}".encode())
+    """Only the exact bearer token passes.  No key configured = nothing passes (it used to let everything through)."""
+    if not TOKEN:
+        return False
+    return hmac.compare_digest((header or "").encode(), f"Bearer {TOKEN}".encode())
 
 
 def _auth(request: Request) -> None:
@@ -96,7 +100,7 @@ def _auth(request: Request) -> None:
 
 @app.get("/healthz")
 async def healthz():
-    return {"ok": True, "ready": "load_s" in state, "stt": getattr(state.get("stt"), "name", None), "tts": getattr(state.get("tts"), "name", None),
+    return {"ok": True, "ready": "load_s" in state, "auth": "bearer" if TOKEN else "no key", "stt": getattr(state.get("stt"), "name", None), "tts": getattr(state.get("tts"), "name", None),
             "pipeline": PROVIDER_ID, "load_error": state.get("load_error"), "active_sessions": state.get("active"), "load_s": state.get("load_s"), "served": state.get("served")}
 
 
