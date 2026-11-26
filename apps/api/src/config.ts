@@ -20,6 +20,8 @@ export interface Config {
   webLookup: boolean;
   /** WhatsApp through the private gateway (apps/wa-gateway); null = not connected. Needs the utility LLM key too. */
   whatsapp: { url: string; token: string } | null;
+  /** Elastic Email (src/email/elastic.ts): the API key and a sender address verified in the provider; null = no email */
+  email: { apiKey: string; from: string } | null;
   /** at most this many lookups per user in 24 hours (each costs a search fee) */
   lookupsPerDay: number;
   /** gate for silent device enrollment (the same value is built into the app); null = enrollment closed */
@@ -99,6 +101,7 @@ export function loadConfig(env = process.env): Config {
     maxSessionMinutes: Number(env.ROLLY_MAX_SESSION_MINUTES ?? 90),
     webLookup: (env.ROLLY_WEB_LOOKUP ?? "1") !== "0" && Boolean(env.OPENAI_API_KEY),
     lookupsPerDay: Number(env.ROLLY_LOOKUPS_PER_DAY ?? 30),
+    email: env.ROLLY_EMAIL_API_KEY && env.ROLLY_EMAIL_FROM ? { apiKey: env.ROLLY_EMAIL_API_KEY, from: env.ROLLY_EMAIL_FROM } : null,
     whatsapp: env.ROLLY_WA_GATEWAY_URL && env.ROLLY_WA_GATEWAY_TOKEN && env.OPENAI_API_KEY && (env.ROLLY_WHATSAPP ?? "1") !== "0"
       ? { url: env.ROLLY_WA_GATEWAY_URL.replace(/\/+$/, ""), token: env.ROLLY_WA_GATEWAY_TOKEN } : null,
     devAuth,

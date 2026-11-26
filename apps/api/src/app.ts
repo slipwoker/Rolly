@@ -25,6 +25,8 @@ import * as googleApi from "./integrations/google.ts";
 import { seal, unseal, signState, verifyState } from "./integrations/crypto.ts";
 import { GatewayError, httpGateway } from "./whatsapp/gateway.ts";
 import { WhatsAppFlow } from "./whatsapp/flow.ts";
+import { whatsappLinkRoutes } from "./whatsapp/webLink.ts";
+import { elasticMailer } from "./email/elastic.ts";
 import { AuditRecorder } from "./audit/recorder.ts";
 import { loadPricing } from "./audit/pricing.ts";
 import { auditRoutes } from "./audit/routes.ts";
@@ -400,11 +402,13 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     // ---------------------------------------------------------- WhatsApp (linked through the private gateway)
     // Linking from the phone that runs the app needs a pairing CODE typed in WhatsApp (a QR cannot be scanned from the same
     // screen); "qr" exists for tests and for a second screen. Personal accounts only for now (docs/WHATSAPP_GATEWAY.md).
+    const mailer = config.email ? elasticMailer({ ...config.email, http: realHttp }) : null;
+    await whatsappLinkRoutes(app, { gateway, user, mailer, publicUrl: config.publicUrl, forget: (id) => wa?.forget(id) });
     app.get("/v1/whatsapp", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
       if (!gateway) return { available: false };
       const s = await gateway.status(id).catch(() => null);
-      return { available: true, state: s?.state ?? "unavailable" };
+      return { available: true, state: s?.state ?? "unavailable", web_link: true, email: Boolean(mailer) };
     });
     app.post("/v1/whatsapp/link", async (req, reply) => {
       const id = user(req, reply); if (!id) return;

@@ -17,7 +17,7 @@ export class GatewayError extends Error {
 }
 
 export interface Gateway {
-  status(userId: string): Promise<{ state: LinkState }>;
+  status(userId: string): Promise<{ state: LinkState; link?: { mode?: string; qr?: string; code?: string; expires_in_s?: number } }>;
   chats(userId: string, q: string, limit?: number): Promise<GatewayChat[]>;
   messages(userId: string, ref: string, o?: { since?: number; limit?: number; transcribe?: boolean }): Promise<{ chat: { ref: string; name: string }; messages: GatewayMessage[] }>;
   draft(userId: string, chatRef: string, text: string): Promise<GatewayDraft>;
