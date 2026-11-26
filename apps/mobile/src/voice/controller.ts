@@ -47,7 +47,12 @@ export interface ControllerDeps {
   maxReconnects?: number;
 }
 
-export interface StartOptions { language: "he" | "en" | "auto"; captions?: boolean; journey?: { duration_min?: number } }
+export interface StartOptions {
+  language: "he" | "en" | "auto";
+  /** the user picked the language themselves; without it the server uses the language of their profile */
+  languageExplicit?: boolean;
+  captions?: boolean; journey?: { duration_min?: number };
+}
 
 const OPEN = 1;
 
@@ -110,7 +115,7 @@ export class VoiceController {
     this.frameTimes = [];
     this.lastSpeechEndWall = null;
     ws.onopen = () => {
-      this.send({ type: "session.start", language: this.opts.language, proactive: true, captions: this.opts.captions,
+      this.send({ type: "session.start", language: this.opts.language, language_explicit: this.opts.languageExplicit === true, proactive: true, captions: this.opts.captions,
         journey: this.opts.journey, client: { platform: "ios" }, ...(resumeOf ? { resume_of: resumeOf } : {}) });
     };
     ws.onmessage = (e) => {

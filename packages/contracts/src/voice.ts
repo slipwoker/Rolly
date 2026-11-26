@@ -27,6 +27,12 @@ export type Language = "he" | "en" | "auto";
 export interface ClientSessionStart {
   type: "session.start";
   language?: Language;
+  /**
+   * true when the user picked this language themselves (the language button). Without it the server uses the language
+   * of the user's profile (Hebrew when none is known): an app default, such as the phone's system language, must not
+   * decide which speech recogniser listens.
+   */
+  language_explicit?: boolean;
   proactive?: boolean;
   journey?: { duration_min?: number; mode?: string };
   /** Debug captions in the app; the server always sends transcripts, this only marks the session. */

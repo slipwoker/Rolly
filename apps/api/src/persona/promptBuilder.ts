@@ -33,6 +33,16 @@ export interface MemoryView {
   sessionCount: number; // completed sessions with at least one user turn
 }
 
+/**
+ * The language of a conversation, which decides which speech recogniser listens: the user's own choice when they made
+ * one, else the language of their profile, else Hebrew. A value the app merely defaulted to (no `language_explicit`) is
+ * ignored: an English-language iPhone had Hebrew speech "recognised" by the English model (2026-11-26).
+ */
+export function resolveLanguage(start: { language?: Lang | null; language_explicit?: boolean }, preferred: "he" | "en" | null): { language: Lang; chosen: Lang | null } {
+  const chosen = start.language_explicit === true && start.language && ["he", "en", "auto"].includes(start.language) ? start.language : null;
+  return { language: chosen ?? preferred ?? "he", chosen };
+}
+
 export interface Journey { duration_min?: number; origin?: string; destination?: string; mode?: string; proactive?: boolean }
 
 function when(ts: Date, now: Date): string {

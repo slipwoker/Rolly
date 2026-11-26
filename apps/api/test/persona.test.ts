@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { END_MARKER, LANG, VOICE_STYLE } from "../src/persona/research.ts";
-import { buildContext, emptyMemory, type MemoryView } from "../src/persona/promptBuilder.ts";
+import { buildContext, emptyMemory, resolveLanguage, type MemoryView } from "../src/persona/promptBuilder.ts";
 import { LEAD } from "../src/persona/phase1Sections.ts";
 
 const ROOT = resolve(import.meta.dirname, "../../..");
@@ -63,5 +63,22 @@ describe("Rolly leads the conversation instead of interviewing (P1-D15)", () => 
 
   it("the neutral Hebrew rule gives statement forms, not only questions", () => {
     expect(buildContext(emptyMemory(), { language: "he" }).system_prompt).toContain("it is not a reason to ask more questions");
+  });
+});
+
+describe("the language of a conversation never follows an app default", () => {
+  it("an app that merely sends a language (older builds, the phone's system language) gets the profile's language", () => {
+    expect(resolveLanguage({ language: "en" }, "he")).toEqual({ language: "he", chosen: null });
+    expect(resolveLanguage({ language: "en", language_explicit: false }, "he").language).toBe("he");
+    expect(resolveLanguage({}, "en").language).toBe("en");
+  });
+  it("Hebrew when nothing is known", () => {
+    expect(resolveLanguage({ language: "en" }, null).language).toBe("he");
+    expect(resolveLanguage({}, null).language).toBe("he");
+  });
+  it("the user's own choice wins, including automatic detection", () => {
+    expect(resolveLanguage({ language: "en", language_explicit: true }, "he")).toEqual({ language: "en", chosen: "en" });
+    expect(resolveLanguage({ language: "auto", language_explicit: true }, "he").language).toBe("auto");
+    expect(resolveLanguage({ language: "xx" as never, language_explicit: true }, "he").language).toBe("he");
   });
 });

@@ -133,9 +133,9 @@ describe.skipIf(!process.env.CI && false)("memory policy with PostgreSQL", () =>
     expect((await store.addressing(uid)).evidence.examples.filter((e) => e.quote === t.text)).toHaveLength(1);
 
     // deletion in the app
-    const goal = (await store.memories(uid, { kinds: ["travel_goal"] }))[0]!;
+    const goal = (await store.memories(uid, { kinds: ["travel_goal"] })).find((m) => m.content === "לחשוב על הסטארטאפ בנסיעות")!;
     expect(await store.deleteMemory(uid, goal.id, "app")).toBe(true);
-    expect((await store.memoryView(uid)).profile.travelGoals).toEqual([]);
+    expect((await store.memoryView(uid)).profile.travelGoals).not.toContain("לחשוב על הסטארטאפ בנסיעות");
 
     // export contains no deleted content; account deletion removes everything
     const exp = await store.exportAll(uid);
@@ -187,5 +187,47 @@ describe.skipIf(!process.env.CI && false)("memory policy with PostgreSQL", () =>
     expect(secretOk("abc12345", null)).toBe(false);
     const rl = new RateLimiter(2, 1000);
     expect([rl.allow("ip", 0), rl.allow("ip", 1), rl.allow("ip", 2), rl.allow("ip", 1500)]).toEqual([true, true, false, true]);
+  });
+
+  it("deleting a conversation removes its transcript and what was learned from it, but not what the user confirmed", async () => {
+    if (!available) return;
+    const uid = await store.createUser("del-session");
+    const keep = crypto.randomUUID(), bad = crypto.randomUUID();
+    for (const sid of [keep, bad]) await store.startSession(sid, uid, "he", false, new Date());
+    const good = [u("אני גר בחיפה")];
+    await store.applySummary(uid, keep, normalize({ summary: "דובר על חיפה.", facts: [item("גר בחיפה", "אני גר בחיפה")] }), good);
+    await store.finishSession({ sessionId: keep, userId: uid, turns: good, summary: normalize({ summary: "דובר על חיפה." }), stats: {}, endReason: "client_end", describe: {} });
+    // a conversation recognised in the wrong language: garbage summary, topic, progress, a candidate, and one thing the user later confirmed
+    const garbled = [u("I can't wait now"), u("the rest of the army")];
+    await store.applySummary(uid, bad, normalize({
+      summary: "נאמר I can't wait now.", unresolved_topics: ["מה הכוונה ב-I can't wait now"], progress: ["לא ברור"],
+      facts: [item("משרת בצבא", "the rest of the army", { confidence: 0.4 })], preferences: [item("רוצה שרולי יהיה יוזם", "the rest of the army")],
+    }), garbled);
+    await store.finishSession({ sessionId: bad, userId: uid, turns: garbled, summary: normalize({ summary: "נאמר I can't wait now." }), stats: {}, endReason: "client_end", describe: {} });
+    const pref = (await store.memories(uid, { kinds: ["preference"], status: ["active", "candidate"] }))[0]!;
+    if (pref.status === "candidate") expect(await store.confirmCandidate(uid, pref.id, "app")).toBe(true);
+    else await db.query("UPDATE memories SET provenance = provenance || '{\"confirmed\": true}' WHERE id=$1", [pref.id]);
+
+    expect(await store.deleteSession(uid, "not-a-uuid")).toBeNull();
+    expect(await store.deleteSession(await store.createUser("other"), bad)).toBeNull(); // someone else's conversation
+    const r = await store.deleteSession(uid, bad);
+    expect(r).toMatchObject({ deleted: true, progress: 1 });
+    const left = (await store.memories(uid, { status: ["active", "candidate"] })).map((m) => `${m.kind}:${m.content}`);
+    expect(left.sort()).toEqual(["fact:גר בחיפה", "preference:רוצה שרולי יהיה יוזם", "summary:דובר על חיפה."].sort());
+    expect(JSON.stringify(await store.exportAll(uid))).not.toContain("I can't wait now");
+    expect((await store.sessions(uid)).map((s) => s.id)).toEqual([keep]);
+    expect((await store.memoryView(uid)).openTopics).toEqual([]);
+  });
+
+  it("the profile language is learned only from a conversation whose language was detected", async () => {
+    if (!available) return;
+    const uid = await store.createUser("lang");
+    const sid = crypto.randomUUID();
+    await store.startSession(sid, uid, "en", false, new Date());
+    const t = [u("hello there")];
+    await store.applySummary(uid, sid, normalize({ summary: "x", language: "en" }), t); // fixed language: says nothing about the user
+    expect((await store.profile(uid)).preferred_language).toBeNull();
+    await store.applySummary(uid, sid, normalize({ summary: "y", language: "en" }), t, { languageDetected: true });
+    expect((await store.profile(uid)).preferred_language).toBe("en");
   });
 });

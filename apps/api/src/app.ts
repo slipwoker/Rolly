@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { Config } from "./config.ts";
 import { createPool, migrate } from "./db/index.ts";
 import { Auth, RateLimiter, adminOk, secretOk } from "./auth.ts";
-import { buildContext } from "./persona/promptBuilder.ts";
+import { buildContext, resolveLanguage } from "./persona/promptBuilder.ts";
 import { openAiLlm, type UtilityLlm } from "./memory/llm.ts";
 import { MemoryStore } from "./memory/store.ts";
 import { summarizeSession } from "./memory/summarizer.ts";
@@ -39,7 +39,9 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       }
       const view = await store.memoryView(userId);
       const proactive = start.proactive ?? true;
-      const built = buildContext(view, { language: start.language ?? null, journey: { ...start.journey, proactive }, timeZone: config.timezone, resume });
+      const { language, chosen } = resolveLanguage(start, view.profile.preferredLanguage);
+      if (chosen === "he" || chosen === "en") await store.updateProfile(userId, { preferred_language: chosen });
+      const built = buildContext(view, { language, journey: { ...start.journey, proactive }, timeZone: config.timezone, resume });
       await store.startSession(sessionId, userId, built.language, built.onboarding, new Date());
       return {
         onboarding: built.onboarding,
@@ -54,7 +56,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       try { return await p; } finally { setTimeout(() => finalizing.delete(args.sessionId), 60_000); }
     },
   };
-  async function finalizeSession({ userId, sessionId, turns, stats, endReason, describe }: Parameters<SessionHooks["finalize"]>[0]) {
+  async function finalizeSession({ userId, sessionId, turns, stats, endReason, describe, language }: Parameters<SessionHooks["finalize"]>[0]) {
       const visible = turns.filter((t) => !t.text.startsWith("["));
       let summary = null;
       let policy: unknown = null;
@@ -63,7 +65,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
         const t0 = Date.now();
         summary = await summarizeSession(llm, visible, { openTopics: view.openTopics, known: view.knownIds, candidates: view.candidates });
         stats.summary_ms = Date.now() - t0;
-        policy = await store.applySummary(userId, sessionId, summary, visible);
+        policy = await store.applySummary(userId, sessionId, summary, visible, { languageDetected: language === "auto" });
         await store.learnAddressing(userId, sessionId, visible);
       }
       await store.finishSession({ sessionId, userId, turns: visible, summary: summary ? { ...summary, policy } as never : null, stats, endReason, describe });
@@ -167,6 +169,12 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       const id = user(req, reply); if (!id) return;
       return (await store.deleteProgress(id, (req.params as { id: string }).id)) ? { ok: true } : reply.code(404).send({ error: "not found" });
     });
+    // delete one conversation and everything that was learned from it
+    app.delete("/v1/sessions/:id", async (req, reply) => {
+      const id = user(req, reply); if (!id) return;
+      const r = await store.deleteSession(id, (req.params as { id: string }).id);
+      return r ? r : reply.code(404).send({ error: "not found" });
+    });
     app.get("/v1/export", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
       return store.exportAll(id);
@@ -193,6 +201,12 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       if (!admin(req, reply)) return;
       await store.deleteAccount((req.params as { id: string }).id);
       return { deleted: true };
+    });
+    app.delete("/v1/admin/users/:id/sessions/:sid", async (req, reply) => {
+      if (!admin(req, reply)) return;
+      const { id, sid } = req.params as { id: string; sid: string };
+      const r = await store.deleteSession(id, sid);
+      return r ? r : reply.code(404).send({ error: "not found" });
     });
     app.post("/v1/admin/users/:id/pairing-code", async (req, reply) => {
       if (!admin(req, reply)) return;
