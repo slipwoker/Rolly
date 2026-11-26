@@ -280,6 +280,16 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       const r = await store.deleteSession(id, sid);
       return r ? r : reply.code(404).send({ error: "not found" });
     });
+    // keep a memory as confirmed by the user (optionally reworded), e.g. before deleting the conversation it came from
+    app.post("/v1/admin/users/:id/memories/:mid/keep", async (req, reply) => {
+      if (!admin(req, reply)) return;
+      const { id, mid } = req.params as { id: string; mid: string };
+      const b = parse(z.object({ content: z.string().min(1).max(500).optional() }), req.body, reply); if (!b) return;
+      if (!/^[0-9a-f-]{36}$/i.test(mid) || !(await store.userExists(id))) return reply.code(404).send({ error: "not found" });
+      const kept = await store.keepMemory(id, mid, b.content);
+      if (kept && b.content !== undefined) void scrub(id);
+      return kept ? { id: kept } : reply.code(404).send({ error: "not found" });
+    });
     app.post("/v1/admin/users/:id/pairing-code", async (req, reply) => {
       if (!admin(req, reply)) return;
       const uid = (req.params as { id: string }).id;

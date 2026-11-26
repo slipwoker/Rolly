@@ -15,6 +15,12 @@ export interface ServerDeps {
 }
 
 export const active = new Map<string, VoiceSession>();
+/**
+ * One live conversation per user. A second voice socket for the same user (a double tap on "start", an app that opened a
+ * new session while the previous one was still open) closes the older one: on 2026-11-26 a phone had two sessions open
+ * for four minutes, both heard the same speech and both answered.
+ */
+const liveByUser = new Map<string, VoiceSession>();
 
 function wrap(ws: WebSocket): ClientSocket {
   return {
@@ -74,6 +80,9 @@ function handleVoice(ws: WebSocket, userId: string, deps: ServerDeps, app: Fasti
       started = true;
       clearTimeout(startTimer);
       active.set(session.sessionId, session);
+      const older = liveByUser.get(userId);
+      liveByUser.set(userId, session);
+      if (older && older !== session) { log("older live session replaced", { older: older.sessionId }); void older.close("superseded"); }
       await session.start(m as ClientSessionStart);
       ready = true;
       for (const p of early.splice(0)) session.onClientAudio(p);
@@ -85,5 +94,8 @@ function handleVoice(ws: WebSocket, userId: string, deps: ServerDeps, app: Fasti
     clearTimeout(startTimer);
     if (started) void session.close("client_disconnect");
   });
-  void session.finished.then(() => active.delete(session.sessionId));
+  void session.finished.then(() => {
+    active.delete(session.sessionId);
+    if (liveByUser.get(userId) === session) liveByUser.delete(userId);
+  });
 }

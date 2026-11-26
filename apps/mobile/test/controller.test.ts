@@ -128,4 +128,23 @@ describe("VoiceController", () => {
     h.server({ type: "session.closed", reason: "agent_ended" });
     expect(h.ctl.state).toBe("ended");
   });
+
+  it("a controller that is dropped for a newer one closes its socket, stops sending the microphone and no longer reports state", async () => {
+    const states: string[] = [];
+    const h = harness();
+    (h.ctl as unknown as { d: { onState: (s: string) => void } }).d.onState = (s) => states.push(s);
+    await h.ctl.start({ language: "he" });
+    await tick();
+    h.server({ type: "session.created", session_id: "s1", input_sample_rate: 16000, output_sample_rate: 24000, language: "he", proactive: true, onboarding: false });
+    h.mic(1000);
+    const before = h.sent.length, seen = states.length;
+    const old = h.sockets[0]!;
+    h.ctl.dispose();
+    expect(h.sent.at(-1)).toMatchObject({ type: "session.end" });
+    expect(old.readyState).toBe(3);
+    expect(old.onmessage).toBeNull(); // a late "session.closed" on the old socket cannot flip the screen to "ended"
+    expect(old.onclose).toBeNull(); // and its close does not start a reconnect
+    expect(h.sent).toHaveLength(before + 1);
+    expect(states).toHaveLength(seen);
+  });
 });

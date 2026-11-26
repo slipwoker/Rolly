@@ -452,6 +452,30 @@ describe.skipIf(!process.env.CI && false)("memory policy with PostgreSQL", () =>
     expect((await store.memoryView(uid)).openTopics).toEqual([]);
   });
 
+  it("the owner can keep a memory as confirmed, so it survives the deletion of its conversation", async () => {
+    if (!available) return;
+    const uid = await store.createUser("keep");
+    const sid = crypto.randomUUID();
+    await store.startSession(sid, uid, "en", false, new Date());
+    const t = [u("You should advise me on things."), u("not so robotic")];
+    await store.applySummary(uid, sid, normalize({ summary: "משוב על רולי.", preferences: [item("רוצה שרולי יציע עצות", "You should advise me on things."),
+      item("רוצה שיחה פחות רובוטית", "not so robotic", { confidence: 0.5 })] }), t);
+    await store.finishSession({ sessionId: sid, userId: uid, turns: t, summary: normalize({ summary: "משוב על רולי." }), stats: {}, endReason: "client_end", describe: {} });
+    const prefs = await store.memories(uid, { kinds: ["preference"], status: ["active", "candidate"] });
+    expect(prefs.map((m) => m.status).sort()).toEqual(["active", "candidate"]);
+    const active = prefs.find((m) => m.status === "active")!, cand = prefs.find((m) => m.status === "candidate")!;
+    expect(await store.keepMemory(uid, active.id)).toBe(active.id); // as it is
+    const reworded = await store.keepMemory(uid, cand.id, "מעדיף שיחה טבעית, פחות רובוטית"); // with a new wording
+    expect(reworded).not.toBeNull();
+    expect(await store.keepMemory(await store.createUser("keep-other"), active.id)).toBeNull(); // not someone else's
+    expect(await store.keepMemory(uid, crypto.randomUUID())).toBeNull();
+    expect(await store.deleteSession(uid, sid)).toMatchObject({ deleted: true });
+    const left = await store.memories(uid, { status: ["active", "candidate"] });
+    expect(left.map((m) => `${m.kind}:${m.status}:${m.content}`).sort()).toEqual(["preference:active:מעדיף שיחה טבעית, פחות רובוטית", "preference:active:רוצה שרולי יציע עצות"]);
+    expect(left.every((m) => m.provenance.confirmed === true)).toBe(true);
+    expect(Object.values((await store.memoryView(uid)).profile.preferences).sort()).toEqual(["מעדיף שיחה טבעית, פחות רובוטית", "רוצה שרולי יציע עצות"]);
+  });
+
   it("the profile language is learned only from a conversation whose language was detected", async () => {
     if (!available) return;
     const uid = await store.createUser("lang");

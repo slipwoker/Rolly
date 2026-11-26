@@ -1,0 +1,589 @@
+{
+    "id": "4651cef9-8d9a-4bf9-b69b-082d4a1332c6",
+    "scenario": "tasks",
+    "lang": "he",
+    "status": "done",
+    "started": "2026-11-26T08:58:46.558Z",
+    "results": [
+        {
+            "label": "t1_note_task_and_idea",
+            "ok": true,
+            "lang": "he",
+            "turns": [
+                {
+                    "label": "opener",
+                    "seq": 1,
+                    "text": "בוקר טוב. מה השם שלך וספר לי, לאן הנסיעה הזאת מובילה אותנו?",
+                    "audio_s": 5.46,
+                    "interrupted": false,
+                    "proactive": true
+                },
+                {
+                    "label": "reply1",
+                    "seq": 2,
+                    "text": "שמרתי לך את זה. רואי חשבון זה תמיד כאב ראש, במיוחד עם כל הדיווחים האלה.",
+                    "audio_s": 5.43,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 304,
+                    "user_said": "היי, תרשום לי בבקשה להתקשר לרואה החשבון מחר בבוקר."
+                },
+                {
+                    "label": "reply2",
+                    "seq": 3,
+                    "text": "שמרתי. ניוזלטר זה יכול להיות ממש חזק אם הוא לא נראה כמו ספאם.",
+                    "audio_s": 4.84,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 614,
+                    "user_said": "ויש לי רעיון, תשמור אותו: לפתוח ניוזלטר שבועי ללקוחות."
+                },
+                {
+                    "label": "reply3",
+                    "seq": 4,
+                    "text": "ביי, נתראה בנסיעה הבאה.",
+                    "audio_s": 2.23,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 454,
+                    "user_said": "טוב, זה הכל להיום, ביי."
+                }
+            ],
+            "transcripts": [
+                {
+                    "text": "היי, תרשום לי בבקשה להתקשר לרואה החשבון מחר בבוקר.",
+                    "language": "he"
+                },
+                {
+                    "text": "ויש לי רעיון, תשמור אותו לפתוח ניוזלטר שבועי ללקוחות.",
+                    "language": "he"
+                },
+                {
+                    "text": "טוב, זה הכל להיום, ביי.",
+                    "language": "he"
+                }
+            ],
+            "events": [
+                {
+                    "t": 216,
+                    "type": "session.created"
+                },
+                {
+                    "t": 216,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 534,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 784,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 6379,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 10219,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 10219,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 10219,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 10362,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 10644,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 16158,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 19937,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 19938,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 19938,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 20248,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 20365,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 25481,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 27659,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 27659,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 27659,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 27778,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 27802,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 32221,
+                    "type": "session.summary"
+                },
+                {
+                    "t": 32221,
+                    "type": "session.closed"
+                }
+            ],
+            "session_id": "a03d0411-852c-4ff8-b039-f9d74dd6d46e",
+            "summary": {
+                "type": "session.summary",
+                "session_id": "a03d0411-852c-4ff8-b039-f9d74dd6d46e",
+                "summary": {
+                    "summary": "המשתמש ביקש לשמור תזכורת להתקשר לרואה החשבון מחר בבוקר, וביקש לשמור רעיון לפתיחת ניוזלטר שבועי ללקוחות. לאחר מכן סיים את השיחה.",
+                    "progress": [],
+                    "method": "llm"
+                },
+                "stats": {
+                    "end_reason": "client_end",
+                    "duration_s": 30,
+                    "turns_user": 3,
+                    "turns_agent": 4,
+                    "interruptions": 0,
+                    "errors": 0,
+                    "audio_in_s": 30,
+                    "audio_out_s": 18,
+                    "server_reply_ms": [
+                        141,
+                        304,
+                        117
+                    ],
+                    "server_reply_ms_median": 141,
+                    "client_first_audio_ms": [],
+                    "client_first_audio_ms_median": null,
+                    "client_flush_ms": [],
+                    "audio_events": [],
+                    "notes": [],
+                    "pod_metrics_median": {
+                        "llm_first_chunk_ms": 176.99844401795417,
+                        "tts_ttfa_ms": 122.93641793075949,
+                        "pipeline_ms": 416.8965360149741,
+                        "llm_ttft_ms": 61.88042205758393,
+                        "llm_total_ms": 291.9013169594109,
+                        "stt_ms": 162.58226695936173,
+                        "stt_queue_ms": 0.23619900457561016
+                    },
+                    "summary_ms": 2186
+                }
+            }
+        },
+        {
+            "label": "state_after_t1",
+            "state": {
+                "profile": {
+                    "preferred_name": null,
+                    "preferred_language": "he",
+                    "addressing": {
+                        "value": null,
+                        "status": "unknown",
+                        "evidence": {
+                            "examples": [],
+                            "feminine": 0,
+                            "masculine": 0,
+                            "ignored_uncertain": 0
+                        }
+                    }
+                },
+                "memories": [
+                    {
+                        "kind": "summary",
+                        "status": "active",
+                        "content": "המשתמש ביקש לשמור תזכורת להתקשר לרואה החשבון מחר בבוקר, וביקש לשמור רעיון לפתיחת ניוזלטר שבועי ללקוחות. לאחר מכן סיים את השיחה.",
+                        "confidence": null
+                    },
+                    {
+                        "kind": "idea",
+                        "status": "active",
+                        "content": "לפתוח ניוזלטר שבועי ללקוחות",
+                        "confidence": 1,
+                        "reason": "asked_to_note",
+                        "attribution": "primary"
+                    },
+                    {
+                        "kind": "action_item",
+                        "status": "active",
+                        "content": "להתקשר לרואה החשבון מחר בבוקר",
+                        "confidence": 1,
+                        "reason": "asked_to_note",
+                        "attribution": "primary"
+                    }
+                ],
+                "progress": [],
+                "goals": [],
+                "tasks_open": [
+                    "להתקשר לרואה החשבון מחר בבוקר"
+                ],
+                "ideas": [
+                    "לפתוח ניוזלטר שבועי ללקוחות"
+                ],
+                "tasks_done": [],
+                "next_agenda": [
+                    {
+                        "why": "זה רעיון שהמשתמש ביקש לשמור, וכדאי להפוך אותו לצעד ראשון מעשי.",
+                        "kind": "fresh",
+                        "take": "ניוזלטר שבועי יהיה שווה את המאמץ רק אם כל גיליון נותן ללקוחות משהו שימושי ולא מרגיש כמו פרסומת.",
+                        "topic": "רעיון לניוזלטר שבועי ללקוחות",
+                        "ref_id": null
+                    },
+                    {
+                        "why": "לבדוק אם שיחת הטלפון המתוכננת התקיימה.",
+                        "kind": "action_check",
+                        "topic": "השיחה עם רואה החשבון",
+                        "ref_id": "3073449a-9330-4656-a9e5-2e9733e805b9"
+                    }
+                ],
+                "digest": null,
+                "scrub_pending": 0,
+                "sessions": [
+                    {
+                        "started_at": "2026-11-26T08:58:47.656Z",
+                        "notes": [],
+                        "plan": {
+                            "ms": 2143,
+                            "method": "llm",
+                            "applied": [],
+                            "refused": [],
+                            "next_agenda": 2,
+                            "agenda_outcome": []
+                        },
+                        "lookahead_ms": 2152,
+                        "reply_ms": 141
+                    }
+                ],
+                "next_opener_instruction": "[journey_start - not said by the user] The ride has just started. Open now: a short hello for the morning, then bring up \"רעיון לניוזלטר שבועי ללקוחות\" in one short sentence with your own take (ניוזלטר שבועי יהיה שווה את המאמץ רק אם כל גיליון נותן ללקוחות משהו שימושי ולא מרגיש כמו פרסומת.), in your own words. Under twenty words in total.",
+                "next_prompt_chars": 2531,
+                "next_prompt_memory_part": "## What you know about them\nTheir name: not known yet (you are Rolly). You do not know whether to address them as a man or a woman: phrase things without gendered second person (impersonal or plural forms), and never ask about it. If they tell you, follow it at once.\nOpen tasks they asked you to keep: להתקשר לרואה החשבון מחר בבוקר.\nLast time (earlier today): המשתמש ביקש לשמור תזכורת להתקשר לרואה החשבון מחר בבוקר, וביקש לשמור רעיון לפתיחת ניוזלטר שבועי ללקוחות. לאחר מכן סיים את השיחה.\n\nLocal time: Thursday 10:59 (morning).\n"
+            }
+        },
+        {
+            "label": "t2_done",
+            "ok": true,
+            "lang": "he",
+            "turns": [
+                {
+                    "label": "opener",
+                    "seq": 1,
+                    "text": "בוקר טוב. הניוזלטר יהיה שווה את זה רק אם יהיה בו ערך אמיתי ולא סתם פרסומות.",
+                    "audio_s": 5.53,
+                    "interrupted": false,
+                    "proactive": true
+                },
+                {
+                    "label": "reply1",
+                    "seq": 2,
+                    "text": "סבבה, זה מעולה שזה כבר מאחוריך.",
+                    "audio_s": 2.72,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 487,
+                    "user_said": "כן, התקשרתי לרואה החשבון, זה סגור."
+                },
+                {
+                    "label": "reply2",
+                    "seq": 3,
+                    "text": "ביי, שיהיה יום מעולה!",
+                    "audio_s": 1.95,
+                    "interrupted": false,
+                    "proactive": false,
+                    "reply_latency_ms": 338,
+                    "user_said": "ביי, הגעתי."
+                }
+            ],
+            "transcripts": [
+                {
+                    "text": "כן, התקשרתי לרואה החשבון, זה סגור.",
+                    "language": "he"
+                },
+                {
+                    "text": "ביי, הגעתי.",
+                    "language": "he"
+                }
+            ],
+            "events": [
+                {
+                    "t": 431,
+                    "type": "session.created"
+                },
+                {
+                    "t": 431,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 915,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 1121,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 6773,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 9795,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 9795,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 9795,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 9934,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 9957,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 13013,
+                    "type": "user.speech_started"
+                },
+                {
+                    "t": 14335,
+                    "type": "user.speech_stopped"
+                },
+                {
+                    "t": 14335,
+                    "type": "user.transcript"
+                },
+                {
+                    "t": 14335,
+                    "type": "agent.turn_started"
+                },
+                {
+                    "t": 14388,
+                    "type": "turn.latency"
+                },
+                {
+                    "t": 14406,
+                    "type": "agent.turn_done"
+                },
+                {
+                    "t": 18297,
+                    "type": "session.summary"
+                },
+                {
+                    "t": 18297,
+                    "type": "session.closed"
+                }
+            ],
+            "session_id": "0ff39fcf-9778-4efb-a34f-0e348ae361c7",
+            "summary": {
+                "type": "session.summary",
+                "session_id": "0ff39fcf-9778-4efb-a34f-0e348ae361c7",
+                "summary": {
+                    "summary": "הוא אישר שהתקשר לרואה החשבון ושזה סגור, ואז נפרד כשהגיע ליעד.",
+                    "progress": [
+                        "התקשר לרואה החשבון והעניין נסגר."
+                    ],
+                    "method": "llm"
+                },
+                "stats": {
+                    "end_reason": "client_end",
+                    "duration_s": 16,
+                    "turns_user": 2,
+                    "turns_agent": 3,
+                    "interruptions": 0,
+                    "errors": 0,
+                    "audio_in_s": 16.3,
+                    "audio_out_s": 10.2,
+                    "server_reply_ms": [
+                        137,
+                        54
+                    ],
+                    "server_reply_ms_median": 54,
+                    "client_first_audio_ms": [],
+                    "client_first_audio_ms_median": null,
+                    "client_flush_ms": [],
+                    "audio_events": [],
+                    "notes": [
+                        {
+                            "kind": "plan",
+                            "at_s": 1
+                        }
+                    ],
+                    "pod_metrics_median": {
+                        "tts_ttfa_ms": 103.76451106276363,
+                        "pipeline_ms": 437.8104159841314,
+                        "llm_ttft_ms": 53.460179013200104,
+                        "llm_total_ms": 211.99461293872446,
+                        "stt_ms": 57.8650200041011,
+                        "stt_queue_ms": 0.12447999324649572,
+                        "llm_first_chunk_ms": 151.1512369615957
+                    },
+                    "summary_ms": 1926
+                }
+            }
+        }
+    ],
+    "user_id": "da2690d3-a550-4485-8ca1-2f577ffeaa06",
+    "error": null,
+    "state": {
+        "profile": {
+            "preferred_name": null,
+            "preferred_language": "he",
+            "addressing": {
+                "value": null,
+                "status": "unknown",
+                "evidence": {
+                    "examples": [],
+                    "feminine": 0,
+                    "masculine": 0,
+                    "ignored_uncertain": 0
+                }
+            }
+        },
+        "memories": [
+            {
+                "kind": "summary",
+                "status": "active",
+                "content": "הוא אישר שהתקשר לרואה החשבון ושזה סגור, ואז נפרד כשהגיע ליעד.",
+                "confidence": null
+            },
+            {
+                "kind": "summary",
+                "status": "active",
+                "content": "המשתמש ביקש לשמור תזכורת להתקשר לרואה החשבון מחר בבוקר, וביקש לשמור רעיון לפתיחת ניוזלטר שבועי ללקוחות. לאחר מכן סיים את השיחה.",
+                "confidence": null
+            },
+            {
+                "kind": "idea",
+                "status": "active",
+                "content": "לפתוח ניוזלטר שבועי ללקוחות",
+                "confidence": 1,
+                "reason": "asked_to_note",
+                "attribution": "primary"
+            }
+        ],
+        "progress": [
+            {
+                "text": "התקשר לרואה החשבון והעניין נסגר.",
+                "linked_to_goal": false
+            }
+        ],
+        "goals": [],
+        "tasks_open": [],
+        "ideas": [
+            "לפתוח ניוזלטר שבועי ללקוחות"
+        ],
+        "tasks_done": [
+            "להתקשר לרואה החשבון מחר בבוקר"
+        ],
+        "next_agenda": [
+            {
+                "why": "הכיוון הזה עלה בשיחה ויכול לעזור להפוך את הרעיון למשהו שלקוחות באמת ירצו לקרוא.",
+                "kind": "follow_up",
+                "take": "אני בעד ניוזלטר שנותן טיפ שימושי אחד בכל שבוע, גם אם הוא קצר, ולא כזה שמרגיש כמו עוד פרסומת.",
+                "topic": "ערך אמיתי בניוזלטר",
+                "ref_id": null
+            },
+            {
+                "why": "הנושא תוכנן לנסיעה הזאת אבל לא הספקנו לפתח אותו.",
+                "kind": "follow_up",
+                "take": "פורמט קטן וקבוע נשמע לי עדיף על ניסיון להשיק משהו מושלם מהיום הראשון.",
+                "topic": "ניוזלטר שבועי ללקוחות",
+                "ref_id": null
+            },
+            {
+                "why": "זו שאלה קלילה שיכולה לחדד מה ירגיש בעל ערך ללקוחות.",
+                "kind": "fresh",
+                "take": "הייתי קורא יותר ניוזלטר שמתחיל בטיפ מועיל ורק בסוף מזכיר את העסק.",
+                "topic": "פרסומת או טיפ שימושי",
+                "ref_id": null
+            }
+        ],
+        "digest": null,
+        "scrub_pending": 0,
+        "sessions": [
+            {
+                "started_at": "2026-11-26T08:58:47.656Z",
+                "notes": [],
+                "plan": {
+                    "ms": 2143,
+                    "method": "llm",
+                    "applied": [],
+                    "refused": [],
+                    "next_agenda": 2,
+                    "agenda_outcome": []
+                },
+                "lookahead_ms": 2152,
+                "reply_ms": 141
+            },
+            {
+                "started_at": "2026-11-26T08:59:22.549Z",
+                "notes": [
+                    {
+                        "at_s": 1,
+                        "kind": "plan"
+                    }
+                ],
+                "plan": {
+                    "ms": 4045,
+                    "method": "llm",
+                    "applied": [
+                        "done:3073449a-9330-4656-a9e5-2e9733e805b9"
+                    ],
+                    "refused": [],
+                    "next_agenda": 3,
+                    "agenda_outcome": [
+                        {
+                            "kind": "fresh",
+                            "outcome": "touched"
+                        },
+                        {
+                            "kind": "action_check",
+                            "outcome": "done"
+                        }
+                    ]
+                },
+                "lookahead_ms": 4055,
+                "reply_ms": 54
+            }
+        ],
+        "next_opener_instruction": "[journey_start - not said by the user] The ride has just started. Open now: a short hello for the morning, then bring up \"ערך אמיתי בניוזלטר\" in one short sentence with your own take (אני בעד ניוזלטר שנותן טיפ שימושי אחד בכל שבוע, גם אם הוא קצר, ולא כזה שמרגיש כמו עוד פרסומת.), in your own words. Under twenty words in total.",
+        "next_prompt_chars": 2399,
+        "next_prompt_memory_part": "## What you know about them\nTheir name: not known yet (you are Rolly). You do not know whether to address them as a man or a woman: phrase things without gendered second person (impersonal or plural forms), and never ask about it. If they tell you, follow it at once.\nLast time (earlier today): הוא אישר שהתקשר לרואה החשבון ושזה סגור, ואז נפרד כשהגיע ליעד.\n\nLocal time: Thursday 10:59 (morning).\n"
+    }
+}
