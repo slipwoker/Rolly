@@ -12,6 +12,8 @@ Wire protocol (see `backend/gpu_worker.py`, endpoint `/v1/session`):
   app -> host   text  {"type":"start","ctx":{...SessionContext...}}
                 bytes PCM16 16 kHz mono microphone audio
                 text  {"type":"text","text":...} | {"type":"interrupt"}
+                text  {"type":"note","text":...,"turns":n}   a note for the model's next n turns (pacing, memory hints):
+                                                              never spoken, never stored in history, starts no turn
   host -> app   text  {"type":"ready","describe":{...}}
                 text  {"type":"event","event":<provider event type>,"data":{...}}
                 bytes 4-byte big-endian header length, JSON header {"event","data","sample_rate"}, PCM16 audio

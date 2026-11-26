@@ -91,6 +91,10 @@ class VoiceProvider(abc.ABC):
     async def interrupt(self) -> None:
         """Client-requested cancel of the current agent turn."""
 
+    async def set_note(self, text: str, turns: int = 1) -> None:
+        """Optional: a note from the caller for the model's next `turns` turns (never spoken, never stored in history).
+        Providers without a note channel ignore it."""
+
     @abc.abstractmethod
     async def close(self) -> None: ...
 

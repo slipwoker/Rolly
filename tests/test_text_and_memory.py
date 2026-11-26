@@ -121,6 +121,53 @@ def test_question_guard_only_after_a_question():
     assert question_guard_note([q, u, s, u]) is None  # only the most recent reply counts
 
 
+def test_turn_notes_live_for_their_turns_and_stay_out_of_history():
+    from providers.modular.text import TurnNotes
+    n = TurnNotes()
+    assert n.text() is None
+    n.add("About three minutes are left: start wrapping up.", turns=2)
+    n.add("  ", turns=3)  # empty: ignored
+    assert n.text() == "[Note for this turn, not said by the user: About three minutes are left: start wrapping up.]"
+    n.consume()
+    assert len(n) == 1
+    n.add("Nothing was saved: ask what to note.")  # a second note, for one turn
+    assert n.text().count("[Note for this turn") == 2
+    n.consume()
+    assert n.text() is None  # both used up
+    n.add("x" * 2000, turns=99)
+    assert len(n.text()) < 700  # clipped
+    for _ in range(TurnNotes.MAX_TURNS):
+        n.consume()
+    assert n.text() is None  # never lives longer than MAX_TURNS
+    for i in range(5):
+        n.add(f"note {i}")
+    assert len(n) == TurnNotes.MAX_NOTES  # only the newest few are kept
+    n.add("note 4", turns=3)  # the same note again renews it instead of piling up
+    assert len(n) == TurnNotes.MAX_NOTES
+
+
+def test_pipeline_adds_caller_notes_to_the_turn_only():
+    """The note reaches the model next to the user's words and is not written into the history."""
+    from providers.modular.pipeline import ModularProvider
+    from providers.modular.text import TurnNotes
+    p = ModularProvider.__new__(ModularProvider)  # only what _messages needs, no models
+    p.history = [{"role": "assistant", "content": "האמת, לדעתי זה רעיון טוב."}]
+    p.question_guard = True
+    p.notes = TurnNotes()
+
+    class Ctx:
+        system_prompt = "SYSTEM"
+    p.ctx = Ctx()
+    assert p._messages("מה נשמע")[-1]["content"] == "מה נשמע"
+    p.notes.add("About half of the ride is over.", turns=1)
+    msgs = p._messages("מה נשמע")
+    assert msgs[-1]["content"].endswith("[Note for this turn, not said by the user: About half of the ride is over.]")
+    assert msgs[0] == {"role": "system", "content": "SYSTEM"}
+    assert all("Note for this turn" not in m["content"] for m in p.history)  # history untouched
+    p.notes.consume()
+    assert p._messages("מה נשמע")[-1]["content"] == "מה נשמע"
+
+
 def test_hebrew_pronunciation_fixes_zappy_only_as_a_word():
     from providers.modular.text import he_pronounce
     assert he_pronounce("עובדים על זאפי") == "עובדים על זַאפִּי"

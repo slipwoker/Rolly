@@ -61,6 +61,44 @@ def question_guard_note(history: list[dict]) -> str | None:
     return QUESTION_GUARD_NOTE if last and ends_with_question(last.get("content", "")) else None
 
 
+class TurnNotes:
+    """Notes from the caller (the app that owns the conversation) for the model's next turns: pacing of the ride
+    ("three minutes left, start wrapping up"), memory hints.  Like the question guard they are appended to the user's
+    message for a turn and never stored in history; unlike it they come from outside and live for a set number of
+    turns.  They never start a turn and never interrupt one."""
+
+    MAX_CHARS = 600
+    MAX_TURNS = 6
+    MAX_NOTES = 3
+
+    def __init__(self) -> None:
+        self._notes: list[list] = []  # [text, turns left]
+
+    def add(self, text: str, turns: int = 1) -> None:
+        text = " ".join(str(text or "").split())[: self.MAX_CHARS]
+        if not text:
+            return
+        turns = max(1, min(self.MAX_TURNS, int(turns or 1)))
+        self._notes = [n for n in self._notes if n[0] != text]  # the same note again just renews it
+        self._notes.append([text, turns])
+        self._notes = self._notes[-self.MAX_NOTES:]
+
+    def text(self) -> str | None:
+        """What to append to this turn's user message, or None."""
+        if not self._notes:
+            return None
+        return "\n".join(f"[Note for this turn, not said by the user: {n[0]}]" for n in self._notes)
+
+    def consume(self) -> None:
+        """One reply was given with the notes in view."""
+        for n in self._notes:
+            n[1] -= 1
+        self._notes = [n for n in self._notes if n[1] > 0]
+
+    def __len__(self) -> int:
+        return len(self._notes)
+
+
 # Hebrew words the voice front end reads wrongly without vowels.  Applied only to the text sent to a Hebrew voice
 # (history and transcripts keep the plain spelling).  Value: vocalised spelling with the intended reading.
 #   זאפי (the owner's company, "Zappy"): read as "zaffy" because an unmarked פ in the middle is read as f;
