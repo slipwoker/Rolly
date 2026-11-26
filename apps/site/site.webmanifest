@@ -1,0 +1,13 @@
+{
+  "name": "ROLLY",
+  "short_name": "ROLLY",
+  "description": "A voice companion for your drives: starts the conversation, remembers what you agreed and picks up where you left off.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#F7F6FA",
+  "theme_color": "#F7F6FA",
+  "icons": [
+    { "src": "/assets/favicon.png", "sizes": "64x64", "type": "image/png" },
+    { "src": "/assets/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

@@ -1,0 +1,26 @@
+# ROLLY (https://heyrolly.ai) welcomes search engines and AI assistants.
+# A plain-language summary for AI assistants: https://heyrolly.ai/llms.txt
+
+User-agent: *
+Allow: /
+
+# Named explicitly so a crawler that only reads its own group still sees it is welcome.
+User-agent: Googlebot
+User-agent: Google-Extended
+User-agent: Bingbot
+User-agent: Applebot
+User-agent: Applebot-Extended
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Meta-ExternalAgent
+User-agent: DuckAssistBot
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://heyrolly.ai/sitemap.xml
