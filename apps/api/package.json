@@ -9,7 +9,10 @@
     "start": "node --import tsx src/main.ts",
     "migrate": "tsx src/db/migrate.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "eval": "tsx eval/run.ts",
+    "eval:compare": "tsx eval/compare.ts",
+    "prompt:stats": "tsx eval/promptStats.ts"
   },
   "dependencies": {
     "@rolly/contracts": "*",
