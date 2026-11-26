@@ -8,10 +8,13 @@ import { Auth, RateLimiter, adminOk, secretOk } from "./auth.ts";
 import { buildContext } from "./persona/promptBuilder.ts";
 import { openAiLlm, type UtilityLlm } from "./memory/llm.ts";
 import { MemoryStore } from "./memory/store.ts";
-import { summarizeSession } from "./memory/summarizer.ts";
-import { handleLiveTurn } from "./memory/live.ts";
+import { summarizeSession, type SummaryResult } from "./memory/summarizer.ts";
+import { handleCapture, handleLiveTurn } from "./memory/live.ts";
+import { fallbackAgenda, planNext, type AgendaItem } from "./memory/plan.ts";
+import { scrubUser } from "./memory/scrub.ts";
+import { consolidate } from "./memory/consolidate.ts";
 import type { ServerDeps } from "./server.ts";
-import type { SessionHooks } from "./voice/session.ts";
+import type { SessionHooks, SessionTurn } from "./voice/session.ts";
 import { LINES, runConversation, type Step } from "./selftest/scenarios.ts";
 
 export async function createApp(config: Config, overrides: { llm?: UtilityLlm | null } = {}): Promise<ServerDeps & { store: MemoryStore; auth: Auth }> {
@@ -23,14 +26,28 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     : config.openaiApiKey ? openAiLlm({ baseUrl: config.utilityBaseUrl, apiKey: config.openaiApiKey, model: config.utilityModel, reasoning: config.utilityReasoning }) : null;
 
   // retention: transcripts older than the retention period and expired candidates, hourly
-  const purge = async () => { await store.purgeTranscripts().catch(() => 0); await store.expireCandidates().catch(() => 0); };
+  const scrub = (userId: string) => scrubUser(store, llm, userId).catch(() => ({ scrubbed: 0, pending: -1 }));
+  const purge = async () => {
+    await store.purgeTranscripts().catch(() => 0);
+    await store.expireCandidates().catch(() => 0);
+    // forgotten facts whose removal from derived text did not go through yet (utility LLM was unavailable)
+    for (const uid of await store.usersWithPendingScrub().catch(() => [] as string[])) await scrub(uid);
+  };
   void purge();
   setInterval(purge, 3600_000).unref();
 
   // sessions being finalized (summary + memory update), so a resumed session can wait for its predecessor
   const finalizing = new Map<string, Promise<unknown>>();
+  // the look-ahead step of a user's last conversation (goal notes, next plan), so a ride that starts right away waits for it
+  const lookahead = new Map<string, Promise<unknown>>();
+  // the plan each running session was given (the look-ahead step reports what became of it)
+  const sessionAgenda = new Map<string, AgendaItem[]>();
+  // server-side self-tests only: compress pacing time for a user (see runSelftest)
+  const pacingScales = new Map<string, number>();
   const hooks: SessionHooks = {
     async prepare(userId, sessionId, start) {
+      const planning = lookahead.get(userId);
+      if (planning) await Promise.race([planning, new Promise((r) => setTimeout(r, 8_000))]);
       let resume: { role: "user" | "agent"; text: string }[] | undefined;
       if (start.resume_of && /^[0-9a-f-]{36}$/.test(start.resume_of)) {
         const pending = finalizing.get(start.resume_of);
@@ -41,13 +58,19 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       const proactive = start.proactive ?? true;
       const built = buildContext(view, { language: start.language ?? null, journey: { ...start.journey, proactive }, timeZone: config.timezone, resume });
       await store.startSession(sessionId, userId, built.language, built.onboarding, new Date());
+      await store.markUsed(view.usedIds);
+      sessionAgenda.set(sessionId, built.agenda);
       return {
-        onboarding: built.onboarding,
+        onboarding: built.onboarding, pacingScale: pacingScales.get(userId),
         ctx: { session_id: sessionId, user_id: userId, language: built.language, system_prompt: built.system_prompt,
           opener_instruction: built.opener_instruction, proactive, journey: start.journey ?? {}, profile: built.profile, options: {} },
       };
     },
-    async onUserTurn(args) { await handleLiveTurn(store, llm, args); },
+    async onUserTurn(args) {
+      const done = await handleLiveTurn(store, llm, args);
+      if (done.some((d) => /^(delete|correct):/.test(d))) void scrub(args.userId);
+      return (await handleCapture(store, llm, args)).note;
+    },
     async finalize(args) {
       const p = finalizeSession(args);
       finalizing.set(args.sessionId, p);
@@ -56,8 +79,8 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
   };
   async function finalizeSession({ userId, sessionId, turns, stats, endReason, describe }: Parameters<SessionHooks["finalize"]>[0]) {
       const visible = turns.filter((t) => !t.text.startsWith("["));
-      let summary = null;
-      let policy: unknown = null;
+      let summary: SummaryResult | null = null;
+      let policy: Awaited<ReturnType<MemoryStore["applySummary"]>> | null = null;
       if (visible.some((t) => t.role === "user")) {
         const view = await store.memoryView(userId);
         const t0 = Date.now();
@@ -66,8 +89,39 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
         policy = await store.applySummary(userId, sessionId, summary, visible);
         await store.learnAddressing(userId, sessionId, visible);
       }
-      await store.finishSession({ sessionId, userId, turns: visible, summary: summary ? { ...summary, policy } as never : null, stats, endReason, describe });
+      await store.finishSession({ sessionId, userId, turns: visible, summary, stats, endReason, describe, policy });
+      if (summary && policy) {
+        // the look-ahead runs after the phone has its summary: it never delays the end of a conversation
+        const la = lookAhead(userId, sessionId, visible, summary, policy.progressIds)
+          .catch((e) => store.addSessionStats(sessionId, { lookahead_error: String(e).slice(0, 300) }).catch(() => {}))
+          .finally(() => { if (lookahead.get(userId) === la) lookahead.delete(userId); });
+        lookahead.set(userId, la);
+      } else sessionAgenda.delete(sessionId);
       return summary ? { summary: summary.summary, progress: summary.progress, method: summary.method } : null;
+  }
+
+  /** Goal notes, ticked-off tasks, the plan for the next ride, then scrub and consolidation (memory/plan.ts). */
+  async function lookAhead(userId: string, sessionId: string, turns: SessionTurn[], summary: SummaryResult, progressIds: string[]) {
+    const t0 = Date.now();
+    const goals = (await store.goals(userId)).filter((g) => g.status === "active" || g.status === "paused");
+    const tasks = await store.memories(userId, { kinds: ["action_item"], status: ["active"], limit: 30 });
+    const had = sessionAgenda.get(sessionId) ?? [];
+    sessionAgenda.delete(sessionId);
+    const plan = await planNext(llm, turns, {
+      summary: summary.summary, language: summary.language, progress: summary.progress,
+      goals: goals.map((g) => ({ id: g.id, content: g.content, state: [g.state_note, g.next_step ? `next: ${g.next_step}` : null].filter(Boolean).join(" ") || null })),
+      tasks: tasks.map((t) => ({ id: t.id, content: t.content })), agenda: had,
+    });
+    const res = await store.applyPlan(userId, sessionId, plan, turns, progressIds);
+    if (!plan.next_agenda.length) await store.saveAgenda(userId, sessionId, fallbackAgenda(await store.memoryView(userId)));
+    const scrubbed = await scrub(userId);
+    const cons = await consolidate(store, llm, userId).catch((e) => ({ digest: false, history: false, skipped: String(e).slice(0, 120) }));
+    await store.addSessionStats(sessionId, {
+      lookahead_ms: Date.now() - t0,
+      plan: { method: plan.method, error: plan.error, ms: plan.ms, applied: res.applied, refused: res.refused, next_agenda: plan.next_agenda.length,
+        agenda_outcome: plan.agenda_outcome.map((o) => ({ kind: had[o.index]?.kind ?? null, outcome: o.outcome })) },
+      scrub: scrubbed, consolidate: cons,
+    });
   }
 
   const routes = async (app: FastifyInstance) => {
@@ -138,7 +192,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     });
     app.get("/v1/memories", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
-      const rows = await store.memories(id, { status: ["active", "candidate"], kinds: ["name", "travel_goal", "goal", "interest", "fact", "preference", "action_item", "open_topic"] });
+      const rows = await store.memories(id, { status: ["active", "candidate"], kinds: ["name", "travel_goal", "goal", "interest", "fact", "preference", "action_item", "idea", "open_topic"] });
       return { memories: rows.map((m) => ({ id: m.id, kind: m.kind, content: m.content, status: m.status, confidence: m.confidence,
         source: m.provenance.source, confirmed: m.provenance.confirmed === true, quote: m.provenance.quote ?? null, created_at: m.created_at, expires_at: m.expires_at })) };
     });
@@ -146,7 +200,22 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       const id = user(req, reply); if (!id) return;
       const b = parse(z.object({ content: z.string().min(1).max(500) }), req.body, reply); if (!b) return;
       const n = await store.correctMemory(id, (req.params as { id: string }).id, b.content, "app");
+      if (n) void scrub(id);
       return n ? { id: n } : reply.code(404).send({ error: "not found" });
+    });
+    // tasks and ideas: tick off / put back
+    app.post("/v1/memories/:id/done", async (req, reply) => {
+      const id = user(req, reply); if (!id) return;
+      return (await store.setDone(id, (req.params as { id: string }).id, true, "app")) ? { ok: true } : reply.code(404).send({ error: "not found" });
+    });
+    app.post("/v1/memories/:id/reopen", async (req, reply) => {
+      const id = user(req, reply); if (!id) return;
+      return (await store.setDone(id, (req.params as { id: string }).id, false, "app")) ? { ok: true } : reply.code(404).send({ error: "not found" });
+    });
+    app.post("/v1/goals/:id/status", async (req, reply) => {
+      const id = user(req, reply); if (!id) return;
+      const b = parse(z.object({ status: z.enum(["active", "paused", "achieved", "dropped"]) }), req.body, reply); if (!b) return;
+      return (await store.setGoalStatus(id, (req.params as { id: string }).id, b.status)) ? { ok: true } : reply.code(404).send({ error: "not found" });
     });
     app.post("/v1/memories/:id/confirm", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
@@ -154,14 +223,13 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     });
     app.delete("/v1/memories/:id", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
-      return (await store.deleteMemory(id, (req.params as { id: string }).id, "app")) ? { ok: true } : reply.code(404).send({ error: "not found" });
+      const ok = await store.deleteMemory(id, (req.params as { id: string }).id, "app");
+      if (ok) void scrub(id);
+      return ok ? { ok: true } : reply.code(404).send({ error: "not found" });
     });
     app.get("/v1/progress", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
-      const goals = await store.memories(id, { kinds: ["travel_goal", "goal"], status: ["active"] });
-      const actions = await store.memories(id, { kinds: ["action_item"], status: ["active"] });
-      return { goals: goals.map((g) => ({ id: g.id, kind: g.kind, content: g.content })), action_items: actions.map((a) => ({ id: a.id, content: a.content })),
-        progress: await store.progress(id), sessions: await store.sessions(id) };
+      return progressOf(id);
     });
     app.delete("/v1/progress/:id", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
@@ -226,6 +294,26 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       return { ...job, state };
     });
   };
+
+  /** Everything the Progress screen and the home card show: goals with where they stand, tasks, ideas, the next plan. */
+  async function progressOf(id: string) {
+    const [goals, progress, open, done, ideas, view] = [
+      await store.goals(id), await store.progress(id), await store.memories(id, { kinds: ["action_item"], status: ["active"] }),
+      await store.memories(id, { kinds: ["action_item", "idea"], status: ["active"], done: true, limit: 10 }),
+      await store.memories(id, { kinds: ["idea"], status: ["active"] }), await store.memoryView(id),
+    ];
+    const item = (m: { id: string; kind: string; content: string; created_at: Date; resolved_at: Date | null }) =>
+      ({ id: m.id, kind: m.kind, content: m.content, created_at: m.created_at, done_at: m.resolved_at });
+    return {
+      goals: goals.map((g) => ({ id: g.id, kind: g.kind, content: g.content, status: g.status, state_note: g.state_note, next_step: g.next_step,
+        last_discussed_at: g.last_discussed_at, sessions_count: g.sessions_count,
+        progress: progress.filter((p) => p.goal_id === g.id).slice(0, 6).map((p) => ({ id: p.id, text: p.text, created_at: p.created_at })) })),
+      action_items: open.map(item), done_items: done.map(item), ideas: ideas.map(item),
+      next_up: (view.agenda?.items ?? []).map((a) => ({ topic: a.topic, kind: a.kind })),
+      progress: progress.map((p) => ({ id: p.id, text: p.text, created_at: p.created_at, goal_id: p.goal_id })),
+      sessions: await store.sessions(id),
+    };
+  }
 
   // ---------------------------------------------------------- self-test runner (scripted phone next to the server)
   const jobs = new Map<string, { id: string; scenario: string; lang: "he" | "en"; status: string; started: string; results: unknown[]; user_id: string | null; error: string | null }>();

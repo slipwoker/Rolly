@@ -131,6 +131,11 @@ export class PodSession {
 
   sendText(text: string): void { this.send({ type: "text", text: text.slice(0, 2000) }); }
   interrupt(): void { this.send({ type: "interrupt" }); }
+  /**
+   * A note for the model's next `turns` turns (pacing, memory hints). It is shown to the model next to the user's words,
+   * never stored in the conversation history and never interrupts speech. A worker without the note channel ignores it.
+   */
+  note(text: string, turns = 1): void { this.send({ type: "note", text: text.slice(0, 600), turns: Math.min(6, Math.max(1, Math.round(turns))) }); }
 
   close(): void {
     if (this.closed) return;

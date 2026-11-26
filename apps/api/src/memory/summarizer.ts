@@ -26,7 +26,8 @@ Return ONLY a JSON object with these keys:
   "travel_goals": list of ITEM — what the user said would make their travel time valuable,
   "interests": list of ITEM,
   "goals": list of ITEM — wider goals the user stated,
-  "action_items": list of ITEM — concrete things the user said THEY will do,
+  "action_items": list of ITEM — concrete things the user said THEY will do, or asked Rolly to note as a task,
+  "ideas": list of ITEM — ideas the user came up with or asked Rolly to note or keep (not tasks),
   "facts": list of ITEM — other durable facts about the user (work, family situation, routines), only if stated by the user about themselves,
   "preferences": list of ITEM — how the user likes to talk or be talked to,
   "candidate_confirmations": list of {"id": "<id from the 'Not confirmed' list>", "answer": "yes"|"no", "turn": <turn number>} for items the user was asked about and answered,
@@ -34,8 +35,10 @@ Return ONLY a JSON object with these keys:
   "other_speakers_suspected": true if anything in the transcript suggests more than one person was talking (someone addressed by name, replies that do not fit, "USER?" lines), else false,
   "language": "he" or "en" — the language the user mostly spoke.
 ITEM is {"content": "<short statement in the user's language>", "confidence": 0.0-1.0, "first_person": true|false,
-         "turn": <turn number it comes from>, "quote": "<the user's exact words, verbatim from that turn>"}.
+         "turn": <turn number it comes from>, "quote": "<the user's exact words, verbatim from that turn>", "importance": 1|2|3}.
 confidence is how sure you are that this is true AND was said by the owner about themselves.
+importance: 3 = central to who this person is or what they are working towards, 2 = useful to know, 1 = a passing detail.
+An ITEM that says the same as something already in "Known memories" must not be returned again.
 Do not invent anything that is not supported by the transcript. If the transcript is empty or trivial, use empty lists.
 
 Previously open topics:
@@ -51,7 +54,7 @@ Transcript (turn number, speaker, words):
 {transcript}
 `;
 
-export interface Item { content: string; confidence: number; first_person: boolean; turn: number | null; quote: string }
+export interface Item { content: string; confidence: number; first_person: boolean; turn: number | null; quote: string; importance?: number | null }
 
 export interface SummaryResult {
   method: "llm" | "fallback_no_llm";
@@ -67,6 +70,7 @@ export interface SummaryResult {
   interests: Item[];
   goals: Item[];
   action_items: Item[];
+  ideas: Item[];
   facts: Item[];
   preferences: Item[];
   candidate_confirmations: { id: string; answer: "yes" | "no"; turn: number | null }[];
@@ -95,7 +99,9 @@ function item(v: unknown): Item | null {
   const content = String(o.content ?? "").trim();
   if (!content) return null;
   const c = num(o.confidence);
-  return { content, confidence: c === null ? 0.5 : Math.max(0, Math.min(1, c)), first_person: o.first_person === true, turn: num(o.turn), quote: String(o.quote ?? "") };
+  const imp = num(o.importance);
+  return { content, confidence: c === null ? 0.5 : Math.max(0, Math.min(1, c)), first_person: o.first_person === true, turn: num(o.turn), quote: String(o.quote ?? ""),
+    importance: imp === null ? null : Math.min(3, Math.max(1, Math.round(imp))) };
 }
 const items = (v: unknown): Item[] => (Array.isArray(v) ? v.map(item).filter((x): x is Item => !!x) : []);
 
@@ -108,7 +114,7 @@ export function normalize(obj: Record<string, unknown>): SummaryResult {
     suggested_next_opener: String(obj.suggested_next_opener ?? ""),
     preferred_name: item(obj.preferred_name),
     travel_goals: items(obj.travel_goals), interests: items(obj.interests), goals: items(obj.goals),
-    action_items: items(obj.action_items), facts: items(obj.facts ?? obj.new_user_facts), preferences: items(obj.preferences),
+    action_items: items(obj.action_items), ideas: items(obj.ideas), facts: items(obj.facts ?? obj.new_user_facts), preferences: items(obj.preferences),
     candidate_confirmations: (Array.isArray(obj.candidate_confirmations) ? obj.candidate_confirmations : [])
       .map((c: Record<string, unknown>) => ({ id: String(c?.id ?? ""), answer: c?.answer === "yes" ? "yes" as const : "no" as const, turn: num(c?.turn) }))
       .filter((c) => c.id),
@@ -128,7 +134,7 @@ export function fallbackSummary(turns: SessionTurn[]): SummaryResult {
     method: "fallback_no_llm",
     summary: user.length ? `Conversation with ${user.length} user turns. First user remark: ${user[0]!.slice(0, 200)}` : "Conversation ended before the user said anything.",
     topics: [], decisions: [], unresolved_topics: [], resolved_topics: [], progress: [], suggested_next_opener: "",
-    preferred_name: null, travel_goals: [], interests: [], goals: [], action_items: [], facts: [], preferences: [],
+    preferred_name: null, travel_goals: [], interests: [], goals: [], action_items: [], ideas: [], facts: [], preferences: [],
     candidate_confirmations: [], corrections: [], other_speakers_suspected: false, language: null,
   };
 }
@@ -143,7 +149,7 @@ export async function summarizeSession(llm: UtilityLlm | null, turns: SessionTur
     .replace("{candidates}", ctx.candidates.map((m) => `- ${m.id}: ${m.content}`).join("\n") || "- (none)")
     .replace("{transcript}", formatTranscript(turns));
   try {
-    const r = await llm.json(prompt, { maxTokens: 1800 });
+    const r = await llm.json(prompt, { maxTokens: 2200 });
     if (!("summary" in r.obj)) throw new Error("summariser returned no summary");
     return { ...normalize(r.obj), llm: llm.name, ms: r.ms };
   } catch (e) {

@@ -12,14 +12,17 @@ let pod: FakePod, app: FastifyInstance, port: number;
 const finalized: { turns: SessionTurn[]; stats: Record<string, unknown>; endReason: string }[] = [];
 
 beforeAll(async () => {
-  pod = await startFakePod({ script: ["שלום", "מה נשמע", "רגע", "שקט"], token: "test-key" });
+  pod = await startFakePod({ script: ["שלום", "מה נשמע", "רגע", "שקט", "עוד חמש דקות אני מגיע", "תרשום לי משהו"], token: "test-key" });
   const config = { ...loadConfig({ ROLLY_GPU_API_KEY: "test-key", ROLLY_GPU_WORKER_URL: pod.url, ROLLY_DEV_AUTH: "1" } as NodeJS.ProcessEnv), port: 0 };
   const hooks: SessionHooks = {
     async prepare(userId, sessionId, start) {
       const b = buildContext(emptyMemory(), { language: start.language ?? "he" });
-      return { onboarding: b.onboarding, ctx: { session_id: sessionId, user_id: userId, language: b.language, system_prompt: b.system_prompt,
-        opener_instruction: b.opener_instruction, proactive: true, journey: {}, profile: b.profile, options: {} } };
+      // "u-pace": a 20-minute ride compressed to 1.2 seconds
+      const pace = userId === "u-pace";
+      return { onboarding: b.onboarding, pacingScale: pace ? 0.001 : undefined, ctx: { session_id: sessionId, user_id: userId, language: b.language, system_prompt: b.system_prompt,
+        opener_instruction: b.opener_instruction, proactive: true, journey: pace ? { duration_min: 20 } : {}, profile: b.profile, options: {} } };
     },
+    async onUserTurn({ turn }) { return turn.text.includes("תרשום") ? { text: "NOTE-FROM-HOOK", turns: 1 } : undefined; },
     async finalize(a) { finalized.push(a); return { ok: true }; },
   };
   app = await buildServer({ config, hooks, consumeTicket: async (t) => (t === "good-ticket" ? "u-ticket" : null) });
@@ -82,5 +85,33 @@ describe("relay phone <-> rolly-api <-> pod", () => {
     expect(f.stats.interruptions).toBe(1);
     // the interrupted agent turn is stored as interrupted
     expect(f.turns.some((t) => t.role === "agent" && t.meta.interrupted === true)).toBe(true);
+  }, 30_000);
+
+  it("paces a ride with notes for the model: halfway, wrap-up, the user's own 'five minutes left', and memory notes", async () => {
+    const phone = new Phone();
+    await phone.connect(`ws://127.0.0.1:${port}/v1/voice?dev_user=u-pace`);
+    phone.send({ type: "session.start", language: "he" });
+    await phone.waitReply(0, 5000); // opener (1.2 s): "half" is due at 0.66 s and goes out on the 1 s tick
+    const end1 = await phone.say(speech(600)); // "עוד חמש דקות אני מגיע"
+    await phone.waitReply(end1 - 1, 5000);
+    const end2 = await phone.say(speech(600)); // "תרשום לי משהו" -> the hook answers with a note
+    await phone.waitReply(end2 - 1, 5000);
+    await new Promise((r) => setTimeout(r, 1200)); // one more tick
+    phone.send({ type: "session.end" });
+    await phone.waitFor(() => phone.closed, 5000, "closed");
+    phone.stop();
+    const f = finalized.at(-1)!;
+    const kinds = (f.stats.notes as { kind: string }[]).map((n) => n.kind);
+    expect(kinds).toContain("pacing_half");
+    expect(kinds).toContain("pacing_last");
+    expect(kinds).toContain("time_left_5");
+    expect(kinds).toContain("memory");
+    expect(kinds).not.toContain("pacing_wrap"); // overtaken by "last": only the latest overdue nudge is sent
+    expect(pod.notes.some((n) => n.text.includes("half of the ride"))).toBe(true);
+    expect(pod.notes.some((n) => n.text === "NOTE-FROM-HOOK" && n.turns === 1)).toBe(true);
+    // notes are not turns: the transcript holds only what was said
+    expect(f.turns.filter((t) => t.role === "user").map((t) => t.text)).toEqual(["עוד חמש דקות אני מגיע", "תרשום לי משהו"]);
+    // a session without an expected length gets no pacing notes
+    expect((finalized[0]!.stats.notes as unknown[]).length).toBe(0);
   }, 30_000);
 });

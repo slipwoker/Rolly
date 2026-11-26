@@ -5,12 +5,16 @@
  *  - Phase 1 sections are appended: lead (bring content, never two questions in a row), addressing, other voices,
  *    memory control, onboarding / gaps, unconfirmed candidates (P1-D15 for "lead");
  *  - the opener does not use a name when none is known, and the first conversation gets an onboarding opener;
- *  - only ACTIVE memories are presented as facts; candidates are listed separately as "not confirmed".
+ *  - only ACTIVE memories are presented as facts; candidates are listed separately as "not confirmed";
+ *  - goals carry where they stand and their next step; open tasks carry their age; ideas, a long-term digest and a
+ *    plan for this ride (built after the previous conversation, memory/plan.ts) are added (P1-D17, P1-D18).
  */
 import { END_MARKER, LANG, VOICE_STYLE } from "./research.ts";
 import {
-  LEAD, MEMORY_CONTROL, ONBOARDING, OTHER_VOICES, addressingSection, onboardingGapsSection, type AddressingState,
+  LEAD, MEMORY_CONTROL, NOTES, ONBOARDING, OTHER_VOICES, addressingSection, onboardingGapsSection, planSection, type AddressingState,
 } from "./phase1Sections.ts";
+import { adaptAgenda, type AgendaItem, type GoalStatus, type StoredAgenda } from "../memory/plan.ts";
+import { CLIP, clip } from "../memory/select.ts";
 
 export type Lang = "he" | "en" | "auto";
 
@@ -24,12 +28,18 @@ export interface MemoryView {
     preferences: Record<string, string>;
     addressing: AddressingState;
   };
-  facts: string[]; // active facts/preferences/goals worth knowing (not candidates)
+  /** active and paused goals (wider goals and travel-time goals) with how they stand */
+  goals: { id: string; kind: "goal" | "travel_goal"; content: string; status: GoalStatus; stateNote: string | null; nextStep: string | null }[];
+  facts: string[]; // active facts worth knowing (not candidates)
   summaries: { content: string; createdAt: Date }[]; // most recent first
   openTopics: string[];
-  actionItems: string[];
+  tasks: { id: string; content: string; createdAt: Date }[]; // open tasks the user took on or asked to note
+  ideas: string[];
   progress: string[]; // recent "what we moved forward"
   candidates: { id: string; content: string }[]; // unconfirmed, NOT facts
+  digest: string | null; // who this person is and what matters to them now
+  historyDigest: string | null; // older conversations folded into one paragraph
+  agenda: StoredAgenda | null; // the plan made after the previous conversation
   sessionCount: number; // completed sessions with at least one user turn
 }
 
@@ -55,6 +65,8 @@ export interface BuiltContext {
   opener_instruction: string | null;
   language: Lang;
   onboarding: boolean;
+  /** the plan items actually given to the model for this ride */
+  agenda: AgendaItem[];
   profile: Record<string, unknown>;
 }
 
@@ -78,7 +90,7 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
   const sections: string[] = [];
   const addr = addressingSection(p.addressing, language);
   if (addr) sections.push(addr);
-  sections.push(OTHER_VOICES, MEMORY_CONTROL);
+  sections.push(OTHER_VOICES, MEMORY_CONTROL, NOTES);
   if (onboarding) sections.push(ONBOARDING);
   else {
     const gaps = onboardingGapsSection({ name: !p.preferredName, travelGoals: p.travelGoals.length === 0 });
@@ -89,7 +101,15 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
   lines.push(`Name: ${p.preferredName ?? "not known yet"}`);
   if (p.professionalBackground) lines.push(`Professional background: ${p.professionalBackground}`);
   if (p.interests.length) lines.push("Personal interests: " + p.interests.join(", "));
-  if (p.travelGoals.length) {
+  if (mem.digest) lines.push(`In short: ${clip(mem.digest, CLIP.digest)}`);
+  if (mem.goals.length) {
+    lines.push("Their goals, what they want from their travel time, and where each one stands:");
+    for (const g of mem.goals) {
+      lines.push(`- ${g.content}${g.status === "paused" ? " (on hold for now: do not push it)" : ""}`
+        + (g.stateNote ? ` Where it stands: ${clip(g.stateNote, CLIP.goalState)}` : "")
+        + (g.nextStep && g.status !== "paused" ? ` Next step: ${clip(g.nextStep, CLIP.goalNext)}` : ""));
+    }
+  } else if (p.travelGoals.length) {
     lines.push("What they want from their travel time:");
     lines.push(...p.travelGoals.map((g) => `- ${g}`));
   }
@@ -101,14 +121,16 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
   }
 
   lines.push("", "## Memory of previous conversations");
-  if (mem.summaries.length) for (const s of mem.summaries) lines.push(`- (${when(s.createdAt, now)}) ${s.content}`);
-  else lines.push("- This is the first conversation with this user.");
+  if (mem.historyDigest) lines.push(`- (earlier conversations) ${clip(mem.historyDigest, CLIP.historyDigest)}`);
+  if (mem.summaries.length) for (const s of mem.summaries.slice(0, 3)) lines.push(`- (${when(s.createdAt, now)}) ${clip(s.content, CLIP.summary)}`);
+  else if (!mem.historyDigest) lines.push(mem.sessionCount === 0 ? "- This is the first conversation with this user." : "- (nothing noted yet)");
   if (mem.openTopics.length) { lines.push("Unresolved topics:"); lines.push(...mem.openTopics.map((t) => `- ${t}`)); }
-  if (mem.actionItems.length) { lines.push("Open action items the user took on:"); lines.push(...mem.actionItems.map((a) => `- ${a}`)); }
-  if (mem.progress.length) { lines.push("What you moved forward together recently:"); lines.push(...mem.progress.map((a) => `- ${a}`)); }
+  if (mem.tasks.length) { lines.push("Open tasks the user took on or asked you to note:"); lines.push(...mem.tasks.map((a) => `- ${a.content} (${when(a.createdAt, now)})`)); }
+  if (mem.ideas.length) { lines.push("Ideas the user asked you to keep:"); lines.push(...mem.ideas.map((a) => `- ${a}`)); }
+  if (mem.progress.length) { lines.push("What you moved forward together recently:"); lines.push(...mem.progress.slice(0, CLIP.progress).map((a) => `- ${a}`)); }
   if (mem.candidates.length) {
     lines.push("Not confirmed (possibly said by someone else; not facts; ask before relying on them):");
-    lines.push(...mem.candidates.map((c) => `- ${c.content}`));
+    lines.push(...mem.candidates.slice(0, CLIP.candidates).map((c) => `- ${c.content}`));
   }
 
   const minutes = journey.duration_min;
@@ -124,6 +146,11 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
     lines.push("", "## The conversation so far (the connection dropped a moment ago)");
     lines.push(...opts.resume.map((t) => `${t.role === "user" ? "USER" : "YOU"}: ${t.text}`));
   }
+
+  // the plan for this ride: made after the previous conversation, cut to the time there is now
+  const agenda = onboarding || opts.resume?.length ? [] : adaptAgenda(mem.agenda, { minutes: minutes ?? null, now });
+  const plan = planSection(agenda);
+  if (plan) lines.push("", plan);
 
   // LEAD goes last: the conversation model (a small MoE) weighs the end of a long system prompt most (P1-D15, round 2)
   const system_prompt = style.trimEnd() + "\n\n" + sections.join("\n\n") + "\n" + lines.join("\n") + "\n\n" + LEAD + "\n";
@@ -141,6 +168,12 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
         + `Open it yourself, right now, like a friendly person meeting someone for the first ride together: a casual hello for the ${partOfDay}, `
         + "and one light, specific question that starts getting to know them (for example what they usually do with their time on the road, or simply their name). "
         + "Two short sentences, under twenty-five words. Do not introduce yourself at length, do not explain what you can do, do not list options.";
+    } else if (agenda.length) {
+      opener = tag + `The user has just started a journey${minutes ? ` of about ${Math.round(minutes)} minutes` : ""}. `
+        + "Open the conversation yourself, right now, the way a friend does when you get in the car: "
+        + `a casual hello for the ${partOfDay}${hasName ? " using their name" : ""}, then go straight into the first item of your plan for this ride `
+        + `("${agenda[0]!.topic}"), naming what it is about the way a friend would ('so, about ...'), as a remark or one specific question. `
+        + "Two short sentences, under twenty-five words in total. Do not mention the plan or how long the journey is, and do not list options.";
     } else if (!mem.summaries.length && !mem.openTopics.length) {
       const knowsSomething = p.interests.length > 0 || p.travelGoals.length > 0 || mem.facts.length > 0;
       opener = tag + "The user has just started a journey. Open the conversation yourself the way a friend would, in two short sentences: "
@@ -163,7 +196,7 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
   }
 
   return {
-    system_prompt, opener_instruction: opener, language, onboarding,
+    system_prompt, opener_instruction: opener, language, onboarding, agenda,
     // the pod gets only what the pipeline needs; it stores nothing
     profile: { name: p.preferredName ?? null, preferred_language: p.preferredLanguage ?? null },
   };
@@ -172,6 +205,7 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
 export function emptyMemory(): MemoryView {
   return {
     profile: { preferredName: null, preferredLanguage: null, interests: [], travelGoals: [], preferences: {}, addressing: { value: null, status: "unknown" } },
-    facts: [], summaries: [], openTopics: [], actionItems: [], progress: [], candidates: [], sessionCount: 0,
+    goals: [], facts: [], summaries: [], openTopics: [], tasks: [], ideas: [], progress: [], candidates: [],
+    digest: null, historyDigest: null, agenda: null, sessionCount: 0,
   };
 }

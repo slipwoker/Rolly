@@ -11,6 +11,7 @@ import { packPodAudio } from "../src/voice/podClient.ts";
 export interface FakePod {
   url: string;
   starts: Record<string, unknown>[]; // ctx of every session start
+  notes: { text: string; turns: number }[]; // notes received on the note channel
   close(): Promise<void>;
 }
 
@@ -30,6 +31,7 @@ export function tone(ms: number, rate: number, amp = 0.3, freq = 300): Buffer {
 
 export async function startFakePod(opts: { script: string[]; token?: string; replyMs?: number; language?: string }): Promise<FakePod> {
   const starts: Record<string, unknown>[] = [];
+  const notes: { text: string; turns: number }[] = [];
   const server: Server = createServer((_req, res) => { res.writeHead(404); res.end(); });
   const wss = new WebSocketServer({ noServer: true });
   let line = 0;
@@ -63,6 +65,7 @@ export async function startFakePod(opts: { script: string[]; token?: string; rep
         if (!isBinary) {
           const msg = JSON.parse(m.toString());
           if (msg.type === "close") ws.close();
+          if (msg.type === "note") notes.push({ text: String(msg.text), turns: Number(msg.turns) });
           return;
         }
         const pcm = m as Buffer;
@@ -94,7 +97,7 @@ export async function startFakePod(opts: { script: string[]; token?: string; rep
   await new Promise<void>((r) => server.listen(0, "127.0.0.1", () => r()));
   const port = (server.address() as { port: number }).port;
   return {
-    url: `http://127.0.0.1:${port}/v1`, starts,
+    url: `http://127.0.0.1:${port}/v1`, starts, notes,
     close: () => new Promise((r) => { wss.clients.forEach((c) => c.terminate()); server.close(() => r()); }),
   };
 }
