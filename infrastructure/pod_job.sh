@@ -15,8 +15,6 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 # the pronunciation of Spanish / Italian / German phrases in the Hebrew voice.  Same restart: only the worker.
 # job 14 (2026-11-26): restart the worker for online lookups (the lookup marker is kept out of speech and reported as
 # session.lookup_requested) and for skipping pieces with nothing to say ("—" woke the backup voice).  Only the worker.
-# job 15 (2026-11-26): restart the worker for the voice audition endpoint (POST /v1/audio/audition: a named BlueV3 voice at a
-# named speed, or the Kokoro / Piper English voices; for listening only) and put all BlueV3 voices on the voice server.
 pkill -f "zonos3-server" 2>/dev/null || true
 if bash infrastructure/blue_setup.sh; then
   ROLLY_TTS_HE_ENGINE=blue bash infrastructure/start_worker.sh

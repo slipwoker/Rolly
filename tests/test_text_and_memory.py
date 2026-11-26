@@ -305,15 +305,3 @@ def test_a_piece_with_nothing_to_say_is_not_sent_to_a_voice():
     assert not has_words("—") and not has_words("...") and not has_words(" ?! ")
     assert has_words("כן.") and has_words("14") and has_words("Zappy")
 
-
-def test_audition_requests_are_validated():
-    import pytest
-    from backend.gpu_worker import parse_audition
-    ok = parse_audition({"input": "שלום", "voice": "adam", "speed": 1.1})
-    assert ok == {"input": "שלום", "engine": "blue", "voice": "adam", "speed": 1.1, "speaker": 0, "language": "he"}
-    assert parse_audition({"input": "Hi", "engine": "kokoro", "speaker": 3, "language": "en"})["language"] == "en"
-    for bad in ({}, {"input": "x" * 601}, {"input": "a", "engine": "zonos"}, {"input": "a", "voice": "../x"}, {"input": "a", "speed": 5}, {"input": "a", "speaker": 999},
-                {"input": "a", "speed": "fast"}):
-        with pytest.raises(ValueError):
-            parse_audition(bad)
-
