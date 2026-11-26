@@ -1,3 +1,4 @@
+import os
 import time
 
 from memory.context import END_MARKER, build_context, seed_store
@@ -304,4 +305,27 @@ def test_the_lookup_marker_is_never_spoken_or_shown():
 def test_a_piece_with_nothing_to_say_is_not_sent_to_a_voice():
     assert not has_words("—") and not has_words("...") and not has_words(" ?! ")
     assert has_words("כן.") and has_words("14") and has_words("Zappy")
+
+
+def test_the_pods_voices_are_the_ones_the_owner_chose(monkeypatch):
+    """P1-D36: Hebrew `ariel` and English `jonathan`, both BlueV3 at speed 1.0, from the same voice server; Piper is the English
+    fallback; without the pod's switch the English voice stays what it was."""
+    from providers.registry import ProviderRegistry
+    for k in ("ROLLY_BLUE_VOICE", "ROLLY_BLUE_SPEED", "ROLLY_BLUE_VOICE_EN", "ROLLY_BLUE_SPEED_EN", "ROLLY_TTS_EN_ENGINE", "ROLLY_TTS_HE_ENGINE"):
+        monkeypatch.delenv(k, raising=False)
+    path = os.path.join(os.path.dirname(__file__), "..", "config", "providers.yaml")
+    plain = ProviderRegistry(path).entries["modular-selfhosted"]["tts"]
+    assert plain["en"]["engine"] == "sherpa" and plain["he"]["engine"] == "renikud_piper"  # nothing changes without the pod's settings
+    monkeypatch.setenv("ROLLY_TTS_HE_ENGINE", "blue")
+    monkeypatch.setenv("ROLLY_TTS_EN_ENGINE", "blue")  # what infrastructure/start_worker.sh sets
+    tts = ProviderRegistry(path).entries["modular-selfhosted"]["tts"]
+    he, en = tts["he"], tts["en"]
+    assert (he["engine"], he["blue_voice"], float(he["blue_speed"]), he.get("blue_language", "he")) == ("blue", "ariel", 1.0, "he")
+    assert (en["engine"], en["blue_voice"], float(en["blue_speed"]), en["blue_language"]) == ("blue", "jonathan", 1.0, "en")
+    assert he["blue_url"] == en["blue_url"]  # one voice server
+    assert en["fallback"]["kind"] == "vits" and "lessac" in en["fallback"]["model_dir"]
+    assert he["fallback"]["engine"] == "renikud_piper"
+    # the engines the router builds name the voice and the speed
+    from providers.modular.tts import BlueTTS
+    assert "bluev3:jonathan:speed1" in BlueTTS(en).name and "bluev3:ariel:speed1" in BlueTTS(he).name
 

@@ -7,7 +7,7 @@
 set -uo pipefail
 SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
 WS="${ROLLY_WORKSPACE:-/workspace}"; BL="$WS/blue"; LOGS="$WS/logs"; PUB="$WS/public"; mkdir -p "$BL" "$LOGS" "$PUB"
-COMMIT="${ROLLY_BLUE_COMMIT:-5a9d9a0}"; VOICE="${ROLLY_BLUE_VOICE:-daniel}"
+COMMIT="${ROLLY_BLUE_COMMIT:-5a9d9a0}"; VOICE="${ROLLY_BLUE_VOICE:-ariel}"; VOICE_EN="${ROLLY_BLUE_VOICE_EN:-jonathan}"
 say() { echo "[$(date -u +%T)] $*"; }
 state() { echo "{\"blue\": \"$1\", \"time\": \"$(date -u +%FT%TZ)\", \"providers\": \"${USED:-?}\"}" > "$PUB/blue.json"; }
 state installing
@@ -35,7 +35,9 @@ snapshot_download("notmax123/BlueV3-onnx", local_dir="$BL/bundle",
                   ignore_patterns=["frontend/*macosx*", "onnx/vector_estimator.int8.onnx"])
 PYEOF
 "$PY" -c "import polyg2p" 2>/dev/null || uv pip install -q --python "$PY" --no-index --find-links "$BL/bundle/frontend" polyg2p==0.1.0
-mkdir -p "$BL/voice" && cp "$BL/bundle/voices/$VOICE.json" "$BL/voice/" || { say "voice $VOICE not in the bundle"; state failed; exit 1; }
+# the Hebrew voice (the server's default) and the English one: a request names the voice it wants
+mkdir -p "$BL/voice"
+for v in "$VOICE" "$VOICE_EN"; do cp "$BL/bundle/voices/$v.json" "$BL/voice/" || { say "voice $v not in the bundle"; state failed; exit 1; }; done
 
 # GPU provider.  onnxruntime-gpu 1.27-1.29 is built for CUDA 13 + cuDNN 9, this image ships CUDA 12: the matching
 # libraries come as pip wheels (the [cuda,cudnn] extras) and are put on the library path of the server process.
@@ -61,7 +63,7 @@ for i in $(seq 1 90); do curl -fs -m 3 http://127.0.0.1:1920/health >/dev/null 2
 curl -fs -m 3 http://127.0.0.1:1920/health >/dev/null 2>&1 || { say "server did not come up:"; tail -15 "$LOGS/blue_server.log"; state failed; exit 1; }
 USED="$(grep -o "Using ONNX Runtime providers.*" "$LOGS/blue_server.log" | head -1)"; say "$USED"
 
-REQ='{"model":"bluev3","input":"נו, מה קרה עם ששת הראיונות שעוד רצית לקבוע למשפחות?","language":"he","speed":1.2,"response_format":"pcm","stream":true}'
+REQ='{"model":"bluev3","input":"נו, מה קרה עם ששת הראיונות שעוד רצית לקבוע למשפחות?","language":"he","speed":'"${ROLLY_BLUE_SPEED:-1.0}"',"voice":"'"$VOICE"'","response_format":"pcm","stream":true}'
 LAST=99
 for n in 1 2 3 4; do
   LAST="$(curl -fsS -m 60 http://127.0.0.1:1920/v1/audio/speech -H "Content-Type: application/json" -d "$REQ" -o "$BL/warm.pcm" -w "%{time_total}")" || LAST=99
