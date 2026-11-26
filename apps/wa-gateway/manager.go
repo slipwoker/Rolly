@@ -146,6 +146,7 @@ func (m *Manager) onEvent(l *live, e any) {
 			m.log.Infof("history sync %s: stored %d messages", l.userID, n)
 		}()
 	case *events.Connected:
+		set(StateConnected, "") // first: the link-attempt timer below reads this state when it is cancelled
 		l.mu.Lock()
 		l.qr, l.code = "", ""
 		if l.cancel != nil {
@@ -153,7 +154,6 @@ func (m *Manager) onEvent(l *live, e any) {
 			l.cancel = nil
 		}
 		l.mu.Unlock()
-		set(StateConnected, "")
 	case *events.Disconnected:
 		if a, err := m.accounts.Get(ctx, l.userID); err == nil && a.State == StateConnected {
 			set(StateReconnecting, "")
@@ -246,9 +246,7 @@ func (m *Manager) StartLink(ctx context.Context, userID, mode, phone string) (*L
 	go m.watchQR(l, qrCh)
 	go func() { // when the attempt runs out and nothing was linked, clean up
 		<-lctx.Done()
-		if a, err := m.accounts.Get(context.Background(), userID); err == nil && a.State == StatePairing {
-			m.abandon(context.Background(), userID)
-		}
+		m.expireLink(l)
 	}()
 
 	if mode == "code" {
@@ -275,6 +273,23 @@ func (m *Manager) StartLink(ctx context.Context, userID, mode, phone string) (*L
 		time.Sleep(200 * time.Millisecond)
 	}
 	return &LinkInfo{State: StatePairing, Mode: mode, Seconds: m.cfg.LinkTimeout}, nil
+}
+
+// expireLink ends a link attempt that did not finish. It must never touch a client that has paired: the timer is also
+// cancelled when the link succeeds, and acting on a half-updated state there deleted a fresh session.
+func (m *Manager) expireLink(l *live) {
+	if l.client.Store != nil && l.client.Store.ID != nil {
+		return // paired: the account lives on
+	}
+	m.mu.Lock()
+	current := m.live[l.userID] == l
+	m.mu.Unlock()
+	if !current {
+		return // replaced by a newer attempt or already removed
+	}
+	if a, err := m.accounts.Get(context.Background(), l.userID); err == nil && a.State == StatePairing {
+		m.abandon(context.Background(), l.userID)
+	}
 }
 
 func (m *Manager) watchQR(l *live, ch <-chan whatsmeow.QRChannelItem) {
