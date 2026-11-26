@@ -69,9 +69,26 @@ describe("waitlist", () => {
   it("lists sign-ups for the owner only, also as CSV", async () => {
     expect((await app.inject({ method: "GET", url: "/v1/admin/waitlist" })).statusCode).toBe(401);
     const r = await app.inject({ method: "GET", url: "/v1/admin/waitlist", headers: { authorization: "Bearer admin" } });
-    expect(r.json().items[0]).toMatchObject({ email: "dana@example.com", lang: "he", source: "utm:instagram" });
+    const j = r.json();
+    expect(j.items[0]).toMatchObject({ position: 1, email: "dana@example.com", lang: "he", source: "utm:instagram" });
+    expect(j.summary).toMatchObject({ total: j.count, today: j.count, week: j.count, he: 1, days: 30 });
+    expect(j.summary.daily).toHaveLength(30);
+    expect(j.summary.daily.at(-1).signups).toBe(j.count);
+    expect(j.summary.sources[0]).toMatchObject({ source: "(direct)" });
     const csv = await app.inject({ method: "GET", url: "/v1/admin/waitlist?format=csv", headers: { authorization: "Bearer admin" } });
     expect(csv.headers["content-type"]).toContain("text/csv");
     expect(csv.body.split("\n")[1]).toContain('"dana@example.com"');
+  });
+
+  it("the owner can take someone off the list; places close up", async () => {
+    const auth = { authorization: "Bearer admin" };
+    const before = (await app.inject({ method: "GET", url: "/v1/admin/waitlist", headers: auth })).json();
+    expect((await app.inject({ method: "DELETE", url: `/v1/admin/waitlist/${before.items[0].id}` })).statusCode).toBe(401);
+    expect((await app.inject({ method: "DELETE", url: "/v1/admin/waitlist/abc", headers: auth })).statusCode).toBe(400);
+    expect((await app.inject({ method: "DELETE", url: `/v1/admin/waitlist/${before.items[0].id}`, headers: auth })).json()).toEqual({ ok: true });
+    expect((await app.inject({ method: "DELETE", url: `/v1/admin/waitlist/${before.items[0].id}`, headers: auth })).statusCode).toBe(404);
+    const after = (await app.inject({ method: "GET", url: "/v1/admin/waitlist", headers: auth })).json();
+    expect(after.count).toBe(before.count - 1);
+    expect(after.items[0]).toMatchObject({ position: 1, email: "omer@example.com" });
   });
 });

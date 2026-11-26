@@ -159,7 +159,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
   const routes = async (app: FastifyInstance) => {
     await auditRoutes(app, { db, audit, llm, timeZone: config.timezone, retentionDays: config.transcriptRetentionDays,
       isAdmin: (req) => adminOk(req.headers.authorization, config.adminToken) });
-    await waitlistRoutes(app, { db, isAdmin: (req) => adminOk(req.headers.authorization, config.adminToken) });
+    await waitlistRoutes(app, { db, timeZone: config.timezone, isAdmin: (req) => adminOk(req.headers.authorization, config.adminToken) });
     const user = (req: FastifyRequest, reply: FastifyReply): string | null => {
       const h = req.headers.authorization;
       const id = auth.verifyAccess(h?.startsWith("Bearer ") ? h.slice(7) : undefined);

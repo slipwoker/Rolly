@@ -688,6 +688,68 @@
     ];
   }
 
+  /** Sign-ups from the landing page (heyrolly.ai). The range filter applies to the chart and "in range". */
+  async function waitlistView() {
+    const r = await api("/v1/admin/waitlist?" + qs());
+    const sm = r.summary;
+    TZ = sm.time_zone || TZ;
+    const LANG = { he: "Hebrew", en: "English" };
+    const people = [...r.items].reverse(); // newest first
+    const download = async () => {
+      const res = await fetch("/v1/admin/waitlist?format=csv", { headers: { Authorization: `Bearer ${store.get("audit.token", "")}` } });
+      if (!res.ok) { status("Export failed: HTTP " + res.status); return; }
+      const url = URL.createObjectURL(await res.blob());
+      const a = h("a", { href: url, download: `rolly-waitlist-${new Date().toISOString().slice(0, 10)}.csv` });
+      document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    };
+    const copy = async (btn) => {
+      try { await navigator.clipboard.writeText(people.map((p) => p.email).join("\n")); btn.textContent = `Copied ${people.length}`; }
+      catch { btn.textContent = "Copy failed"; }
+      setTimeout(() => { btn.textContent = "Copy emails"; }, 1800);
+    };
+    const remove = async (p) => {
+      if (!confirm(`Remove ${p.email} from the waitlist? This cannot be undone.`)) return;
+      await api(`/v1/admin/waitlist/${p.id}`, { method: "DELETE" });
+      route();
+    };
+    const listBox = h("div");
+    const draw = (needle) => {
+      const n = needle.trim().toLowerCase();
+      const rows = n ? people.filter((p) => p.email.includes(n) || (p.source || "").toLowerCase().includes(n)) : people;
+      listBox.replaceChildren(table([
+        { label: "#", num: true, get: (p) => p.position },
+        { label: "Email", get: (p) => h("a", { href: `mailto:${p.email}` }, p.email) },
+        { label: "Language", get: (p) => LANG[p.lang] || p.lang || "-" },
+        { label: "Came from", wrap: true, get: (p) => p.source || h("span.muted", "direct") },
+        { label: "Signed up", get: (p) => fmt.dt(p.created_at) },
+        { label: "", num: true, get: (p) => h("button.link", { type: "button", title: "Remove from the list", on: { click: () => remove(p) } }, "Remove") },
+      ], rows, { empty: n ? "No one matches." : "No sign-ups yet. Share heyrolly.ai!" }));
+    };
+    draw("");
+    const copyBtn = h("button", { type: "button", on: { click: (e) => copy(e.currentTarget) } }, "Copy emails");
+    return [
+      h("div.head",
+        h("div", h("h1", "Waitlist"), h("div.muted", h("a", { href: "https://heyrolly.ai", target: "_blank", rel: "noopener" }, "heyrolly.ai"), " sign-ups · one email each when the app is ready")),
+        h("div.row", copyBtn, h("button.primary", { type: "button", on: { click: download } }, "Export CSV"))),
+      h("div.tiles",
+        tile("On the list", fmt.n(sm.total)),
+        tile("Today", fmt.n(sm.today)),
+        tile("Last 7 days", fmt.n(sm.week)),
+        tile(sm.days === 1 ? "In range (today)" : `Last ${sm.days} days`, fmt.n(sm.in_range)),
+        tile("Hebrew / English", `${fmt.n(sm.he)} / ${fmt.n(sm.en)}`, sm.total ? `${fmt.pct(sm.he / sm.total)} Hebrew` : null, "The page's language when they signed up (Israel time zone → Hebrew)")),
+      h("div.grid.g2",
+        card("Sign-ups per day", barChart(sm.daily, [{ key: "signups", label: "Sign-ups", color: series(7) }], { format: (v) => fmt.n(v), title: "Sign-ups per day", integer: true })),
+        card("Where they came from",
+          h("p.muted.small", "utm_source or ?ref= in the link, otherwise the referring site."),
+          hbars(sm.sources.map((x) => ({ label: x.source, n: x.n })), { color: series(5) }))),
+      card(null,
+        h("div.row", { style: "margin-bottom:12px" },
+          h("input", { type: "search", placeholder: "Search email or source", "aria-label": "Search the waitlist", style: "min-width:260px", on: { input: (e) => draw(e.target.value) } }),
+          h("span.muted.small", `${fmt.n(r.count)} total`)),
+        listBox),
+    ];
+  }
+
   // ------------------------------------------------------------------ router
   function route() {
     hideTip();
@@ -698,8 +760,9 @@
     const name = parts[0] || "overview";
     document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("active", a.dataset.route === (name === "session" ? "sessions" : name)));
     $("#filters").hidden = name === "session";
+    $("#f-selftest").closest("label").hidden = name === "waitlist";
     const views = { overview: overviewView, sessions: () => sessionsView(params), session: () => sessionView(parts[1]), prompts: () => promptsView(params),
-      costs: costsView, calls: () => callsView(params), users: usersView };
+      costs: costsView, calls: () => callsView(params), users: usersView, waitlist: waitlistView };
     if (name !== "session") store.tab("audit.tab", "0");
     void render(views[name] || overviewView);
     window.scrollTo(0, 0);
