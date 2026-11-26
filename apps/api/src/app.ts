@@ -245,6 +245,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     app.delete("/v1/sessions/:id", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
       const r = await store.deleteSession(id, (req.params as { id: string }).id);
+      if (r?.memories) void scrub(id); // what was learned from it must also leave summaries, notes and the plan
       return r ? r : reply.code(404).send({ error: "not found" });
     });
     app.get("/v1/export", async (req, reply) => {
@@ -278,6 +279,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       if (!admin(req, reply)) return;
       const { id, sid } = req.params as { id: string; sid: string };
       const r = await store.deleteSession(id, sid);
+      if (r?.memories) void scrub(id);
       return r ? r : reply.code(404).send({ error: "not found" });
     });
     // keep a memory as confirmed by the user (optionally reworded), e.g. before deleting the conversation it came from

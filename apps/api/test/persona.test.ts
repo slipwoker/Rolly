@@ -87,6 +87,14 @@ describe("what the prompt does say", () => {
     expect(p).toContain("About 20 minutes until they arrive.");
   });
 
+  it("'last time' counts calendar days where the user lives: last night is yesterday, this morning is earlier today", () => {
+    const at = (iso: string) => buildContext(mem({ summaries: [{ content: "דובר על משהו.", createdAt: new Date(iso) }] }), { language: "he", now }).system_prompt;
+    // now = Thursday 08:10 in Israel
+    expect(at("2026-11-25T19:39:00Z")).toContain("Last time (yesterday)"); // 21:39 the evening before, under 24 hours ago
+    expect(at("2026-11-26T04:30:00Z")).toContain("Last time (earlier today)"); // 06:30 the same morning
+    expect(at("2026-11-23T22:30:00Z")).toContain("Last time (2 days ago)"); // 00:30 on Tuesday, local time
+  });
+
   it("addressing: neutral wording while unknown, nothing in English", () => {
     expect(buildContext(mem(), { language: "he", now }).system_prompt).toContain("without gendered second person");
     expect(buildContext(mem(), { language: "en", now }).system_prompt).not.toContain("gendered");

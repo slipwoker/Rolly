@@ -186,9 +186,19 @@ export class MemoryStore {
     if (!old || old.status === "deleted") return false;
     await this.queueScrub(userId, old, null);
     await this.wipe(old.id);
-    if (old.kind === "name") await this.updateProfile(userId, { preferred_name: null });
+    if (old.kind === "name") await this.updateProfile(userId, { preferred_name: await this.currentName(userId) });
     await this.event(userId, id, "delete", via, sessionId);
     return true;
+  }
+
+  /**
+   * The name the profile should show after a name note was removed: the newest name note that is still active, else none.
+   * (Removing an unconfirmed duplicate, e.g. with its conversation, used to clear the name although a confirmed one existed.)
+   */
+  private async currentName(userId: string): Promise<string | null> {
+    const r = await this.db.query<{ content: string }>(
+      "SELECT content FROM memories WHERE user_id=$1 AND kind='name' AND status='active' AND content<>'' ORDER BY updated_at DESC LIMIT 1", [userId]);
+    return r.rows[0]?.content ?? null;
   }
 
   private async wipe(id: string) {
