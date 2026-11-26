@@ -19,7 +19,7 @@ from typing import AsyncIterator, Optional
 
 import numpy as np
 
-from .text import dominant_language, he_pronounce
+from .text import he_pronounce, mark_foreign, speech_language
 
 
 def _to_pcm16(samples) -> bytes:
@@ -142,6 +142,8 @@ class BlueTTS(OpenAICompatTTS):
                           "voice": cfg.get("blue_voice", "daniel"), "sample_rate": int(cfg.get("blue_sample_rate", 44100)),
                           "extra_body": {"speed": float(cfg.get("blue_speed", 1.2)), "language": cfg.get("blue_language", "he"), "stream": True}})
         self.name = f"bluev3:{self.voice}:speed{self.extra['speed']:g}@{self.base_url}"
+        # the model also speaks Spanish, Italian and German in the same voice inside <es>…</es> style tags
+        self.language_spans = True
 
 
 class ElevenLabsTTS:
@@ -262,15 +264,21 @@ class TTSRouter:
         except Exception:
             return None
 
-    async def synth(self, text: str, hint: str | None = None):
-        """Yield (pcm16_bytes, sample_rate, language, engine_name)."""
-        lang = dominant_language(text, default=hint if hint in ("he", "en") else self.default)
+    async def synth(self, text: str, hint: str | None = None, foreign: str | None = None):
+        """Yield (pcm16_bytes, sample_rate, language, engine_name).
+
+        `foreign`: the language the user is practising (es / it / de), when the caller knows it.
+        """
+        lang = speech_language(text, hint, self.default)
         engine = self.engine_for(lang)
         if lang == "he":
-            text = he_pronounce(text)  # e.g. זאפי -> זַאפִּי ("zappy", not "zaffy"); only the audio changes
+            text = he_pronounce(text)  # names with a fixed reading (מאור, Zappy); only the audio changes
+        # a Spanish / Italian / German phrase inside Hebrew is spoken with that language's pronunciation, same voice;
+        # the backup voice does not know the tags and gets the plain text
+        marked = mark_foreign(text, foreign) if lang == "he" and getattr(engine, "language_spans", False) else text
         started = False
         try:
-            async for pcm in engine.synth(text, lang):
+            async for pcm in engine.synth(marked, lang):
                 started = True
                 yield pcm, engine.sample_rate, lang, engine.name
         except (asyncio.CancelledError, GeneratorExit):
