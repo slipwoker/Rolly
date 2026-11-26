@@ -52,6 +52,8 @@ def test_the_pod_scripts_require_the_key_and_keep_vllm_private_and_quiet():
     assert '--host "$VLLM_HOST"' in setup and 'VLLM_HOST="${ROLLY_VLLM_HOST:-127.0.0.1}"' in setup
     assert "ROLLY_GPU_API_KEY is required" in setup and "ROLLY_GPU_API_KEY is required" in start
     assert "--host 0.0.0.0 --port 8081" not in setup
+    # vLLM's compile caches live on the volume, so a pod restart does not recompile the model
+    assert 'VLLM_CACHE_ROOT="$WS/cache/vllm"' in setup and 'TRITON_CACHE_DIR="$WS/cache/triton"' in setup
 
 
 async def test_pipeline_does_not_log_the_users_name(capsys):
