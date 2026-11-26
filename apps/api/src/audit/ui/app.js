@@ -52,7 +52,11 @@
       return "$" + Math.round(v).toLocaleString("en-US");
     },
     ms(x) { return x === null || x === undefined ? "-" : Number(x) >= 10000 ? (Number(x) / 1000).toFixed(1) + " s" : Math.round(Number(x)).toLocaleString("en-US") + " ms"; },
-    pct(x) { return x === null || x === undefined ? "-" : Math.round(Number(x) * 100) + "%"; },
+    pct(x) {
+      if (x === null || x === undefined) return "-";
+      const v = Number(x) * 100;
+      return (v > 0 && v < 10 ? v.toFixed(1) : Math.round(v)) + "%";
+    },
     n(x, d = 0) { return x === null || x === undefined || !Number.isFinite(Number(x)) ? "-" : Number(x).toLocaleString("en-US", { maximumFractionDigits: d }); },
     dur(sec) {
       if (sec === null || sec === undefined) return "-";
@@ -83,7 +87,7 @@
   const REVIEW_TAGS = ["great", "bot_speak", "misheard", "wrong_language", "wrong_gender", "forgot_context", "invented_fact", "too_long",
     "too_many_questions", "ignored_user", "bad_opener", "latency"];
   const PURPOSE_LABEL = { summary: "Summary", live_command: "Live memory command", capture: "Note capture", plan: "Next-ride plan",
-    scrub: "Forget (scrub)", consolidate: "Digest", judge: "LLM judge", other: "Other", gpu: "GPU time" };
+    scrub: "Forget (scrub)", consolidate: "Digest", judge: "LLM judge", other: "Other" };
 
   // ------------------------------------------------------------------ API
   const filters = { days: Number(store.get("audit.days", "30")) || 30, selftest: store.get("audit.selftest", "0") === "1" };
@@ -297,15 +301,18 @@
         tile("Health score", k.avg_score ?? "-", `${fmt.n(k.flagged)} flagged (${fmt.pct(k.flagged_share)})`),
         tile("Judge", k.judge_avg === null ? "-" : `${k.judge_avg} / 5`, `${k.judged} judged`),
         tile("Owner review", k.review_avg === null ? "-" : `${k.review_avg} / 5`, `${k.reviewed} reviewed`),
-        tile("Spend", fmt.usd(k.total_usd), `API ${fmt.usd(k.api_usd)} · GPU ${fmt.usd(k.gpu_usd)}`, "API: measured tokens x prices. GPU: conversation time x hourly rate."),
-        tile("Cost / minute", fmt.usd(k.usd_per_minute), `API per conversation ${fmt.usd(k.api_usd_per_conversation)}`),
+        tile("Spend", fmt.usd(k.total_usd), `GPU pod (fixed) ${fmt.usd(k.gpu_usd)} · API ${fmt.usd(k.api_usd)}`,
+          "GPU: the pod's hourly price for every hour it was up, used or not. API: measured utility-model tokens at list price."),
+        tile("Cost / minute talked", fmt.usd(k.usd_per_minute), `one more minute adds ${fmt.usd(k.api_usd_per_minute)} · GPU busy ${fmt.pct(k.gpu_busy_share)}`,
+          "All-in: everything spent over the minutes talked. It falls as use grows, because the pod costs the same either way."),
       ),
       h("div.grid.g2",
         card("Conversations per day", barChart(o.daily, [{ key: "sessions", label: "Conversations", color: series(1) }], { format: (v) => fmt.n(v), title: "Conversations per day", integer: true })),
         card("Reply latency", lineChart(o.daily, [{ key: "reply_p50", label: "p50", color: series(1) }, { key: "reply_p95", label: "p95", color: series(2) }], { format: fmt.ms, title: "Reply latency per day" })),
       ),
       h("div.grid.g2",
-        card("Spend per day", barChart(o.daily, [{ key: "gpu_usd", label: "GPU time", color: series(1) }, { key: "api_usd", label: "Utility model API", color: series(2) }], { format: fmt.usd, title: "Spend per day" })),
+        card("Variable spend per day", h("p.muted.small", `Utility-model API only. The GPU pod is fixed: ${fmt.usd(o.daily.find((d) => d.gpu_usd)?.gpu_usd ?? 0)} a day whatever the use.`),
+          barChart(o.daily, [{ key: "api_usd", label: "Utility model API", color: series(2) }], { format: fmt.usd, title: "Variable spend per day" })),
         card("What to look at", h("p.muted.small", "Flags on conversations in this range. Click one to list them."),
           hbars(o.flags.map((f) => ({ label: flagChip(f.key, null, false), n: f.n, key: f.key })), { onClick: (it) => { location.hash = `#/sessions?flag=${encodeURIComponent(it.key)}`; } })),
       ),
@@ -361,14 +368,14 @@
         { label: "Started", get: (x) => fmt.dt(x.started_at) },
         { label: "User", get: (x) => h("a", { href: `#/sessions?user_id=${x.user_id}` }, fmt.user(x.user_label, x.user_id)) },
         { label: "Lang", get: (x) => x.language },
-        { label: "Length", num: true, get: (x) => fmt.dur(x.duration_s) },
+        { label: "Duration", num: true, get: (x) => fmt.dur(x.duration_s) },
         { label: "User turns", num: true, get: (x) => x.user_turns },
         { label: "Reply p50", num: true, get: (x) => fmt.ms(x.reply_p50) },
         { label: "Bot-speak", num: true, get: (x) => fmt.pct(x.bot_speak_rate) },
         { label: "Score", num: true, get: (x) => scoreBadge(x.score) },
         { label: "Judge", num: true, get: (x) => x.judge ?? "-" },
         { label: "Review", num: true, get: (x) => x.review ? "★".repeat(x.review) : "-" },
-        { label: "Cost", num: true, get: (x) => fmt.usd(x.cost_usd) },
+        { label: "API cost", num: true, get: (x) => fmt.usd(x.api_usd) },
         { label: "Flags", wrap: true, get: (x) => h("div.row", x.flags.map((f) => flagChip(f))) },
       ], r.sessions, { onRow: (x) => { location.hash = `#/session/${x.id}`; } })),
     ];
@@ -379,7 +386,6 @@
     const s = d.session, a = d.audit || {}, q = a.quality || {}, st = s.stats || {};
     const reasons = q.flag_reasons || {};
     const apiUsd = d.llm_calls.reduce((n, c) => n + (Number(c.cost_usd) || 0), 0);
-    const gpuUsd = a.cost?.gpu_usd ?? 0;
     const usage = st.usage?.llm;
     const started = new Date(s.started_at).getTime();
 
@@ -503,12 +509,15 @@
       (a.flags || []).length ? h("div.row", a.flags.map((f) => h("span", { title: reasons[f]?.why }, flagChip(f, reasons[f]?.why)))) : null,
       (a.flags || []).length ? h("ul.small.muted", { style: "margin:0" }, a.flags.map((f) => h("li", `${(FLAGS[f] || [0, f])[1]}: ${reasons[f]?.why ?? ""}`))) : null,
       h("div.tiles",
+        tile("Duration", fmt.dur(st.duration_s), typeof st.duration_s === "number"
+          ? `${fmt.time(s.started_at).slice(0, 5)}–${fmt.time(new Date(new Date(s.started_at).getTime() + st.duration_s * 1000)).slice(0, 5)}` : "still open"),
         tile("Health score", scoreBadge(q.score)),
         tile("Reply p50", fmt.ms(q.reply_ms?.p50), `p95 ${fmt.ms(q.reply_ms?.p95)} · ${q.reply_ms?.slow ?? 0} slow`),
         tile("Interruptions", fmt.n(q.interruptions), `${fmt.pct(q.interruption_rate)} of replies`),
         tile("Bot-speak", fmt.pct(q.style?.bot_speak_rate), `${q.style?.replies ?? 0} replies · ${fmt.n(q.words?.agent_avg, 1)} words avg`),
         tile("Talk ratio", q.words?.talk_ratio ?? "-", "Rolly words per user word"),
-        tile("Cost", fmt.usd(apiUsd + gpuUsd), `API ${fmt.usd(apiUsd)} · GPU ${fmt.usd(gpuUsd)}`),
+        tile("API cost", fmt.usd(apiUsd), `${d.llm_calls.length} utility-model calls · GPU is fixed, not per conversation`,
+          "What this conversation added: its utility-model calls. The GPU pod costs the same whether or not it ran."),
         tile("Model tokens", usage ? fmt.n(usage.prompt_tokens + usage.completion_tokens) : "-", usage ? `${usage.calls} calls · ${usage.model ?? ""}` : "not reported by the pod"),
       ),
       card(null, tabs.el),
@@ -591,21 +600,26 @@
   async function costsView() {
     const c = await api("/v1/admin/audit/costs?" + qs());
     const t = c.totals;
-    const purposes = [...new Set(c.daily.flatMap((d) => Object.keys(d)).filter((k) => k !== "day" && k !== "gpu"))];
+    const purposes = [...new Set(c.daily.flatMap((d) => Object.keys(d)).filter((k) => !["day", "gpu", "minutes"].includes(k)))];
     const order = ["summary", "plan", "live_command", "capture", "consolidate", "scrub", "judge", "other"];
     purposes.sort((a, b) => (order.indexOf(a) + 99) % 99 - (order.indexOf(b) + 99) % 99);
-    const ser = [{ key: "gpu", label: "GPU time", color: series(1) }, ...purposes.slice(0, 7).map((p, i) => ({ key: p, label: PURPOSE_LABEL[p] || p, color: series(i + 2) }))];
+    const ser = purposes.slice(0, 8).map((p, i) => ({ key: p, label: PURPOSE_LABEL[p] || p, color: series(i + 1) }));
     return [
-      h("div.head", h("div", h("h1", "Costs"), h("div.muted", "Variable cost is measured: utility-model tokens at list price, and conversation time on the GPU at its hourly rate."))),
+      h("div.head", h("div", h("h1", "Costs"), h("div.muted", "Fixed: the GPU pod (billed per hour while it is up, used or not) and the monthly services. Variable: utility-model tokens, measured per call."))),
       h("div.tiles",
-        tile("Variable spend", fmt.usd(t.variable_usd), `API ${fmt.usd(t.api_usd)} · GPU ${fmt.usd(t.gpu_usd)}`),
-        tile("Per conversation minute", fmt.usd(t.usd_per_minute), `API alone ${fmt.usd(t.api_usd_per_minute)}`),
-        tile("Minutes talked", fmt.n(t.minutes, 1)),
-        tile("Monthly run-rate", fmt.usd(t.monthly_run_rate_usd), `incl. fixed ${fmt.usd(t.fixed_monthly_usd)}/month`),
-        tile("Pod if always on", fmt.usd(t.gpu_always_on_usd), `${fmt.usd(c.pricing.gpu_usd_per_hour)}/h for the whole range`,
-          "The pod is billed per hour while it exists, used or not. Compare with the GPU time conversations actually used."),
+        tile("Total spend", fmt.usd(t.total_usd), `fixed ${fmt.usd(t.gpu_usd + t.fixed_other_usd)} · variable ${fmt.usd(t.api_usd)}`),
+        tile("GPU pod (fixed)", fmt.usd(t.gpu_usd), `${fmt.usd(t.gpu_per_day_usd)}/day × ${t.pod_days} day${t.pod_days === 1 ? "" : "s"}`,
+          `${fmt.usd(c.pricing.gpu_usd_per_hour)}/h × ${c.pricing.gpu_hours_per_day} h/day, counted from the first recorded conversation`),
+        tile("GPU busy", fmt.pct(t.gpu_busy_share), `${fmt.n(t.minutes, 1)} min talked`, "Minutes talked over the minutes the pod was up"),
+        tile("Cost / minute talked", fmt.usd(t.usd_per_minute), "all-in: falls as use grows"),
+        tile("One more minute adds", fmt.usd(t.api_usd_per_minute), "marginal: utility-model API only"),
+        tile("Monthly run-rate", fmt.usd(t.monthly_run_rate_usd), `pod ${fmt.usd(t.gpu_per_day_usd * 30)} + services ${fmt.usd(t.fixed_monthly_usd)} + API`),
       ),
-      card("Spend per day", barChart(c.daily, ser, { format: fmt.usd, title: "Spend per day by purpose" })),
+      h("div.grid.g2",
+        card("Variable spend per day", h("p.muted.small", "Utility-model API by purpose."), barChart(c.daily, ser, { format: fmt.usd, title: "Variable spend per day by purpose" })),
+        card("Minutes talked per day", h("p.muted.small", `Against a fixed ${fmt.usd(t.gpu_per_day_usd)} a day for the pod.`),
+          barChart(c.daily, [{ key: "minutes", label: "Minutes", color: series(1) }], { format: (v) => fmt.n(v, 1), title: "Minutes talked per day" })),
+      ),
       h("div.grid.g2",
         card("Utility model by purpose", table([
           { label: "Purpose", get: (p) => PURPOSE_LABEL[p.purpose] || p.purpose },
@@ -622,9 +636,8 @@
           { label: "User", get: (u) => h("a", { href: `#/sessions?user_id=${u.user_id}` }, fmt.user(u.label, u.user_id)) },
           { label: "Convs", num: true, get: (u) => u.conversations },
           { label: "Minutes", num: true, get: (u) => fmt.n(u.minutes, 1) },
-          { label: "API", num: true, get: (u) => fmt.usd(u.api_usd) },
-          { label: "GPU", num: true, get: (u) => fmt.usd(u.gpu_usd) },
-          { label: "Total", num: true, get: (u) => fmt.usd(u.api_usd + u.gpu_usd) },
+          { label: "Share of minutes", num: true, get: (u) => fmt.pct(u.minutes_share) },
+          { label: "API cost", num: true, get: (u) => fmt.usd(u.api_usd) },
         ], c.by_user)),
       ),
       h("div.grid.g2",
@@ -635,7 +648,7 @@
         ], c.by_model)),
         card("Prices in use", h("dl.kv",
           ...Object.entries(c.pricing.models).flatMap(([m, p]) => [h("dt", m), h("dd", `$${p.input} in · $${p.cached} cached · $${p.output} out per 1M tokens`)]),
-          h("dt", "GPU"), h("dd", `$${c.pricing.gpu_usd_per_hour}/h, shared by ${c.pricing.gpu_sessions_share} conversation(s)`),
+          h("dt", "GPU"), h("dd", `$${c.pricing.gpu_usd_per_hour}/h × ${c.pricing.gpu_hours_per_day} h/day (fixed)`),
           ...Object.entries(c.pricing.fixed_monthly).flatMap(([k, v]) => [h("dt", k), h("dd", `$${v}/month`)])),
           h("p.muted.small", "Change with the ROLLY_PRICING environment variable (JSON). Stored costs keep the prices they were computed with.")),
       ),
@@ -683,7 +696,7 @@
         { label: "Memories", num: true, get: (u) => `${u.memories_active} + ${u.memories_candidate} unconfirmed` },
         { label: "Goals", num: true, get: (u) => u.goals_active },
         { label: "User fixes", num: true, get: (u) => u.user_fixes, },
-        { label: "Cost", num: true, get: (u) => fmt.usd(u.cost_usd) },
+        { label: "API cost", num: true, get: (u) => fmt.usd(u.api_usd) },
       ], r.users, { onRow: (u) => { location.hash = `#/sessions?user_id=${u.id}`; } })),
     ];
   }

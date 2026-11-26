@@ -2,7 +2,7 @@
  * Prices used by the audit (USD). Defaults come from docs/research/05-llm-and-frameworks.md (gpt-6-luna list price,
  * VERIFIED-official there) and COSTS.md (L40S on RunPod, measured; Render plans). Override any part without a deploy of
  * the code with ROLLY_PRICING (JSON, merged over the defaults), e.g.
- *   ROLLY_PRICING='{"models":{"gpt-6-luna":{"input":0.1,"cached":0.01,"output":0.5}},"gpu_usd_per_hour":1.09}'
+ *   ROLLY_PRICING='{"models":{"gpt-6-luna":{"input":0.1,"cached":0.01,"output":0.5}},"gpu_usd_per_hour":1.09,"gpu_hours_per_day":24}'
  *
  * Every stored cost keeps the prices it was computed with, so a later price change does not rewrite history.
  */
@@ -11,10 +11,13 @@ export interface ModelPrice { input: number; cached: number; output: number } //
 
 export interface Pricing {
   models: Record<string, ModelPrice>;
-  /** the conversation model on the GPU pod has no per-token price; its cost is GPU time */
+  /**
+   * The GPU pod is a FIXED cost: it is billed by the hour while it exists, whether it serves no conversation or ten.
+   * It is never charged to a conversation; the backoffice shows it per day and against the minutes actually talked.
+   */
   gpu_usd_per_hour: number;
-  /** conversations one GPU serves at once, used to share the hour between them (1 = this session had the pod to itself) */
-  gpu_sessions_share: number;
+  /** hours a day the pod is up (24 = always on; lower it if the pod is stopped at night) */
+  gpu_hours_per_day: number;
   /** fixed monthly infrastructure, shown next to the variable cost */
   fixed_monthly: Record<string, number>;
   /** price per 1M characters / per audio minute if speech moves to an API (0 = self-hosted on the pod) */
@@ -29,7 +32,7 @@ export const DEFAULT_PRICING: Pricing = {
     "claude-haiku-5-5": { input: 0.10, cached: 0.01, output: 0.50 },
   },
   gpu_usd_per_hour: 1.09,
-  gpu_sessions_share: 1,
+  gpu_hours_per_day: 24,
   fixed_monthly: { "Render rolly-api (Starter)": 7, "Render PostgreSQL (Basic-256MB)": 6 },
   tts_usd_per_m_chars: 0,
   stt_usd_per_audio_min: 0,
@@ -43,7 +46,7 @@ export function loadPricing(raw = process.env.ROLLY_PRICING): Pricing {
     return {
       models: { ...DEFAULT_PRICING.models, ...(o.models ?? {}) },
       gpu_usd_per_hour: num(o.gpu_usd_per_hour, DEFAULT_PRICING.gpu_usd_per_hour),
-      gpu_sessions_share: Math.max(1, num(o.gpu_sessions_share, DEFAULT_PRICING.gpu_sessions_share)),
+      gpu_hours_per_day: Math.min(24, num(o.gpu_hours_per_day, DEFAULT_PRICING.gpu_hours_per_day)),
       fixed_monthly: o.fixed_monthly ?? { ...DEFAULT_PRICING.fixed_monthly },
       tts_usd_per_m_chars: num(o.tts_usd_per_m_chars, 0),
       stt_usd_per_audio_min: num(o.stt_usd_per_audio_min, 0),
@@ -68,10 +71,8 @@ export function tokenCost(p: Pricing, model: string, u: TokenUsage): number | nu
   return ((prompt - cached) * price.input + cached * price.cached + out * price.output) / 1e6;
 }
 
-/** GPU time a conversation occupied, shared among the conversations a GPU serves at once */
-export function gpuCost(p: Pricing, durationS: number): number {
-  return (Math.max(0, durationS) / 3600) * p.gpu_usd_per_hour / p.gpu_sessions_share;
-}
+/** what the pod costs per day, used or not */
+export const gpuPerDay = (p: Pricing) => p.gpu_usd_per_hour * p.gpu_hours_per_day;
 
 /** Normalises an OpenAI-compatible `usage` object (chat completions). */
 export function parseUsage(u: unknown): TokenUsage & { reasoning_tokens?: number | null } {

@@ -15,7 +15,7 @@ export interface SessionRow {
   stats: Record<string, unknown> | null;
   quality: Record<string, unknown> | null;
   flags: string[] | null;
-  cost: { gpu_usd?: number } | null;
+  cost: Record<string, unknown> | null;
   judge: { overall?: number; scores?: Record<string, number> } | null;
   review_rating: number | null;
   prompt_hash: string | null;
@@ -43,40 +43,48 @@ export function dayKey(d: Date | string, timeZone: string): string {
 /** conversations: sessions in which the user said something */
 const isConversation = (s: SessionRow) => s.user_turns > 0;
 const minutesOf = (s: SessionRow) => (num(s.stats?.duration_s) ?? 0) / 60;
+/**
+ * The GPU pod is a fixed cost (pricing.ts): `gpuPerDay` for every day of the range on which the service existed
+ * (from the day of its first recorded session). Never divided among conversations.
+ */
+export interface FixedCost { gpuPerDay: number; gpuHoursPerDay: number; firstDay: string | null }
+const podDay = (k: string, f: FixedCost) => f.firstDay !== null && k >= f.firstDay;
+
 const q = (s: SessionRow, path: string): unknown => path.split(".").reduce<unknown>((o, k) => (o && typeof o === "object" ? (o as Record<string, unknown>)[k] : undefined), s.quality);
 
-export function overview(rows: SessionRow[], calls: CallRow[], opts: { timeZone: string; days: number }) {
+export function overview(rows: SessionRow[], calls: CallRow[], opts: { timeZone: string; days: number } & FixedCost) {
   const conv = rows.filter(isConversation);
   const replies = conv.flatMap((s) => arr(s.stats?.server_reply_ms));
   const minutes = conv.reduce((n, s) => n + minutesOf(s), 0);
   const apiUsd = calls.reduce((n, c) => n + (c.cost_usd ?? 0), 0);
-  const gpuUsd = rows.reduce((n, s) => n + (s.cost?.gpu_usd ?? 0), 0);
   const scores = conv.map((s) => num(q(s, "score"))).filter((x): x is number => x !== null);
   const judged = conv.map((s) => num(s.judge?.overall)).filter((x): x is number => x !== null);
   const reviewed = conv.map((s) => s.review_rating).filter((x): x is number => typeof x === "number");
   const flagged = conv.filter((s) => (s.flags ?? []).length > 0);
 
   // per day (local)
-  const days = new Map<string, { day: string; sessions: number; minutes: number; api_usd: number; gpu_usd: number; replies: number[]; flagged: number; users: Set<string> }>();
+  const days = new Map<string, { day: string; sessions: number; minutes: number; api_usd: number; replies: number[]; flagged: number; users: Set<string> }>();
   const dayOf = (k: string) => {
     let d = days.get(k);
-    if (!d) { d = { day: k, sessions: 0, minutes: 0, api_usd: 0, gpu_usd: 0, replies: [], flagged: 0, users: new Set() }; days.set(k, d); }
+    if (!d) { d = { day: k, sessions: 0, minutes: 0, api_usd: 0, replies: [], flagged: 0, users: new Set() }; days.set(k, d); }
     return d;
   };
   const today = new Date();
   for (let i = opts.days - 1; i >= 0; i--) dayOf(dayKey(new Date(today.getTime() - i * 86_400_000), opts.timeZone));
   for (const s of rows) {
-    const d = dayOf(dayKey(s.started_at, opts.timeZone));
-    d.gpu_usd += s.cost?.gpu_usd ?? 0;
     if (!isConversation(s)) continue;
+    const d = dayOf(dayKey(s.started_at, opts.timeZone));
     d.sessions++; d.minutes += minutesOf(s); d.replies.push(...arr(s.stats?.server_reply_ms)); d.users.add(s.user_id);
     if ((s.flags ?? []).length) d.flagged++;
   }
   for (const c of calls) dayOf(dayKey(c.at, opts.timeZone)).api_usd += c.cost_usd ?? 0;
   const daily = [...days.values()].sort((a, b) => a.day.localeCompare(b.day)).map((d) => ({
     day: d.day, sessions: d.sessions, minutes: Math.round(d.minutes * 10) / 10, users: d.users.size, flagged: d.flagged,
-    api_usd: r6(d.api_usd), gpu_usd: r6(d.gpu_usd), reply_p50: pct(d.replies, 50), reply_p95: pct(d.replies, 95),
+    api_usd: r6(d.api_usd), gpu_usd: podDay(d.day, opts) ? r6(opts.gpuPerDay) : 0, reply_p50: pct(d.replies, 50), reply_p95: pct(d.replies, 95),
   }));
+  const podDays = daily.filter((d) => podDay(d.day, opts)).length;
+  const gpuUsd = podDays * opts.gpuPerDay;
+  const podMinutes = podDays * opts.gpuHoursPerDay * 60;
 
   return {
     kpis: {
@@ -84,7 +92,10 @@ export function overview(rows: SessionRow[], calls: CallRow[], opts: { timeZone:
       minutes: Math.round(minutes * 10) / 10, avg_minutes: conv.length ? Math.round((minutes / conv.length) * 10) / 10 : null,
       reply_p50: pct(replies, 50), reply_p95: pct(replies, 95),
       api_usd: r6(apiUsd), gpu_usd: r6(gpuUsd), total_usd: r6(apiUsd + gpuUsd),
+      // all-in: everything spent in the range over the minutes talked; marginal: what one more minute adds (the API only)
       usd_per_minute: minutes ? r6((apiUsd + gpuUsd) / minutes) : null,
+      api_usd_per_minute: minutes ? r6(apiUsd / minutes) : null,
+      gpu_busy_share: podMinutes ? Math.round((minutes / podMinutes) * 10000) / 10000 : null,
       api_usd_per_conversation: conv.length ? r6(apiUsd / conv.length) : null,
       avg_score: scores.length ? Math.round(mean(scores)!) : null, judge_avg: r2(mean(judged)), judged: judged.length, review_avg: r2(mean(reviewed)), reviewed: reviewed.length,
       flagged: flagged.length, flagged_share: conv.length ? r2(flagged.length / conv.length) : null,
@@ -166,15 +177,19 @@ export function byPrompt(rows: SessionRow[]) {
   });
 }
 
-/** Costs by day and purpose, by model and by user, with a monthly run-rate. */
-export function costs(rows: SessionRow[], calls: CallRow[], opts: { timeZone: string; days: number; gpuUsdPerHour: number; fixedMonthly: Record<string, number> }) {
+/**
+ * Costs by day and purpose, by model and by user, with a monthly run-rate.
+ * Variable: utility-model calls (per conversation, per user). Fixed: the GPU pod per day and the monthly services; they are
+ * shown against the minutes talked, never split per conversation or user.
+ */
+export function costs(rows: SessionRow[], calls: CallRow[], opts: { timeZone: string; days: number; fixedMonthly: Record<string, number> } & FixedCost) {
   const byPurpose = new Map<string, { purpose: string; calls: number; failures: number; usd: number; prompt_tokens: number; completion_tokens: number; cached_tokens: number; ms: number[] }>();
   const byModel = new Map<string, { model: string; calls: number; usd: number; unpriced: number }>();
-  const byUser = new Map<string, { user_id: string; label: string | null; api_usd: number; gpu_usd: number; conversations: number; minutes: number }>();
+  const byUser = new Map<string, { user_id: string; label: string | null; api_usd: number; conversations: number; minutes: number }>();
   const labels = new Map(rows.map((s) => [s.user_id, s.user_label]));
-  const user = (id: string) => byUser.get(id) ?? byUser.set(id, { user_id: id, label: labels.get(id) ?? null, api_usd: 0, gpu_usd: 0, conversations: 0, minutes: 0 }).get(id)!;
+  const user = (id: string) => byUser.get(id) ?? byUser.set(id, { user_id: id, label: labels.get(id) ?? null, api_usd: 0, conversations: 0, minutes: 0 }).get(id)!;
   const daily = new Map<string, Record<string, number>>();
-  const dayRow = (k: string) => daily.get(k) ?? daily.set(k, { gpu: 0 }).get(k)!;
+  const dayRow = (k: string) => daily.get(k) ?? daily.set(k, {}).get(k)!;
   const today = new Date();
   for (let i = opts.days - 1; i >= 0; i--) dayRow(dayKey(new Date(today.getTime() - i * 86_400_000), opts.timeZone));
   for (const c of calls) {
@@ -188,29 +203,39 @@ export function costs(rows: SessionRow[], calls: CallRow[], opts: { timeZone: st
     const d = dayRow(dayKey(c.at, opts.timeZone));
     d[c.purpose] = (d[c.purpose] ?? 0) + (c.cost_usd ?? 0);
   }
+  const dayMinutes = new Map<string, number>();
   for (const s of rows) {
+    if (!isConversation(s)) continue;
     const u = user(s.user_id);
-    u.gpu_usd += s.cost?.gpu_usd ?? 0;
-    if (isConversation(s)) { u.conversations++; u.minutes += minutesOf(s); }
-    dayRow(dayKey(s.started_at, opts.timeZone)).gpu! += s.cost?.gpu_usd ?? 0;
+    u.conversations++; u.minutes += minutesOf(s);
+    const k = dayKey(s.started_at, opts.timeZone);
+    dayMinutes.set(k, (dayMinutes.get(k) ?? 0) + minutesOf(s));
   }
+  const keys = [...daily.keys()].sort();
+  const podDays = keys.filter((k) => podDay(k, opts)).length;
   const api = calls.reduce((n, c) => n + (c.cost_usd ?? 0), 0);
-  const gpu = rows.reduce((n, s) => n + (s.cost?.gpu_usd ?? 0), 0);
+  const gpu = podDays * opts.gpuPerDay;
   const minutes = rows.filter(isConversation).reduce((n, s) => n + minutesOf(s), 0);
-  const fixed = Object.values(opts.fixedMonthly).reduce((a, b) => a + b, 0);
+  const fixedMonthly = Object.values(opts.fixedMonthly).reduce((a, b) => a + b, 0);
+  const fixedOther = (fixedMonthly / 30) * podDays;
+  const podMinutes = podDays * opts.gpuHoursPerDay * 60;
+  const total = api + gpu + fixedOther;
   return {
     totals: {
-      api_usd: r6(api), gpu_usd: r6(gpu), variable_usd: r6(api + gpu), minutes: Math.round(minutes * 10) / 10,
-      usd_per_minute: minutes ? r6((api + gpu) / minutes) : null,
-      api_usd_per_minute: minutes ? r6(api / minutes) : null,
-      // the pod is billed by the hour while it exists, used or not: what it costs if it stayed up the whole period
-      gpu_always_on_usd: r2(opts.gpuUsdPerHour * 24 * opts.days),
-      fixed_monthly_usd: fixed,
-      monthly_run_rate_usd: r2(((api + gpu) / Math.max(1, opts.days)) * 30 + fixed),
+      api_usd: r6(api), gpu_usd: r2(gpu), fixed_other_usd: r2(fixedOther), total_usd: r2(total), pod_days: podDays,
+      minutes: Math.round(minutes * 10) / 10,
+      usd_per_minute: minutes ? r6(total / minutes) : null,        // all-in
+      api_usd_per_minute: minutes ? r6(api / minutes) : null,      // marginal: what one more minute of talk adds
+      gpu_busy_share: podMinutes ? Math.round((minutes / podMinutes) * 10000) / 10000 : null,
+      gpu_per_day_usd: r2(opts.gpuPerDay),
+      fixed_monthly_usd: fixedMonthly,
+      monthly_run_rate_usd: r2((api / Math.max(1, podDays || opts.days)) * 30 + opts.gpuPerDay * 30 + fixedMonthly),
     },
-    daily: [...daily.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, v]) => ({ day, ...Object.fromEntries(Object.entries(v).map(([k, x]) => [k, r6(x)])) })),
+    daily: keys.map((day) => ({ day, ...Object.fromEntries(Object.entries(daily.get(day)!).map(([k, x]) => [k, r6(x)])),
+      gpu: podDay(day, opts) ? r2(opts.gpuPerDay) : 0, minutes: Math.round((dayMinutes.get(day) ?? 0) * 10) / 10 })),
     by_purpose: [...byPurpose.values()].map((p) => ({ ...p, usd: r6(p.usd), ms_p50: pct(p.ms, 50), ms_p95: pct(p.ms, 95), ms: undefined })).sort((a, b) => b.usd - a.usd),
     by_model: [...byModel.values()].map((m) => ({ ...m, usd: r6(m.usd) })).sort((a, b) => b.usd - a.usd),
-    by_user: [...byUser.values()].map((u) => ({ ...u, api_usd: r6(u.api_usd), gpu_usd: r6(u.gpu_usd), minutes: Math.round(u.minutes * 10) / 10 })).sort((a, b) => (b.api_usd + b.gpu_usd) - (a.api_usd + a.gpu_usd)),
+    by_user: [...byUser.values()].map((u) => ({ ...u, api_usd: r6(u.api_usd), minutes: Math.round(u.minutes * 10) / 10,
+      minutes_share: minutes ? Math.round((u.minutes / minutes) * 1000) / 1000 : null })).sort((a, b) => b.minutes - a.minutes),
   };
 }
