@@ -11,7 +11,9 @@ import { Phone, gainDb, userSpeech, wav, type Turn } from "./phone.ts";
 
 export interface Step { say: string; gain_db?: number; barge_in_after_ms?: number; expect_reply?: boolean;
   /** stay silent this long before speaking (to let ride time pass in paced scenarios) */
-  wait_ms?: number }
+  wait_ms?: number;
+  /** after the reply, stay silent and wait for one more agent turn (the answer of an online lookup) */
+  then_another_turn?: boolean }
 export interface RunOpts {
   wsUrl: string; // full ws URL incl. ticket or dev_user
   lang: "he" | "en";
@@ -26,6 +28,8 @@ export interface RunOpts {
 export interface TurnResult {
   label: string; seq: number; text: string; audio_s: number; interrupted: boolean; proactive: boolean;
   reply_latency_ms?: number; interrupt_received_ms_after_barge_start?: number | null; user_said?: string;
+  /** for the answer of an online lookup: ms from the end of the "checking" reply's first audio to this turn's first audio */
+  after_previous_ms?: number;
 }
 
 export interface RunResult {
@@ -86,6 +90,11 @@ export async function runConversation(o: RunOpts): Promise<RunResult> {
       }
       const r = await phone.waitReply(end - 1);
       save(`reply${i + 1}`, r, { reply_latency_ms: r.firstAt! - end, user_said: step.say });
+      if (step.then_another_turn) {
+        // "checking…" was said; the answer arrives as a turn of its own, with nothing said in between
+        const more = await phone.waitReply(r.firstAt!, 40_000);
+        save(`answer${i + 1}`, more, { after_previous_ms: more.firstAt! - r.firstAt! });
+      }
     }
     phone.send({ type: "session.end" });
     await phone.waitFor(() => phone.closed, 120_000, "session.closed");

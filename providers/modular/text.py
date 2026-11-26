@@ -248,8 +248,58 @@ def he_pronounce(text: str) -> str:
     return text
 
 
+# Appended by the model when it needs to check something online.  The caller (rolly-api) does the search; here the
+# marker is only kept out of what is spoken and shown, and reported after the turn (pipeline.py).
+LOOKUP_MARKER = "<lookup/>"
+MARKERS = (END_MARKER, LOOKUP_MARKER)
+_WORDY = re.compile(r"[0-9A-Za-z\u00c0-\u024f\u0590-\u05ff]")
+
+
+def has_words(text: str) -> bool:
+    """False for a piece with nothing to say ("—", "...").  The main Hebrew voice answers such input with an error,
+    and its backup then spoke a fraction of a second in another voice (seen as 0.2 s at the backup's sample rate)."""
+    return bool(_WORDY.search(text or ""))
+
+
+class MarkerFilter:
+    """Keeps markers out of the text shown while a reply streams.
+
+    A marker arrives in several pieces ("<", "lookup", "/>"), so removing it from each piece does not work: the
+    pieces from a "<" are held back until the tag is complete (then dropped if it is a marker) or clearly not a tag.
+    """
+
+    def __init__(self) -> None:
+        self._held = ""
+
+    def feed(self, delta: str) -> str:
+        buf = self._held + delta
+        out, self._held = "", ""
+        while buf:
+            lt = buf.find("<")
+            if lt < 0:
+                out += buf
+                break
+            out += buf[:lt]
+            buf = buf[lt:]
+            gt = buf.find(">")
+            if gt < 0:
+                if len(buf) > 20 or not any(m.startswith(buf) for m in MARKERS):
+                    out += buf  # not the beginning of a marker after all
+                else:
+                    self._held = buf
+                break
+            tag, buf = buf[:gt + 1], buf[gt + 1:]
+            if tag not in MARKERS:
+                out += tag
+        return out
+
+    def flush(self) -> str:
+        out, self._held = self._held, ""
+        return out
+
+
 def clean_for_speech(text: str) -> str:
-    text = text.replace(END_MARKER, " ")
+    text = text.replace(END_MARKER, " ").replace(LOOKUP_MARKER, " ")
     text = _STRIP.sub(" ", text)
     text = _EMOJI.sub("", text)
     return re.sub(r"\s+", " ", text).strip()

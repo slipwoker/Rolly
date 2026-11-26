@@ -18,6 +18,11 @@ export interface StyleMarks {
   promise: boolean;
   /** names the user's feeling back to them, the way a help line does */
   therapist: boolean;
+  /**
+   * claims a body or a life of its own: hungry, tired, at home, at work, something "around" it. Rolly has opinions and
+   * tastes, not a body (owner's decision, 2026-11-26: "אני ממש רעב… המזגן הזה" confused a tester: "אין פה שום מזגן").
+   */
+  self_body: boolean;
   /** ends with a question */
   question: boolean;
   words: number;
@@ -33,6 +38,12 @@ const APOLOGY = /(סליחה|מצטער|מצטערת|טעות שלי|התבלב�
 const PROMISE = /(אשתדל|אני אנסה|אנסה ל|אני אקשיב|אני אהיה יותר|מעכשיו אני|i'?ll try|i will try|from now on i)/i;
 const THERAPIST = /(זה באמת (?:מציק|קשה|מתסכל|מעצבן|חשוב|לא פשוט)|נשמע ש(?:זה|אתה|את|עובר)|אני (?:מבין|מבינה) (?:אותך|למה|ש)|זה (?:לגמרי )?(?:מובן|לגיטימי|טבעי) ש|it sounds like you|that must be|i can imagine|that'?s (?:completely )?(?:understandable|valid))/i;
 
+const ADV = "(?:ממש |קצת |כל כך |כבר |תמיד |גם |פשוט |בדיוק |עכשיו |די |לא |עוד |אישית )*";
+const SELF_BODY = new RegExp(
+  `(?:אני|הייתי|ואני|שאני) ${ADV}(?:רעב|צמא|עייף|מת מ|קפוא|מזיע|שבע|חולה|בבית|במשרד|בעבודה|בדרך ל|יושב|שוכב|שותה|נוהג|לוקח איתי|ישן|נרדם|מעדיף לשבת|(?:צריך|חייב) (?:קפה|לאכול|לישון|לנוח)|עובד ב|גר ב)`
+  + "|קר לי|חם לי|כואב לי|המזגן|הבטן שלי|הקפה שלי|אצלי ב(?:בית|משרד|עבודה)|כשאני (?:נוסע|טס|נוהג|אוכל|ישן)"
+  + "|\\bi(?:'m| am) (?:so |really |a bit |just )?(?:hungry|thirsty|tired|cold|sleepy|at home|at work|sitting|driving)\\b|\\bmy (?:coffee|stomach|office|house)\\b", "i");
+
 export function markStyle(reply: string): StyleMarks {
   const t = strip(reply);
   return {
@@ -41,13 +52,14 @@ export function markStyle(reply: string): StyleMarks {
     apology: APOLOGY.test(t),
     promise: PROMISE.test(t),
     therapist: THERAPIST.test(t),
+    self_body: SELF_BODY.test(t),
     question: /[?？]["'”״)\s]*$/.test(t),
     words: t.split(/\s+/).filter(Boolean).length,
   };
 }
 
 export interface StyleCounts { replies: number; ack: number; platitude: number; apology: number; promise: number; therapist: number;
-  question: number; questions_in_a_row: number; avg_words: number; clean: number }
+  self_body: number; question: number; questions_in_a_row: number; avg_words: number; clean: number }
 
 /** Totals over a conversation. `clean` = replies with none of the habits (a question at the end is not a habit). */
 export function countBotSpeak(replies: string[]): StyleCounts {
@@ -57,7 +69,7 @@ export function countBotSpeak(replies: string[]): StyleCounts {
   for (let i = 1; i < m.length; i++) if (m[i]!.question && m[i - 1]!.question) inRow++;
   return {
     replies: m.length, ack: n("ack"), platitude: n("platitude"), apology: n("apology"), promise: n("promise"), therapist: n("therapist"),
-    question: n("question"), questions_in_a_row: inRow,
+    self_body: n("self_body"), question: n("question"), questions_in_a_row: inRow,
     avg_words: m.length ? Math.round((m.reduce((s, x) => s + x.words, 0) / m.length) * 10) / 10 : 0,
     clean: m.filter((x) => !x.ack && !x.platitude && !x.apology && !x.promise && !x.therapist).length,
   };

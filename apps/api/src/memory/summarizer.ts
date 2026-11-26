@@ -42,6 +42,8 @@ importance: 3 = central to who this person is or what they are working towards, 
 An ITEM that says the same as something already in "Known memories" must not be returned again.
 Do not invent anything that is not supported by the transcript. If the transcript is empty or trivial, use empty lists.
 
+How to write about the user in Hebrew: {addressing}
+
 Previously open topics:
 {open_topics}
 
@@ -152,11 +154,24 @@ export function fallbackSummary(turns: SessionTurn[]): SummaryResult {
   };
 }
 
+/**
+ * How derived text (summaries, notes, plan items) refers to the user in Hebrew. These texts go back into the
+ * conversation model's prompt: a summary that says "היא" while the profile says "unknown", or "המשתמש" for a woman,
+ * made Rolly switch between masculine and feminine within one ride.
+ */
+export function writeAbout(addressing: "masculine" | "feminine" | "plural" | null | undefined): string {
+  if (addressing === "feminine") return "the user is a woman: feminine forms for her (היא, אמרה, רוצה ש…).";
+  if (addressing === "masculine") return "the user is a man: masculine forms for him (הוא, אמר).";
+  return "it is not known whether the user is a man or a woman. Write WITHOUT gendered forms for the user, in the summary and in every item: impersonal phrasing (\"דובר על…\", \"עלה ש…\", \"התוכנית היא…\"), never \"הוא\", \"היא\", \"המשתמש\" or \"המשתמשת\".";
+}
+
 export async function summarizeSession(llm: UtilityLlm | null, turns: SessionTurn[], ctx: {
   openTopics: string[]; known: { id: string; content: string }[]; candidates: { id: string; content: string }[];
+  addressing?: "masculine" | "feminine" | "plural" | null;
 }): Promise<SummaryResult> {
   if (!turns.some((t) => t.role === "user") || !llm) return fallbackSummary(turns);
   const prompt = SUMMARY_PROMPT
+    .replace("{addressing}", writeAbout(ctx.addressing))
     .replace("{open_topics}", ctx.openTopics.map((t) => `- ${t}`).join("\n") || "- (none)")
     .replace("{known}", ctx.known.map((m) => `- ${m.id}: ${m.content}`).join("\n") || "- (none)")
     .replace("{candidates}", ctx.candidates.map((m) => `- ${m.id}: ${m.content}`).join("\n") || "- (none)")

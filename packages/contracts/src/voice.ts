@@ -126,6 +126,8 @@ export const PodEvent = {
   METRIC: "metric",
   USAGE: "usage",
   END_REQUESTED: "session.end_requested",
+  /** the model said it is checking something online (its reply carried the lookup marker) */
+  LOOKUP_REQUESTED: "session.lookup_requested",
   ERROR: "error",
 } as const;
 

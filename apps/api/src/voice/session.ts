@@ -15,10 +15,12 @@ import { PodSession, type PodAudio } from "./podClient.ts";
 import { Pacer, parseRemainingMinutes } from "./pacing.ts";
 import { PlanFeeder, type PlanItem } from "./planFeeder.ts";
 import { styleGuardNote } from "../persona/style.ts";
-import { NOTE } from "../persona/core.ts";
+import { NOTE, LOOKUP_MARKER } from "../persona/core.ts";
 import { StreamResampler } from "./resampler.ts";
 
 export const END_MARKER = "<end_session/>";
+const stripMarkers = (t: string) => t.replace(END_MARKER, "").replace(LOOKUP_MARKER, "");
+const LOOKUP_TIMEOUT_MESSAGE = "[lookup_failed - not said by the user] The online check did not work just now. Say so in a few words, do not guess the answer, and go on with the conversation.";
 
 /** What the relay needs from the phone connection (a ws.WebSocket satisfies it; tests use a fake). */
 export interface ClientSocket {
@@ -51,7 +53,9 @@ export interface PreparedSession {
 }
 
 /** Something to tell the conversation model on its next turn(s) through the pod's note channel. */
-export interface TurnNote { text: string; turns: number }
+export interface TurnNote { text: string; turns: number;
+  /** holds for the rest of the conversation (e.g. how to address the user): sent again when its turns run out */
+  standing?: boolean }
 
 /** A note as sent, for the audit: what, when (seconds into the session) and for how many turns. */
 export interface NoteRecord { kind: string; text: string; turns: number; at_s: number }
@@ -61,6 +65,11 @@ export interface SessionHooks {
   prepare(userId: string, sessionId: string, start: ClientSessionStart): Promise<PreparedSession>;
   /** called for every final user turn while the session runs (live corrections, explicit addressing requests) */
   onUserTurn?(args: { userId: string; sessionId: string; turn: SessionTurn; recent: SessionTurn[] }): Promise<TurnNote | void>;
+  /**
+   * The model said it is checking something online: find the answer. Resolves with the marked message the model is
+   * given next (lookup/web.ts: the facts, or that the check did not work). Never rejects in normal operation.
+   */
+  lookup?(args: { userId: string; sessionId: string; question: string; recent: { role: "user" | "agent"; text: string }[]; language: string }): Promise<{ message: string; ok: boolean; reason?: string }>;
   /** called at the end; returns the summary that is sent to the phone */
   finalize(args: { userId: string; sessionId: string; turns: SessionTurn[]; stats: Record<string, unknown>; endReason: string;
     describe: Record<string, unknown>; language: string; startedAt: Date;
@@ -74,14 +83,15 @@ export interface PodConfig {
 }
 
 /** Weak hint only: a final utterance much quieter than the session's reference level is less likely to be the phone's
- * owner speaking into the phone. Used to mark a turn "uncertain" (never to mark it as the user). */
+ * owner speaking into the phone. Used to mark a turn "uncertain" (never to mark it as the user).
+ * A much LOUDER utterance is no longer a hint (P1-D33): someone else in the car is farther from the microphone, so
+ * quieter; louder is the owner speaking up. On 2026-11-26 a tester's "אני בת" was dropped for being loud. */
 export const QUIET_MARGIN_DB = 10;
 
 export function attributionFor(d: Record<string, unknown>): { attribution: "primary" | "uncertain"; why?: string } {
   const level = typeof d.level_db === "number" ? d.level_db : null;
   const ref = typeof d.ref_level_db === "number" ? d.ref_level_db : null;
   if (level !== null && ref !== null && level < ref - QUIET_MARGIN_DB) return { attribution: "uncertain", why: "much_quieter_than_reference" };
-  if (level !== null && ref !== null && level > ref + QUIET_MARGIN_DB) return { attribution: "uncertain", why: "much_louder_than_reference" };
   return { attribution: "primary" };
 }
 
@@ -130,6 +140,16 @@ export class VoiceSession {
   /** Rolly's completed replies, for the style guard */
   private replies: string[] = [];
   private lastUserWords: number | null = null;
+  private standing: { text: string; turns: number; left: number } | null = null;
+  // ---- online lookups: the result is handed to the model at a quiet moment (sending text cuts a turn in progress)
+  private agentBusy = false; // a reply is being generated or synthesised
+  private userBusy = false; // the user is speaking, or has spoken and the reply has not started yet
+  private userBusySince = 0;
+  private lookupRunning = false;
+  private inject: { message: string; readyAt: number } | null = null;
+  private injectTimer: NodeJS.Timeout | null = null;
+  /** the next agent turn answers an injected message, not the user: no reply-latency measurement for it */
+  private injectedNext = false;
   private language: string = "auto";
   private describe: Record<string, unknown> = {};
   private done: Promise<void>;
@@ -148,6 +168,8 @@ export class VoiceSession {
      * including a silent switch to the pod's backup Hebrew voice.
      */
     voice_bytes_by_rate: {} as Record<string, number>,
+    /** online lookups: when asked (seconds into the session), how long the search took, how long until it was said */
+    lookups: [] as { at_s: number; ok: boolean; reason?: string; search_ms: number; delivered_after_ms: number | null }[],
     /** raw units reported by the pod (`usage` events): conversation-model tokens, synthesised characters, transcribed audio */
     usage: {
       llm: { calls: 0, prompt_tokens: 0, completion_tokens: 0, cached_tokens: 0, max_prompt_tokens: 0, model: null as string | null },
@@ -245,6 +267,8 @@ export class VoiceSession {
    */
   private afterReply(text: string, proactive: boolean) {
     this.replies.push(text);
+    // the system prompt cannot change mid-conversation, so a standing note is repeated when the pod has used it up
+    if (this.standing && --this.standing.left <= 0) { this.standing.left = this.standing.turns; this.note("standing", this.standing.text, this.standing.turns); }
     const guard = styleGuardNote(this.replies.slice(-2));
     if (guard) this.note("style", guard, 1);
     const item = this.feeder?.afterReply(proactive ? null : this.lastUserWords);
@@ -262,6 +286,48 @@ export class VoiceSession {
     const at_s = Math.round((Date.now() - this.startedAt.getTime()) / 1000);
     this.stats.notes.push({ kind, at_s });
     this.noteLog.push({ kind, text: text.slice(0, 600), turns, at_s });
+  }
+
+  // ------------------------------------------------------------ online lookups
+  /** The model said "checking" (its reply carried the lookup marker): search, then tell it the answer at a quiet moment. */
+  private startLookup() {
+    if (this.closing || this.lookupRunning || !this.hooks.lookup) return;
+    const users = this.turns.filter((t) => t.role === "user");
+    const question = users.at(-1)?.text;
+    if (!question) return;
+    this.lookupRunning = true;
+    const t0 = Date.now();
+    const at_s = Math.round((t0 - this.startedAt.getTime()) / 1000);
+    const recent = this.turns.slice(-6).map((t) => ({ role: t.role, text: t.text }));
+    const guard = new Promise<{ message: string; ok: boolean; reason?: string }>((r) => setTimeout(() => r({ message: LOOKUP_TIMEOUT_MESSAGE, ok: false, reason: "timeout" }), 16_000));
+    Promise.race([this.hooks.lookup({ userId: this.userId, sessionId: this.sessionId, question, recent, language: this.language }), guard])
+      .catch((e) => ({ message: LOOKUP_TIMEOUT_MESSAGE, ok: false, reason: String(e).slice(0, 80) }))
+      .then((r) => {
+        const rec = { at_s, ok: r.ok, ...(r.reason ? { reason: r.reason } : {}), search_ms: Date.now() - t0, delivered_after_ms: null as number | null };
+        this.stats.lookups.push(rec);
+        if (this.closing) { this.lookupRunning = false; return; }
+        this.inject = { message: r.message, readyAt: Date.now() };
+        const tryNow = () => {
+          if (this.closing || !this.inject) { this.stopInject(); return; }
+          const waited = Date.now() - this.inject.readyAt;
+          // a user who started speaking and got no reply within 4 s was not answered (noise, a discarded utterance)
+          if (this.userBusy && Date.now() - this.userBusySince > 4_000) this.userBusy = false;
+          const quiet = !this.agentBusy && !this.userBusy && Date.now() >= this.playbackUntil + 300;
+          if (!quiet && waited < 20_000) return;
+          this.injectedNext = true;
+          this.pod?.sendText(this.inject.message);
+          rec.delivered_after_ms = Date.now() - t0;
+          this.stats.notes.push({ kind: r.ok ? "lookup_result" : "lookup_failed", at_s: Math.round((Date.now() - this.startedAt.getTime()) / 1000) });
+          this.stopInject();
+        };
+        this.injectTimer = setInterval(tryNow, 250);
+        tryNow();
+      });
+  }
+
+  private stopInject() {
+    if (this.injectTimer) clearInterval(this.injectTimer);
+    this.injectTimer = null; this.inject = null; this.lookupRunning = false;
   }
 
   // ------------------------------------------------------------ phone -> pod
@@ -330,7 +396,11 @@ export class VoiceSession {
     if (this.closing && ev !== PodEvent.AGENT_TURN_DONE) return;
     switch (ev) {
       case PodEvent.USER_SPEECH_STARTED:
+        this.userBusy = true; this.userBusySince = Date.now();
         this.send({ type: "user.speech_started" });
+        break;
+      case PodEvent.LOOKUP_REQUESTED:
+        this.startLookup();
         break;
       case PodEvent.USER_SPEECH_STOPPED:
         this.lastSpeechStoppedT = Date.now();
@@ -339,6 +409,9 @@ export class VoiceSession {
       case PodEvent.USER_TRANSCRIPT: {
         const text = String(d.text ?? "").trim();
         const final = Boolean(d.final);
+        // our own marked message coming back as "typed text" (a lookup result): not the user's words, not shown, not stored
+        if (d.typed && text.startsWith("[")) break;
+        if (final && d.discarded) this.userBusy = false; // nothing will be answered
         if (final && text && !d.discarded) {
           this.stats.turns_user++;
           const a = attributionFor(d);
@@ -354,7 +427,11 @@ export class VoiceSession {
             if (left !== null) { this.pacer.setRemaining(left, Date.now()); this.stats.notes.push({ kind: `time_left_${left}`, at_s: Math.round((Date.now() - this.startedAt.getTime()) / 1000) }); }
           }
           this.hooks.onUserTurn?.({ userId: this.userId, sessionId: this.sessionId, turn, recent: this.turns.slice(-8) })
-            .then((n) => { if (n) this.note("memory", n.text, n.turns); })
+            .then((n) => {
+              if (!n) return;
+              if (n.standing) { this.standing = { text: n.text, turns: n.turns, left: n.turns }; this.note("standing", n.text, n.turns); }
+              else this.note("memory", n.text, n.turns);
+            })
             .catch((e) => this.log("onUserTurn failed", { error: String(e).slice(0, 200) }));
         }
         this.send({ type: "user.transcript", text: String(d.text ?? ""), final, language: (d.language as string) ?? null });
@@ -362,14 +439,16 @@ export class VoiceSession {
       }
       case PodEvent.AGENT_TURN_STARTED: {
         const rid = String(d.response_id);
-        if (d.proactive) this.proactiveRids.add(rid);
+        this.agentBusy = true; this.userBusy = false;
+        if (d.proactive || this.injectedNext) this.proactiveRids.add(rid);
+        this.injectedNext = false;
         this.send({ type: "agent.turn_started", seq: this.seqFor(rid), proactive: Boolean(d.proactive) });
         break;
       }
       case PodEvent.AGENT_TEXT: {
         const rid = String(d.response_id);
         this.agentPartial.set(rid, (this.agentPartial.get(rid) ?? "") + String(d.delta ?? ""));
-        this.send({ type: "agent.text", seq: this.seqFor(rid), delta: String(d.delta ?? "").replace(END_MARKER, "") });
+        this.send({ type: "agent.text", seq: this.seqFor(rid), delta: stripMarkers(String(d.delta ?? "")) });
         break;
       }
       case PodEvent.AGENT_TURN_DONE: {
@@ -380,8 +459,9 @@ export class VoiceSession {
           const tail = rs.flush();
           if (tail.byteLength) this.sendAudio(seq, tail, rid);
         }
-        const text = String(d.text ?? this.agentPartial.get(rid) ?? "").replace(END_MARKER, "").trim();
+        const text = stripMarkers(String(d.text ?? this.agentPartial.get(rid) ?? "")).trim();
         this.stats.turns_agent++;
+        this.agentBusy = false;
         const usage = d.usage && typeof d.usage === "object" ? d.usage as Record<string, unknown> : null;
         if (text) this.addTurn("agent", text, null, "primary", { proactive: this.proactiveRids.has(rid), rid, ...this.turnMetrics.get(rid),
           ...(usage && typeof usage.prompt_tokens === "number" ? { prompt_tokens: usage.prompt_tokens, completion_tokens: usage.completion_tokens ?? null } : {}) });
@@ -392,6 +472,7 @@ export class VoiceSession {
         break;
       }
       case PodEvent.AGENT_INTERRUPTED: {
+        this.agentBusy = false;
         const rid = String(d.response_id ?? "?");
         const seq = this.seqFor(rid);
         this.stats.interruptions++;
@@ -470,6 +551,7 @@ export class VoiceSession {
     if (this.endTimer) clearTimeout(this.endTimer);
     if (this.maxTimer) clearTimeout(this.maxTimer);
     if (this.paceTimer) clearInterval(this.paceTimer);
+    if (this.injectTimer) clearInterval(this.injectTimer);
     this.pod?.close();
     let summary: unknown = null;
     const stats = this.summaryStats();
@@ -500,7 +582,7 @@ export class VoiceSession {
       voice_s_by_rate: Object.fromEntries(Object.entries(s.voice_bytes_by_rate).map(([rate, bytes]) => [rate, +(bytes / 2 / Number(rate)).toFixed(1)])),
       server_reply_ms: s.reply_ms, server_reply_ms_median: med(s.reply_ms),
       client_first_audio_ms: s.client_first_audio_ms, client_first_audio_ms_median: med(s.client_first_audio_ms),
-      client_flush_ms: s.client_flush_ms, audio_events: s.audio_events, notes: s.notes,
+      client_flush_ms: s.client_flush_ms, audio_events: s.audio_events, notes: s.notes, lookups: s.lookups,
       pod_metrics_median: Object.fromEntries(Object.entries(s.pod_metrics).map(([k, v]) => [k, med(v)])),
       pod_metrics_count: Object.fromEntries(Object.entries(s.pod_metrics).map(([k, v]) => [k, v.length])),
       usage: s.usage,

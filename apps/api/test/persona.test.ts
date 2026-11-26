@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { END_MARKER, NOTE, core } from "../src/persona/core.ts";
+import { END_MARKER, LOOKUP_MARKER, NOTE, core } from "../src/persona/core.ts";
 import { buildContext, emptyMemory, practiceLanguage, resolveLanguage, type MemoryView } from "../src/persona/promptBuilder.ts";
 import { PROMPT } from "../src/memory/select.ts";
 
@@ -31,6 +31,7 @@ describe("the system prompt stays small (P1-D24)", () => {
       const ctx = buildContext(m, { language: "he", journey: { duration_min: 40 }, now, resume: undefined });
       expect(ctx.system_prompt.length).toBeLessThan(PROMPT.total);
       expect(tokens(ctx.system_prompt)).toBeLessThan(1_300);
+      if (process.env.SHOW_BUDGET) console.log("stuffed prompt tokens:", tokens(ctx.system_prompt), "chars:", ctx.system_prompt.length);
       expect(ctx.opener_instruction!.length).toBeLessThan(700);
     }
     // a dropped connection adds the last turns, still within the budget
@@ -59,7 +60,8 @@ describe("the system prompt stays small (P1-D24)", () => {
 describe("what the prompt does say", () => {
   it("the persona: a friend with opinions, short turns, substance first, no bot-speak, nothing invented", () => {
     const c = core("he");
-    for (const must of ["You are Rolly", "You have opinions", "about fifteen words", "Start with the substance", "No general wisdom about life",
+    for (const must of ["You are Rolly", "You have opinions and tastes", "You have no body and no life outside these rides", "What you can do, and say when they ask",
+      "about fifteen words", "Start with the substance", "No general wisdom about life",
       "Never apologise, never promise", "Never invent facts", "You cannot play music", "Others may be in the car", END_MARKER]) expect(c).toContain(must);
     // no Hebrew example phrases (the small model parrots them) and no "react first" rule (it produced the stock openers)
     expect(c).not.toMatch(/[֐-׿]/);
@@ -118,11 +120,39 @@ describe("what the prompt does say", () => {
   it("openers: the plan's first item, else last time, else something of its own; a task check asks lightly", () => {
     const withSummary = mem({ summaries: [{ content: "דובר על משהו.", createdAt: ago(1) }] });
     expect(buildContext(withSummary, { language: "he", now }).opener_instruction).toContain("what you talked about last time");
-    expect(buildContext(mem(), { language: "he", now }).opener_instruction).toContain("one light, concrete thing you bring up yourself, as a statement");
+    // nothing known: a question about them, never something about Rolly itself
+    const blank = buildContext(mem(), { language: "he", now }).opener_instruction!;
+    expect(blank).toContain("one light, specific question about them");
+    expect(blank).toContain("nothing about yourself");
+    expect(blank).not.toContain("bring up yourself");
     const check = mem({ agenda: { created_at: ago(1).toISOString(), session_id: null, items: [{ topic: "השיחה עם רואה החשבון", why: "", kind: "action_check", ref_id: null }] } });
     expect(buildContext(check, { language: "he", now }).opener_instruction).toContain("asking lightly whether it got done");
     expect(buildContext(withSummary, { language: "he", now, resume: [{ role: "user", text: "היי" }] }).opener_instruction).toContain("connection dropped");
     expect(buildContext(mem(), { language: "auto", now }).opener_instruction).toContain("Speak this opening in Hebrew.");
+  });
+});
+
+describe("online lookups (P1-D34)", () => {
+  it("the persona explains the marker only when lookups are connected, and stays within its size", () => {
+    const off = core("he"), on = core("he", { lookup: true });
+    expect(off).toContain("or check anything online: say so in a few words");
+    expect(off).not.toContain(LOOKUP_MARKER);
+    expect(on).toContain(`say you are checking, in two or three words, and append the exact marker ${LOOKUP_MARKER}`);
+    expect(on).toContain("never guess such facts");
+    expect(on).not.toContain("or check anything online");
+    // the price of the capability: about 60 tokens on top of the persona
+    expect(on.length - off.length).toBeLessThan(260);
+    expect(on.length).toBeLessThan(2_500);
+    expect(buildContext(mem(), { language: "he", now, lookup: true }).system_prompt).toContain(LOOKUP_MARKER);
+    expect(buildContext(mem(), { language: "he", now }).system_prompt).not.toContain(LOOKUP_MARKER);
+  });
+  it("a full prompt with lookups on still fits the budget", () => {
+    const long = (n: number, each: number) => Array.from({ length: n }, (_, i) => `פריט ${i} ` + "מילה ".repeat(Math.ceil(each / 5)));
+    const big = mem({ profile: { ...emptyMemory().profile, preferredName: "דני", preferences: Object.fromEntries(long(9, 300).map((v, i) => [`noted ${i}`, v])), addressing: { value: null, status: "unknown" } },
+      goals: Array.from({ length: 6 }, (_, i) => ({ id: `g${i}`, kind: "goal" as const, content: "מטרה " + "א".repeat(200), status: "active" as const, stateNote: "מצב ".repeat(200), nextStep: "צעד ".repeat(100) })),
+      facts: long(30, 200), tasks: long(20, 200).map((c, i) => ({ id: `t${i}`, content: c, createdAt: ago(i) })), summaries: [{ content: "סיכום ".repeat(400), createdAt: ago(1) }] });
+    const p = buildContext(big, { language: "he", journey: { duration_min: 40 }, now, lookup: true }).system_prompt;
+    expect(tokens(p)).toBeLessThan(1_350);
   });
 });
 

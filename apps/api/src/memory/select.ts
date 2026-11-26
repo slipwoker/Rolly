@@ -82,8 +82,8 @@ export const BUDGET = {
  */
 export const PROMPT = {
   total: 4_800,
-  digest: 350, facts: 5, factsChars: 400, interestsChars: 120, prefs: 3, prefsChars: 300,
-  goals: 2, goalState: 120, goalNext: 80, tasks: 3, tasksChars: 200, summary: 250,
+  digest: 320, facts: 5, factsChars: 340, interestsChars: 120, prefs: 3, prefsChars: 300,
+  goals: 2, goalState: 120, goalNext: 80, tasks: 3, tasksChars: 200, summary: 220,
 } as const;
 
 export function clip(text: string, max: number): string {

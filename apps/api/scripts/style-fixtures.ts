@@ -30,11 +30,16 @@ const returning: MemoryView = {
   ] },
 };
 
+/** A user Rolly has met but knows nothing about right now (they cleared their memory): no summary, no plan. */
+const quiet: MemoryView = { ...emptyMemory(), sessionCount: 3 };
+
+// `--as <name>` writes the files under another variant name (to keep a "before" next to the current code's "lean")
+const AS = process.argv.includes("--as") ? process.argv[process.argv.indexOf("--as") + 1]! : "lean";
 const plans: Record<string, unknown> = {};
-for (const [name, mem] of [["returning", returning], ["first", emptyMemory()]] as const) {
+for (const [name, mem] of [["returning", returning], ["first", emptyMemory()], ["quiet", quiet]] as const) {
   const c = buildContext(mem, { language: "he", now, journey: {} });
-  writeFileSync(resolve(DIR, `prompt_lean_${name}.txt`), c.system_prompt);
-  writeFileSync(resolve(DIR, `opener_lean_${name}.txt`), c.opener_instruction ?? "");
+  writeFileSync(resolve(DIR, `prompt_${AS}_${name}.txt`), c.system_prompt);
+  writeFileSync(resolve(DIR, `opener_${AS}_${name}.txt`), c.opener_instruction ?? "");
   plans[name] = c.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind }));
   console.log(name, c.system_prompt.length, "chars; plan items:", c.agenda.length);
 }
@@ -42,7 +47,8 @@ const file = resolve(DIR, "variants.json");
 const variants = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>;
 variants.main = { prompt: "main" };
 // production as built: lean prompt, style guard, plan fed by conditional notes, the configured sampling
-variants.lean = { prompt: "lean", guard: true, plan: plans.returning, sampling: { ...DEFAULT_SAMPLING } };
+variants[AS] = { prompt: AS, guard: true, plan: plans.returning, sampling: { ...DEFAULT_SAMPLING } };
+if (AS !== "lean") { writeFileSync(file, JSON.stringify(variants, null, 1)); process.exit(0); }
 variants["lean-no-guard"] = { prompt: "lean", plan: plans.returning };
 variants["lean-warmer"] = { prompt: "lean", guard: true, plan: plans.returning, sampling: { temperature: 0.7, repetition_penalty: 1.05 } };
 writeFileSync(file, JSON.stringify(variants, null, 1));

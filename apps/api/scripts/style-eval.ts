@@ -35,7 +35,7 @@ const END_MARKER = "<end_session/>";
 interface Variant { prompt: string; guard?: boolean; question_guard?: boolean; sampling?: Record<string, number>; max_tokens?: number;
   /** plan items fed one at a time by notes (voice/planFeeder.ts); item 0 is already in the opener file */
   plan?: PlanItem[] }
-interface Script { id: string; memory: "returning" | "first"; user: string[] }
+interface Script { id: string; memory: "returning" | "first" | "quiet"; user: string[] }
 
 /** What a driver says. Short and flat on purpose: this is where a model falls back on filler. */
 export const SCRIPTS: Script[] = [
@@ -49,6 +49,9 @@ export const SCRIPTS: Script[] = [
   { id: "asks_for_an_opinion", memory: "returning", user: [
     "אני מתלבט אם לקנות רכב חשמלי.", "בעיקר המחיר, וזה שאין לי איפה לטעון בבית.", "אתה חושב שזה שווה את זה?",
     "ומה עם הטווח בחורף?", "אשתי דווקא נגד.", "טוב, נראה." ] },
+  // nothing in the prompt about them and flat answers: where the model made up a body for itself ("אני ממש רעב… המזגן הזה")
+  { id: "nothing_known", memory: "quiet", user: [
+    "מה?", "סתם, נוסעת לעבודה.", "בלאגן שלא תדע.", "לא יודעת.", "ומה איתך?", "מה אתה עושה כשאני לא נוסעת?", "טוב." ] },
   { id: "first_conversation", memory: "first", user: [
     "היי.", "דני.", "סתם נוסע לעבודה.", "אני עובד על סטארט-אפ.", "אפליקציה קולית לנהגים.", "מעניין, אבל קשה.",
     "לגייס כסף זה הכי קשה.", "טוב, הגעתי, ביי." ] },
@@ -143,9 +146,9 @@ async function main() {
       ttft_ms_median: median(mine.flatMap((r) => r.ttft_ms.slice(1))), opener_ttft_ms: median(mine.map((r) => r.ttft_ms[0]!)) };
   }
   const pct = (n: number, d: number) => `${Math.round((100 * n) / Math.max(1, d))}%`;
-  console.log("\nvariant            replies  ack   wisdom  apology promise therapist  2xQ  clean  words  prompt_tok  ttft  opener_ttft");
+  console.log("\nvariant            replies  ack   wisdom  apology promise therapist  2xQ  clean  words  prompt_tok  ttft  opener_ttft  body");
   for (const [id, c] of Object.entries(table)) {
-    console.log(`${id.padEnd(18)} ${String(c.replies).padStart(6)}  ${pct(c.ack, c.replies).padStart(4)}  ${pct(c.platitude, c.replies).padStart(5)}  ${pct(c.apology, c.replies).padStart(6)}  ${pct(c.promise, c.replies).padStart(6)}  ${pct(c.therapist, c.replies).padStart(7)}  ${String(c.questions_in_a_row).padStart(4)}  ${pct(c.clean, c.replies).padStart(5)}  ${String(c.avg_words).padStart(5)}  ${String(c.prompt_tokens).padStart(9)}  ${String(c.ttft_ms_median).padStart(4)}  ${String(c.opener_ttft_ms).padStart(6)}`);
+    console.log(`${id.padEnd(18)} ${String(c.replies).padStart(6)}  ${pct(c.ack, c.replies).padStart(4)}  ${pct(c.platitude, c.replies).padStart(5)}  ${pct(c.apology, c.replies).padStart(6)}  ${pct(c.promise, c.replies).padStart(6)}  ${pct(c.therapist, c.replies).padStart(7)}  ${String(c.questions_in_a_row).padStart(4)}  ${pct(c.clean, c.replies).padStart(5)}  ${String(c.avg_words).padStart(5)}  ${String(c.prompt_tokens).padStart(9)}  ${String(c.ttft_ms_median).padStart(4)}  ${String(c.opener_ttft_ms).padStart(6)}  ${pct(c.self_body, c.replies).padStart(4)}`);
   }
   const out = resolve(args.out ?? resolve(ROOT, `benchmarks/results/style_eval_${new Date().toISOString().replace(/[:.]/g, "").slice(0, 15)}.json`));
   mkdirSync(dirname(out), { recursive: true });

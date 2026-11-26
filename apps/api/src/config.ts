@@ -16,6 +16,10 @@ export interface Config {
   transcriptRetentionDays: number;
   candidateTtlDays: number;
   maxSessionMinutes: number;
+  /** the model may look things up online during a conversation (needs the utility LLM key); ROLLY_WEB_LOOKUP=0 turns it off */
+  webLookup: boolean;
+  /** at most this many lookups per user in 24 hours (each costs a search fee) */
+  lookupsPerDay: number;
   /** gate for silent device enrollment (the same value is built into the app); null = enrollment closed */
   enrollmentKey: string | null;
   /** at most this many (non-deleted) users can exist; enrollment stops there */
@@ -86,6 +90,8 @@ export function loadConfig(env = process.env): Config {
     transcriptRetentionDays: Number(env.ROLLY_TRANSCRIPT_RETENTION_DAYS ?? 30),
     candidateTtlDays: Number(env.ROLLY_CANDIDATE_TTL_DAYS ?? 14),
     maxSessionMinutes: Number(env.ROLLY_MAX_SESSION_MINUTES ?? 90),
+    webLookup: (env.ROLLY_WEB_LOOKUP ?? "1") !== "0" && Boolean(env.OPENAI_API_KEY),
+    lookupsPerDay: Number(env.ROLLY_LOOKUPS_PER_DAY ?? 30),
     devAuth,
     timezone: env.ROLLY_TIMEZONE ?? "Asia/Jerusalem",
     build: (env.RENDER_GIT_COMMIT || env.ROLLY_BUILD || "").slice(0, 12) || null,

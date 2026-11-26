@@ -17,7 +17,8 @@ import { consolidate } from "./memory/consolidate.ts";
 import type { ServerDeps } from "./server.ts";
 import type { SessionHooks, SessionTurn } from "./voice/session.ts";
 import { LINES, runConversation, type Step } from "./selftest/scenarios.ts";
-import { core } from "./persona/core.ts";
+import { NOTE, core } from "./persona/core.ts";
+import { lookupMessage, webLookup } from "./lookup/web.ts";
 import { AuditRecorder } from "./audit/recorder.ts";
 import { loadPricing } from "./audit/pricing.ts";
 import { auditRoutes } from "./audit/routes.ts";
@@ -72,12 +73,13 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       const proactive = start.proactive ?? true;
       const { language, chosen } = resolveLanguage(start, view.profile.preferredLanguage);
       if (chosen === "he" || chosen === "en") await store.updateProfile(userId, { preferred_language: chosen });
-      const built = buildContext(view, { language, journey: { ...start.journey, proactive }, timeZone: config.timezone, resume });
+      const lookup = config.webLookup && Boolean(llm?.search);
+      const built = buildContext(view, { language, journey: { ...start.journey, proactive }, timeZone: config.timezone, resume, lookup });
       await store.startSession(sessionId, userId, built.language, built.onboarding, new Date());
       await store.markUsed(view.usedIds);
       sessionAgenda.set(sessionId, built.agenda);
       await audit.recordPrompt({ sessionId, userId, language: built.language, onboarding: built.onboarding, systemPrompt: built.system_prompt,
-        persona: core(built.language), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })),
+        persona: core(built.language, { lookup }), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })),
         memoryIds: view.usedIds, sampling: config.llmSampling });
       const foreign = practiceLanguage(view);
       return {
@@ -92,7 +94,22 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       return audit.run({ userId: args.userId, sessionId: args.sessionId }, async () => {
         const done = await handleLiveTurn(store, llm, args);
         if (done.some((d) => /^(delete|correct):/.test(d))) void scrub(args.userId);
-        return (await handleCapture(store, llm, args)).note;
+        const captured = (await handleCapture(store, llm, args)).note;
+        const form = done.map((d) => /^addressing:(masculine|feminine|plural)$/.exec(d)?.[1]).find(Boolean) as "masculine" | "feminine" | "plural" | undefined;
+        // how to address them was just said: tell the model now, and keep telling it until the conversation ends
+        return form ? { text: NOTE.addressing(form), turns: 6, standing: true } : captured;
+      });
+    },
+    // the model said it is checking something online (P1-D34): search, within the user's daily allowance
+    async lookup(args) {
+      return audit.run({ userId: args.userId, sessionId: args.sessionId }, async () => {
+        const refuse = (reason: "unavailable" | "limit") => ({ message: lookupMessage({ ok: false, reason, ms: 0 }), ok: false, reason });
+        if (!config.webLookup || !llm?.search) return refuse("unavailable");
+        const used = (await db.query<{ n: number }>("SELECT count(*)::int n FROM llm_calls WHERE user_id=$1 AND purpose='lookup' AND at > now() - interval '24 hours'", [args.userId])
+          .catch(() => ({ rows: [{ n: 0 }] }))).rows[0]?.n ?? 0;
+        if (used >= config.lookupsPerDay) return refuse("limit");
+        const r = await webLookup(llm, { question: args.question, recent: args.recent, language: args.language, timeZone: config.timezone });
+        return { message: lookupMessage(r), ok: r.ok, ...(r.ok ? {} : { reason: r.reason }) };
       });
     },
     async finalize(args) {
@@ -108,7 +125,8 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       if (visible.some((t) => t.role === "user")) {
         const view = await store.memoryView(userId);
         const t0 = Date.now();
-        summary = await summarizeSession(llm, visible, { openTopics: view.openTopics, known: view.knownIds, candidates: view.candidates });
+        summary = await summarizeSession(llm, visible, { openTopics: view.openTopics, known: view.knownIds, candidates: view.candidates,
+          addressing: view.profile.addressing.value });
         stats.summary_ms = Date.now() - t0;
         policy = await store.applySummary(userId, sessionId, summary, visible, { languageDetected: language === "auto" });
         await store.learnAddressing(userId, sessionId, visible, summary.user_gender);
@@ -141,6 +159,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       summary: summary.summary, language: summary.language, progress: summary.progress,
       goals: goals.map((g) => ({ id: g.id, content: g.content, state: [g.state_note, g.next_step ? `next: ${g.next_step}` : null].filter(Boolean).join(" ") || null })),
       tasks: tasks.map((t) => ({ id: t.id, content: t.content })), agenda: had,
+      addressing: (await store.addressing(userId)).value,
     });
     // what opened this ride and was not taken up must not open the next one as well
     const openedSkipped = had[0] && plan.agenda_outcome.find((o) => o.index === 0)?.outcome === "skipped" ? had[0].topic : null;
@@ -321,6 +340,16 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       if (kept && b.content !== undefined) void scrub(id);
       return kept ? { id: kept } : reply.code(404).send({ error: "not found" });
     });
+    // set (or clear, with null) how a user is addressed, as if they had chosen it in the app
+    app.post("/v1/admin/users/:id/addressing", async (req, reply) => {
+      if (!admin(req, reply)) return;
+      const uid = (req.params as { id: string }).id;
+      const b = parse(z.object({ value: z.enum(["masculine", "feminine", "plural"]).nullable() }), req.body, reply); if (!b) return;
+      if (!(await store.userExists(uid))) return reply.code(404).send({ error: "no such user" });
+      await store.setAddressing(uid, b.value, "app");
+      const a = await store.addressing(uid);
+      return { value: a.value, status: a.status };
+    });
     app.post("/v1/admin/users/:id/pairing-code", async (req, reply) => {
       if (!admin(req, reply)) return;
       const uid = (req.params as { id: string }).id;
@@ -339,7 +368,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     });
     app.post("/v1/admin/selftest", async (req, reply) => {
       if (!admin(req, reply)) return;
-      const b = parse(z.object({ scenario: z.enum(["relay", "memory", "goals", "tasks", "agenda"]), lang: z.enum(["he", "en"]).default("he"), user_id: z.string().uuid().optional() }), req.body, reply); if (!b) return;
+      const b = parse(z.object({ scenario: z.enum(["relay", "memory", "goals", "tasks", "agenda", "lookup"]), lang: z.enum(["he", "en"]).default("he"), user_id: z.string().uuid().optional() }), req.body, reply); if (!b) return;
       const job = { id: randomUUID(), scenario: b.scenario, lang: b.lang, status: "running", started: new Date().toISOString(), results: [] as unknown[], user_id: b.user_id ?? null as string | null, error: null as string | null };
       jobs.set(job.id, job);
       void runSelftest(job).catch((e) => { job.status = "failed"; job.error = String(e).slice(0, 300); });
@@ -435,6 +464,14 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       await run("t2_done", [
         { say: "כן, התקשרתי לרואה החשבון, זה סגור." },
         { say: "ביי, הגעתי." },
+      ]);
+    } else if (job.scenario === "lookup") {
+      // a question that needs current information: "checking" is said, then the answer as a turn of its own
+      await run("l1_weather_and_hours", [
+        { say: "היי, קוראים לי דני." },
+        { say: "מה מזג האוויר הצפוי בבואנוס איירס בשבוע הקרוב?", then_another_turn: true },
+        { say: "ועד איזו שעה פתוח היום שוק הכרמל בתל אביב?", then_another_turn: true },
+        { say: "תודה, ביי." },
       ]);
     } else if (job.scenario === "agenda") {
       // ride 1 leaves things open; ride 2 is a "20-minute" ride run ten times faster: halfway, wrap-up and last-word notes

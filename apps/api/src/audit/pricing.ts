@@ -23,6 +23,8 @@ export interface Pricing {
   /** price per 1M characters / per audio minute if speech moves to an API (0 = self-hosted on the pod) */
   tts_usd_per_m_chars: number;
   stt_usd_per_audio_min: number;
+  /** the provider's fee per web search call, on top of tokens (OpenAI pricing page, 2026-11: $10 per 1,000 calls) */
+  web_search_usd_per_call: number;
 }
 
 export const DEFAULT_PRICING: Pricing = {
@@ -36,6 +38,7 @@ export const DEFAULT_PRICING: Pricing = {
   fixed_monthly: { "Render rolly-api (Starter)": 7, "Render PostgreSQL (Basic-256MB)": 6 },
   tts_usd_per_m_chars: 0,
   stt_usd_per_audio_min: 0,
+  web_search_usd_per_call: 0.01,
 };
 
 export function loadPricing(raw = process.env.ROLLY_PRICING): Pricing {
@@ -50,6 +53,7 @@ export function loadPricing(raw = process.env.ROLLY_PRICING): Pricing {
       fixed_monthly: o.fixed_monthly ?? { ...DEFAULT_PRICING.fixed_monthly },
       tts_usd_per_m_chars: num(o.tts_usd_per_m_chars, 0),
       stt_usd_per_audio_min: num(o.stt_usd_per_audio_min, 0),
+      web_search_usd_per_call: num(o.web_search_usd_per_call, DEFAULT_PRICING.web_search_usd_per_call),
     };
   } catch { return structuredClone(DEFAULT_PRICING); }
 }

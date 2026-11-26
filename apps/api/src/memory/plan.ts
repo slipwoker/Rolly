@@ -9,7 +9,7 @@
  */
 import type { SessionTurn } from "../voice/session.ts";
 import type { UtilityLlm } from "./llm.ts";
-import { formatTranscript } from "./summarizer.ts";
+import { formatTranscript, writeAbout } from "./summarizer.ts";
 
 export type GoalStatus = "active" | "paused" | "achieved" | "dropped";
 export type AgendaKind = "follow_up" | "goal_step" | "action_check" | "fresh";
@@ -58,6 +58,7 @@ Return ONLY a JSON object with these keys:
       "take" is what gives Rolly something real to say: a clear stance ("better one small investor who believes than months chasing a big fund"), a concrete angle, or a side in a small debate. Opinions and angles, not facts: state a fact only if it is certainly true. No general wisdom about life, nothing that starts with "sometimes". Leave "take" empty for an action_check.
       Write "topic" as a short noun phrase about the thing itself ("רשימת עשרה לקוחות", "השיחה עם רואה החשבון"), never addressed to the user and without verbs in the second person.
 Write every text in the language the user mostly spoke ({language}). Do not invent anything that is not supported by the transcript, the summary or the lists.
+How to write about and to the user in Hebrew (notes, next steps and takes): {addressing}
 
 Goals (id: goal — how it stood before this conversation):
 {goals}
@@ -124,10 +125,12 @@ export async function planNext(llm: UtilityLlm | null, turns: SessionTurn[], ctx
   goals: { id: string; content: string; state: string | null }[];
   tasks: { id: string; content: string }[];
   agenda: AgendaItem[];
+  addressing?: "masculine" | "feminine" | "plural" | null;
 }): Promise<PlanResult> {
   if (!llm || !turns.some((t) => t.role === "user")) return emptyPlan();
   const prompt = PLAN_PROMPT
     .replace("{language}", ctx.language === "en" ? "English" : "Hebrew")
+    .replace("{addressing}", writeAbout(ctx.addressing))
     .replace("{goals}", ctx.goals.map((g) => `- ${g.id}: ${g.content} — ${g.state ?? "no notes yet"}`).join("\n") || "- (none)")
     .replace("{tasks}", ctx.tasks.map((t) => `- ${t.id}: ${t.content}`).join("\n") || "- (none)")
     .replace("{agenda}", ctx.agenda.map((a, i) => `- ${i}: ${a.topic}`).join("\n") || "- (no plan)")
