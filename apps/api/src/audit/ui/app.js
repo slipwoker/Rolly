@@ -86,7 +86,7 @@
   };
   const REVIEW_TAGS = ["great", "bot_speak", "misheard", "wrong_language", "wrong_gender", "forgot_context", "invented_fact", "too_long",
     "too_many_questions", "ignored_user", "bad_opener", "latency"];
-  const PURPOSE_LABEL = { summary: "Summary", live_command: "Live memory command", capture: "Note capture", plan: "Next-ride plan",
+  const PURPOSE_LABEL = { summary: "Summary", live_command: "Live memory command", name_pron: "Name pronunciation", capture: "Note capture", plan: "Next-ride plan",
     scrub: "Forget (scrub)", consolidate: "Digest", judge: "LLM judge", other: "Other" };
 
   // ------------------------------------------------------------------ API
@@ -623,7 +623,7 @@
     const c = await api("/v1/admin/audit/costs?" + qs());
     const t = c.totals;
     const purposes = [...new Set(c.daily.flatMap((d) => Object.keys(d)).filter((k) => !["day", "gpu", "minutes"].includes(k)))];
-    const order = ["summary", "plan", "live_command", "capture", "consolidate", "scrub", "judge", "other"];
+    const order = ["summary", "plan", "live_command", "name_pron", "capture", "consolidate", "scrub", "judge", "other"];
     purposes.sort((a, b) => (order.indexOf(a) + 99) % 99 - (order.indexOf(b) + 99) % 99);
     const ser = purposes.slice(0, 8).map((p, i) => ({ key: p, label: PURPOSE_LABEL[p] || p, color: series(i + 1) }));
     return [

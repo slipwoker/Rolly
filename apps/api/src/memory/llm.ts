@@ -1,7 +1,7 @@
 /** Minimal OpenAI-compatible chat client for the utility LLM (summaries, memory commands). */
 import { fetch, ProxyAgent, type Dispatcher } from "undici";
 
-export type LlmPurpose = "summary" | "live_command" | "capture" | "plan" | "scrub" | "consolidate" | "judge" | "lookup" | "other";
+export type LlmPurpose = "summary" | "live_command" | "capture" | "plan" | "scrub" | "consolidate" | "judge" | "lookup" | "name_pron" | "other";
 
 export interface UtilityLlm {
   name: string;

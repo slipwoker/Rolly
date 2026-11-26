@@ -14,9 +14,13 @@ import { PROMPT, clip } from "../memory/select.ts";
 export { END_MARKER };
 export type Lang = "he" | "en" | "auto";
 
+/** how the user said their name is pronounced: one of the readings the voice's own front end gave (P1-D39) */
+export interface NamePron { name: string; ipa: string; source: "user" }
+
 export interface MemoryView {
   profile: {
     preferredName: string | null;
+    namePron?: NamePron | null;
     preferredLanguage: "he" | "en" | null;
     professionalBackground?: string | null;
     interests: string[];
@@ -171,7 +175,7 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
     system_prompt, opener_instruction: opener, language, onboarding, agenda,
     confirm: !onboarding && mem.candidates[0] ? clip(mem.candidates[0].content, 140) : null,
     // the pod gets only what the pipeline needs; it stores nothing
-    profile: { name: p.preferredName ?? null, preferred_language: p.preferredLanguage ?? null },
+    profile: { name: p.preferredName ?? null, preferred_language: p.preferredLanguage ?? null, name_pron: p.namePron ?? null },
   };
 }
 

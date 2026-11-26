@@ -54,6 +54,8 @@ export interface PreparedSession {
 
 /** Something to tell the conversation model on its next turn(s) through the pod's note channel. */
 export interface TurnNote { text: string; turns: number;
+  /** how a name is said from now on in this conversation ({word: phonemes}), sent to the pod's voice */
+  pronunciations?: Record<string, string>;
   /** holds for the rest of the conversation (e.g. how to address the user): sent again when its turns run out */
   standing?: boolean }
 
@@ -437,6 +439,8 @@ export class VoiceSession {
           this.hooks.onUserTurn?.({ userId: this.userId, sessionId: this.sessionId, turn, recent: this.turns.slice(-8) })
             .then((n) => {
               if (!n) return;
+              if (n.pronunciations) this.pod?.sendPronunciations(n.pronunciations);
+              if (!n.text) return;
               if (n.standing) { this.standing = { text: n.text, turns: n.turns, left: n.turns }; this.note("standing", n.text, n.turns); }
               else this.note("memory", n.text, n.turns);
             })

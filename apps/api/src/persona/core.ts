@@ -72,5 +72,7 @@ export const NOTE = {
   /** the user just said how to address them: holds for the rest of the conversation */
   addressing: (form: "masculine" | "feminine" | "plural") => `They just told you how to address them: use ${form} forms for them from now on, every time. Do not comment on it.`,
   /** once per conversation, when there is something unconfirmed worth keeping */
+  /** the user corrected how their name is pronounced; it is now fixed */
+  namePronounced: "They just corrected how their name is pronounced and the voice now says it that way. Do not comment on it.",
   confirm: (what: string) => `When it fits in this turn, ask in a few words whether to remember this about them (it may have been said by someone else): "${what}". Ask once; if it does not fit, skip it.`,
 };

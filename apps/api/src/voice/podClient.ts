@@ -131,6 +131,8 @@ export class PodSession {
 
   sendText(text: string): void { this.send({ type: "text", text: text.slice(0, 2000) }); }
   interrupt(): void { this.send({ type: "interrupt" }); }
+  /** how a name is said, changed during the conversation: {word: phonemes} */
+  sendPronunciations(words: Record<string, string>): void { this.send({ type: "pronunciations", words }); }
   /**
    * A note for the model's next `turns` turns (pacing, memory hints). It is shown to the model next to the user's words,
    * never stored in the conversation history and never interrupts speech. With `when`, the pod holds it until a turn
