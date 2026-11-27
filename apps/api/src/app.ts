@@ -318,7 +318,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       const google = !googleCfg ? "not_available" : !g.rows[0] ? "not_connected" : "connected";
       // can_write false: connected before writing existed, so it reads but cannot send or add events until the user taps "update
       // permissions". A separate flag, not a new status: app builds that do not know it must still see "connected".
-      const can_write = Boolean(gr?.sendMail && gr.writeCalendar);
+      const can_write = Boolean(gr?.mailRead && gr.calendarRead && gr.sendMail && gr.writeCalendar); // every box ticked: reading and writing both
       return [
         { id: "calendar", provider: "google", status: google, account: g.rows[0]?.account_label ?? null, can_write },
         { id: "email", provider: "google", status: google, account: g.rows[0]?.account_label ?? null, can_write },

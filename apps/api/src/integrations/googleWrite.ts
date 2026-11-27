@@ -3,6 +3,7 @@
  * user said yes to a draft that was read back. Never deletes or edits anything that exists.
  */
 import { form, type Http } from "./http.ts";
+import { why } from "./google.ts";
 
 const AUTH = (t: string) => ({ Authorization: `Bearer ${t}` });
 export const EMAIL = /^[^\s@<>",;:()\[\]\\]+@[^\s@<>",;:()\[\]\\]+\.[^\s@<>",;:()\[\]\\]{2,}$/;
@@ -45,7 +46,7 @@ export async function findPeople(http: Http, token: string, name: string): Promi
   const q = name.replace(/["\\]/g, " ").trim().slice(0, 60);
   if (!q) return [];
   const list = await http("https://gmail.googleapis.com/gmail/v1/users/me/messages?" + form({ q: `from:"${q}" OR to:"${q}"`, maxResults: "10" }), { headers: AUTH(token) });
-  if (!list.ok) throw new Error(`gmail HTTP ${list.status}`);
+  if (!list.ok) throw new Error(`gmail HTTP ${list.status}${why(list.json)}`);
   const ids = ((list.json as { messages?: { id: string }[] } | null)?.messages ?? []).map((m) => m.id);
   const norm = (s: string) => s.toLowerCase().replace(/["'׳״`.,\-_\s]+/g, "");
   const want = norm(q);
