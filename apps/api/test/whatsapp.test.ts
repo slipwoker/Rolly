@@ -37,7 +37,6 @@ class FakeGateway implements Gateway {
   async cancel() { this.calls.push("cancel"); }
   async link() { return {}; }
   async stats() { return {}; }
-  async debugLookup() { return {}; }
   async unlink() { this.calls.push("unlink"); }
 }
 
