@@ -69,6 +69,8 @@ export type ClientMessage =
   | ClientPlayback
   | ClientAudioEvent
   | { type: "interrupt" }
+  /** the user tapped to talk while music was playing: stop the music, listen again */
+  | { type: "client.resume" }
   | { type: "ping"; t: number }
   | { type: "session.end" };
 
@@ -106,6 +108,10 @@ export type ServerMessage =
   | { type: "agent.turn_started"; seq: number; proactive: boolean }
   | { type: "agent.text"; seq: number; delta: string }
   | { type: "agent.turn_done"; seq: number; text: string }
+  /** Music is about to play on the user's Spotify: the phone releases the microphone and audio session (Spotify plays through
+   *  its own app) and waits. `mic.resumed` (the song ended, or the user tapped) tells it to listen again. */
+  | { type: "mic.paused"; reason: "music" }
+  | { type: "mic.resumed" }
   /** sent just before the reply that talks about these items: the phone shows them under that reply */
   | { type: "agent.media"; items: MediaItem[] }
   | { type: "agent.interrupted"; seq: number; interrupt_detect_ms?: number | null }

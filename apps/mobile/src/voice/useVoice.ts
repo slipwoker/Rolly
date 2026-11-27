@@ -78,5 +78,6 @@ export function useVoice() {
   };
 
   const stop = async () => { await ctl.current?.stop(); };
-  return { state, detail, captions, lastReplyMs, start, stop, active: !["idle", "ended", "error"].includes(state) };
+  const resumeFromMusic = async () => { await ctl.current?.resumeFromMusic(); };
+  return { state, detail, captions, lastReplyMs, start, stop, resumeFromMusic, active: !["idle", "ended", "error"].includes(state) };
 }

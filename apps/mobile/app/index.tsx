@@ -53,14 +53,16 @@ export default function Home() {
   }, []));
 
   const label = (t as Record<string, string>)[v.state] ?? v.state;
-  const sub = !v.active ? "" : v.state === "listening" || v.state === "user_speaking" ? t.sayIt : label;
+  const sub = !v.active ? "" : v.state === "listening" || v.state === "user_speaking" ? t.sayIt : v.state === "music" ? t.tapToTalk : label;
   const last = v.captions[v.captions.length - 1];
   const plainBg = c.dark ? c.bg : "#FFFFFF";
   const showChat = chat && v.captions.length > 0;
 
   const toggle = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (v.active) void v.stop(); else void v.start();
+    // while music plays, the big button means "talk": it pauses the music and listens again (the small x ends the conversation)
+    if (v.state === "music") void v.resumeFromMusic();
+    else if (v.active) void v.stop(); else void v.start();
   };
   const go = (path: "/progress" | "/personalisation") => { setMenu(false); router.push(path); };
 
@@ -132,7 +134,7 @@ export default function Home() {
               <Waveform level={v.state === "user_speaking" ? 1 : v.state === "agent_speaking" ? 0.7 : v.state === "listening" ? 0.25 : 0} color={c.text} height={20} />
               <Txt variant="caption" tone="dim" numberOfLines={1} style={{ flex: 1 }}>{label}</Txt>
             </View>
-            <CircleButton icon={v.active ? "square" : "mic"} label={v.active ? t.stop : t.start} size={52} variant="ink" onPress={toggle} />
+            <CircleButton icon={v.active && v.state !== "music" ? "square" : "mic"} label={v.state === "music" ? t.tapToTalk : v.active ? t.stop : t.start} size={52} variant="ink" onPress={toggle} />
           </View>
         ) : (
           <View style={s.controls}>
@@ -144,7 +146,7 @@ export default function Home() {
                 </PressScale>
               ) : null}
             </View>
-            <MicButton icon={v.active ? "square" : "mic"} label={v.active ? t.stop : t.start} live={LIVE.includes(v.state)} onPress={toggle} />
+            <MicButton icon={v.active && v.state !== "music" ? "square" : "mic"} label={v.state === "music" ? t.tapToTalk : v.active ? t.stop : t.start} live={LIVE.includes(v.state)} onPress={toggle} />
             <View style={[s.side, { alignItems: "flex-end" }]}>
               {v.active ? <CircleButton icon="x" label={t.endConv} onPress={() => void v.stop()} /> : null}
             </View>

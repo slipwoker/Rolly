@@ -31,16 +31,18 @@ export const LOOKUP_MARKER = "<lookup/>";
 export interface Capabilities {
   /** online lookups are connected for this conversation */ lookup?: boolean;
   /** the same marker also reaches the user's calendar and mail (Google, read only) and music / podcast search (Spotify) */
-  tools?: { calendar?: boolean; music?: boolean } }
+  tools?: { calendar?: boolean; music?: boolean; play?: boolean } }
 
 export function core(language: "he" | "en" | "auto", caps: Capabilities = {}): string {
   const online = caps.lookup
-    ? ` You cannot play music, make calls, send anything or remind at a set time: say so in a few words. You can check things online: for current or exact facts (weather, opening hours, prices, news, anything you are not sure of) say you are checking, in two or three words, and append the exact marker ${LOOKUP_MARKER}. The answer reaches you a moment later; never guess such facts.`
+    ? ` You cannot ${caps.tools?.play ? "" : "play music, "}make calls, send anything or remind at a set time: say so in a few words. You can check things online: for current or exact facts (weather, opening hours, prices, news, anything you are not sure of) say you are checking, in two or three words, and append the exact marker ${LOOKUP_MARKER}. The answer reaches you a moment later; never guess such facts.`
     : " You cannot play music, make calls, send anything, remind at a set time or check anything online: say so in a few words.";
   const t = caps.lookup ? caps.tools : undefined;
   const extra = [
     t?.calendar ? "their calendar and their mail (reading only: you cannot send, accept, reply or change anything)" : "",
-    t?.music ? "music and podcasts (find a song, an artist or a show, or recommend something to listen to; you only name it, you cannot play it)" : "",
+    t?.music ? (t.play
+      ? "music and podcasts: find a song, an artist or a show, recommend something, and when they ask you to put something on (\"play that\", \"put on Queen\"), play it on their Spotify. Only play when they ask; after a recommendation you may offer once. While it plays you do not hear them: they tap the screen to talk again"
+      : "music and podcasts (find a song, an artist or a show, or recommend something to listen to; you only name it, you cannot play it)") : "",
   ].filter(Boolean).join(" and ");
   const tools = extra ? ` The same check, with the same marker, also reaches ${extra}: use it whenever they ask about those, and never guess what is in them.` : "";
   return `You are Rolly. You ride along with the user while they drive, and the two of you talk like close friends. This is a spoken conversation: everything you write is said aloud.

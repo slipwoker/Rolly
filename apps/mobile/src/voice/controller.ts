@@ -11,7 +11,7 @@
  */
 import { unpackClientAudio, type ClientMessage, type MediaItem, type ServerMessage } from "@rolly/contracts";
 
-export type VoiceState = "idle" | "connecting" | "listening" | "user_speaking" | "agent_speaking" | "reconnecting" | "paused" | "ended" | "error";
+export type VoiceState = "idle" | "connecting" | "listening" | "user_speaking" | "agent_speaking" | "reconnecting" | "paused" | "music" | "ended" | "error";
 
 export interface NativeAudio {
   start(): Promise<{ route: string; bluetooth_hfp: boolean }>;
@@ -143,7 +143,7 @@ export class VoiceController {
 
   // ---------------------------------------------------------------- microphone
   private onMic(f: { data: string; t: number }) {
-    if (!this.ready || !this.ws || this.ws.readyState !== OPEN || this.state === "paused") return;
+    if (!this.ready || !this.ws || this.ws.readyState !== OPEN || this.state === "paused" || this.state === "music") return;
     const bytes = this.d.b64.decode(f.data);
     this.frameTimes.push(f.t);
     if (this.frameTimes.length > 30_000) this.frameTimes.splice(0, 15_000); // bounded memory; captureTimeAt accounts for it
@@ -186,6 +186,14 @@ export class VoiceController {
         break;
       case "agent.turn_done":
         this.d.onCaption?.({ role: "agent", text: m.text, final: true, seq: m.seq });
+        break;
+      case "mic.paused":
+        // music is about to play on the user's Spotify: release the microphone and the audio session so Spotify can use them
+        this.set("music");
+        void this.d.audio.stop().catch(() => {});
+        break;
+      case "mic.resumed":
+        void this.restartAudio();
         break;
       case "agent.media":
         if (Array.isArray(m.items) && m.items.length) this.d.onMedia?.(m.items);
@@ -244,6 +252,20 @@ export class VoiceController {
     if (ev) this.send({ type: "client.audio", event: ev as never, route: e.route, reason: e.reason ?? e.event, t: e.t });
     if (e.event === "interruption_began") this.set("paused", "audio interrupted (call or another app)");
     if ((e.event === "restarted" || e.event === "interruption_ended") && this.state === "paused") this.set("listening");
+  }
+
+  /** The user tapped to talk while music plays: tell the server (it pauses the music) and listen again at once. */
+  async resumeFromMusic(): Promise<void> {
+    if (this.state !== "music") return;
+    this.send({ type: "client.resume" });
+    await this.restartAudio();
+  }
+
+  /** The song ended (server: mic.resumed) or the user tapped: take the microphone back. */
+  private async restartAudio(): Promise<void> {
+    if (this.state !== "music" || this.ending || this.disposed) return;
+    this.set("listening"); // first, so a second trigger (tap and song end together) does nothing
+    try { await this.d.audio.start(); } catch (e) { this.set("error", `microphone: ${String(e)}`); }
   }
 
   // ---------------------------------------------------------------- stop

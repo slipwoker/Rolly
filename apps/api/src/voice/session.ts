@@ -17,9 +17,11 @@ import { PlanFeeder, type PlanItem } from "./planFeeder.ts";
 import { styleGuardNote } from "../persona/style.ts";
 import { NOTE, LOOKUP_MARKER } from "../persona/core.ts";
 import { StreamResampler } from "./resampler.ts";
+import type { Playback } from "../integrations/tools.ts";
 
 export const END_MARKER = "<end_session/>";
 const stripMarkers = (t: string) => t.replace(END_MARKER, "").replace(LOOKUP_MARKER, "");
+const LOOKUP_FAILED_MUSIC = "[lookup_failed - not said by the user] The music did not start. Say so in a few words, do not promise it again, and go on with the conversation.";
 const LOOKUP_TIMEOUT_MESSAGE = "[lookup_failed - not said by the user] The online check did not work just now. Say so in a few words, do not guess the answer, and go on with the conversation.";
 
 /** What the relay needs from the phone connection (a ws.WebSocket satisfies it; tests use a fake). */
@@ -73,7 +75,7 @@ export interface SessionHooks {
    */
   /** the opening line of a conversation, as said: the next conversation of this user can start differently even if this one has not been saved yet */
   rememberOpener?(userId: string, text: string): void;
-  lookup?(args: { userId: string; sessionId: string; question: string; recent: { role: "user" | "agent"; text: string }[]; language: string }): Promise<{ message: string; ok: boolean; reason?: string; media?: MediaItem[] }>;
+  lookup?(args: { userId: string; sessionId: string; question: string; lastMedia: MediaItem[]; recent: { role: "user" | "agent"; text: string }[]; language: string }): Promise<{ message: string; ok: boolean; reason?: string; media?: MediaItem[]; playback?: Playback }>;
   /** called at the end; returns the summary that is sent to the phone */
   finalize(args: { userId: string; sessionId: string; turns: SessionTurn[]; stats: Record<string, unknown>; endReason: string;
     describe: Record<string, unknown>; language: string; startedAt: Date;
@@ -146,14 +148,20 @@ export class VoiceSession {
   private lastUserWords: number | null = null;
   private standing: { text: string; turns: number; left: number } | null = null;
   // ---- online lookups: the result is handed to the model at a quiet moment (sending text cuts a turn in progress)
+  private agentTurnsStarted = 0; // counts replies that began (a short reply can start and finish between two polls of agentBusy)
   private agentBusy = false; // a reply is being generated or synthesised
   private userBusy = false; // the user is speaking, or has spoken and the reply has not started yet
   private userBusySince = 0;
   private lookupRunning = false;
-  private inject: { message: string; readyAt: number; media?: MediaItem[] } | null = null;
+  private inject: { message: string; readyAt: number; media?: MediaItem[]; playback?: Playback } | null = null;
   private injectTimer: NodeJS.Timeout | null = null;
   /** the next agent turn answers an injected message, not the user: no reply-latency measurement for it */
   private injectedNext = false;
+  // ---- music (integrations/spotify.ts): what was last shown as cards, and the "listening is off while it plays" state
+  private lastMedia: MediaItem[] = [];
+  private micPaused = false;
+  private activePlayback: Playback | null = null;
+  private playbackTimer: ReturnType<typeof setInterval> | null = null;
   private language: string = "auto";
   private describe: Record<string, unknown> = {};
   private done: Promise<void>;
@@ -254,7 +262,7 @@ export class VoiceSession {
   }
 
   private pace() {
-    if (this.closing || !this.pacer) return;
+    if (this.closing || !this.pacer || this.micPaused) return;
     for (const n of this.pacer.due(Date.now())) {
       // halfway: the next item of the plan, if one is left, instead of a general nudge
       const item = n.event === "half" ? this.feeder?.afterReply(null, true) : null;
@@ -308,14 +316,14 @@ export class VoiceSession {
     const t0 = Date.now();
     const at_s = Math.round((t0 - this.startedAt.getTime()) / 1000);
     const recent = this.turns.slice(-6).map((t) => ({ role: t.role, text: t.text }));
-    const guard = new Promise<{ message: string; ok: boolean; reason?: string; media?: MediaItem[] }>((r) => setTimeout(() => r({ message: LOOKUP_TIMEOUT_MESSAGE, ok: false, reason: "timeout" }), 18_000));
-    Promise.race([this.hooks.lookup({ userId: this.userId, sessionId: this.sessionId, question, recent, language: this.language }), guard])
+    const guard = new Promise<{ message: string; ok: boolean; reason?: string; media?: MediaItem[]; playback?: Playback }>((r) => setTimeout(() => r({ message: LOOKUP_TIMEOUT_MESSAGE, ok: false, reason: "timeout" }), 18_000));
+    Promise.race([this.hooks.lookup({ userId: this.userId, sessionId: this.sessionId, question, lastMedia: this.lastMedia, recent, language: this.language }), guard])
       .catch((e) => ({ message: LOOKUP_TIMEOUT_MESSAGE, ok: false, reason: String(e).slice(0, 80) }))
-      .then((r: { message: string; ok: boolean; reason?: string; media?: MediaItem[] }) => {
+      .then((r: { message: string; ok: boolean; reason?: string; media?: MediaItem[]; playback?: Playback }) => {
         const rec = { at_s, ok: r.ok, ...(r.reason ? { reason: r.reason } : {}), search_ms: Date.now() - t0, delivered_after_ms: null as number | null };
         this.stats.lookups.push(rec);
         if (this.closing) { this.lookupRunning = false; return; }
-        this.inject = { message: r.message, readyAt: Date.now(), media: r.media };
+        this.inject = { message: r.message, readyAt: Date.now(), media: r.media, playback: r.playback };
         const tryNow = () => {
           if (this.closing || !this.inject) { this.stopInject(); return; }
           const waited = Date.now() - this.inject.readyAt;
@@ -325,7 +333,8 @@ export class VoiceSession {
           if (!quiet && waited < 20_000) return;
           this.injectedNext = true;
           // cards first: the phone shows them under the reply that follows
-          if (this.inject.media?.length) this.send({ type: "agent.media", items: this.inject.media });
+          if (this.inject.media?.length) { this.send({ type: "agent.media", items: this.inject.media }); this.lastMedia = this.inject.media; }
+          if (this.inject.playback) this.armPlayback(this.inject.playback);
           this.pod?.sendText(this.inject.message);
           rec.delivered_after_ms = Date.now() - t0;
           this.stats.notes.push({ kind: r.ok ? "lookup_result" : "lookup_failed", at_s: Math.round((Date.now() - this.startedAt.getTime()) / 1000) });
@@ -336,6 +345,73 @@ export class VoiceSession {
       });
   }
 
+  // ------------------------------------------------------------ music
+  /**
+   * The model was told it is putting something on. Wait until it has finished saying so, start the music, and stop
+   * listening: the phone releases the microphone (Spotify plays through its own app, and the mic would hear it).
+   * Listening comes back when the song ends, or the user taps to talk (which pauses the music).
+   */
+  private armPlayback(pb: Playback) {
+    this.clearPlaybackTimer();
+    const t0 = Date.now();
+    const turns0 = this.agentTurnsStarted;
+    this.playbackTimer = setInterval(() => {
+      if (this.closing) return this.clearPlaybackTimer();
+      const sawReply = this.agentTurnsStarted > turns0;
+      const quiet = !this.agentBusy && Date.now() >= this.playbackUntil + 400;
+      const waited = Date.now() - t0;
+      // wait for the reply to begin (up to 8 s), then for it to end (up to 30 s in all)
+      if (!((sawReply && quiet) || (!sawReply && waited > 8_000 && quiet) || waited > 30_000)) return;
+      this.clearPlaybackTimer();
+      void pb.start().then((ok) => {
+        if (this.closing) return;
+        if (!ok) {
+          this.injectedNext = true;
+          this.pod?.sendText(LOOKUP_FAILED_MUSIC);
+          this.stats.notes.push({ kind: "music_failed", at_s: Math.round((Date.now() - this.startedAt.getTime()) / 1000) });
+          return;
+        }
+        this.pauseListening(pb);
+      });
+    }, 250);
+  }
+
+  private pauseListening(pb: Playback) {
+    this.micPaused = true;
+    this.activePlayback = pb;
+    this.stats.notes.push({ kind: "music_started", at_s: Math.round((Date.now() - this.startedAt.getTime()) / 1000) });
+    this.send({ type: "mic.paused", reason: "music" });
+    let ended = 0, errors = 0, polling = false;
+    this.playbackTimer = setInterval(() => {
+      if (polling) return;
+      polling = true;
+      void pb.stillPlaying().then((r) => {
+        if (this.closing || this.activePlayback !== pb) return;
+        if (r === "error") { if (++errors >= 4) void this.resumeListening(false); return; }
+        errors = 0;
+        // two readings in a row: Spotify can take a moment to report a song it has just started
+        ended = r === false ? ended + 1 : 0;
+        if (ended >= 2) void this.resumeListening(false);
+      }).finally(() => { polling = false; });
+    }, 5_000);
+  }
+
+  /** `stop`: the user tapped to talk, so the music is paused first; otherwise it ended by itself. */
+  private async resumeListening(stop: boolean) {
+    const pb = this.activePlayback;
+    if (!this.micPaused || !pb) return;
+    this.activePlayback = null;
+    this.clearPlaybackTimer();
+    if (stop) await pb.stop();
+    if (this.closing) return;
+    this.micPaused = false;
+    this.userBusy = false;
+    this.stats.notes.push({ kind: stop ? "music_stopped_by_user" : "music_ended", at_s: Math.round((Date.now() - this.startedAt.getTime()) / 1000) });
+    this.send({ type: "mic.resumed" });
+  }
+
+  private clearPlaybackTimer() { if (this.playbackTimer) clearInterval(this.playbackTimer); this.playbackTimer = null; }
+
   private stopInject() {
     if (this.injectTimer) clearInterval(this.injectTimer);
     this.injectTimer = null; this.inject = null; this.lookupRunning = false;
@@ -343,7 +419,7 @@ export class VoiceSession {
 
   // ------------------------------------------------------------ phone -> pod
   onClientAudio(pcm: Uint8Array) {
-    if (this.closing) return;
+    if (this.closing || this.micPaused) return; // music is playing: not listening
     this.stats.audio_in_bytes += pcm.byteLength;
     this.pod?.pushAudio(pcm);
   }
@@ -363,6 +439,9 @@ export class VoiceSession {
         break;
       case "interrupt":
         this.pod?.interrupt();
+        break;
+      case "client.resume":
+        void this.resumeListening(true);
         break;
       case "session.end":
         this.close("client_end");
@@ -453,7 +532,7 @@ export class VoiceSession {
       }
       case PodEvent.AGENT_TURN_STARTED: {
         const rid = String(d.response_id);
-        this.agentBusy = true; this.userBusy = false;
+        this.agentBusy = true; this.userBusy = false; this.agentTurnsStarted++;
         if (d.proactive || this.injectedNext) this.proactiveRids.add(rid);
         this.injectedNext = false;
         this.send({ type: "agent.turn_started", seq: this.seqFor(rid), proactive: Boolean(d.proactive) });
@@ -567,6 +646,7 @@ export class VoiceSession {
     if (this.maxTimer) clearTimeout(this.maxTimer);
     if (this.paceTimer) clearInterval(this.paceTimer);
     if (this.injectTimer) clearInterval(this.injectTimer);
+    this.clearPlaybackTimer();
     this.pod?.close();
     let summary: unknown = null;
     const stats = this.summaryStats();

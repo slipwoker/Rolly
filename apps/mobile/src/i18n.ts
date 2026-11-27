@@ -10,7 +10,7 @@ const he = {
   waitingFirst: "ROLLY תכף מתחיל לדבר…",
   conversation: "שיחה", progress: "התקדמות", personalisation: "התאמה אישית",
   start: "התחלה", stop: "סיום", connecting: "מתחבר…", listening: "מקשיב", user_speaking: "שומע אותך", agent_speaking: "ROLLY מדבר",
-  reconnecting: "החיבור נפל, מתחבר מחדש…", paused: "מושהה (שיחה או אפליקציה אחרת)", ended: "השיחה הסתיימה", error: "תקלה", idle: "מוכן",
+  reconnecting: "החיבור נפל, מתחבר מחדש…", paused: "מושהה (שיחה או אפליקציה אחרת)", music: "מוזיקה מתנגנת", tapToTalk: "לחצו על המיקרופון כדי לדבר שוב", ended: "השיחה הסתיימה", error: "תקלה", idle: "מוכן",
   captions: "כתוביות (לבדיקה)", latency: "זמן תגובה", language: "שפת שיחה", hebrew: "עברית", english: "English", auto: "אוטומטי",
   ideas: "רעיונות", doneItems: "בוצע לאחרונה", noTasks: "אין משימות פתוחות. אפשר לבקש מ-ROLLY לרשום משהו.", nextStep: "הצעד הבא", achieved: "הושג", goalPaused: "בהמתנה", shareList: "לשתף את הרשימה",
   goals: "מטרות", moved: "מה קידמנו", recent: "שיחות אחרונות", actionItems: "משימות", nothingYet: "עוד אין כאן כלום. אחרי השיחה הראשונה זה יתמלא.",
@@ -19,7 +19,7 @@ const he = {
   masculine: "זכר", feminine: "נקבה", plural: "רבים", reset: "לאפס", name: "שם",
   kTrack: "שיר", kArtist: "אמן", kAlbum: "אלבום", kShow: "פודקאסט", kEpisode: "פרק", openInSpotify: "פתיחה ב-Spotify",
   services: "שירותים מחוברים", soon: "בקרוב", connect: "לחבר", disconnect: "לנתק", connected: "מחובר",
-  googleService: "Google: יומן ומייל", googleWhy: "ROLLY יוכל לספר מה ביומן ומה חדש במייל (קריאה בלבד)", musicService: "Spotify: מוזיקה ופודקאסטים", musicWhy: "לחפש ולהמליץ על שירים, אמנים ופודקאסטים", exportData: "ייצוא המידע שלי", deleteAccount: "מחיקת החשבון וכל המידע",
+  googleService: "Google: יומן ומייל", googleWhy: "ROLLY יוכל לספר מה ביומן ומה חדש במייל (קריאה בלבד)", musicService: "Spotify: מוזיקה ופודקאסטים", musicWhy: "מחפש, ממליץ ומנגן שירים ופודקאסטים. הניגון דורש חיבור Spotify Premium", connectPlay: "לחבר לניגון", exportData: "ייצוא המידע שלי", deleteAccount: "מחיקת החשבון וכל המידע",
   sure: "להמשיך? אי אפשר לבטל את זה.", noSpeakerId: "ROLLY לא יודע לזהות מי מדבר. דברים שנאמרו כשלא ברור מי אמר אותם נשמרים כלא מאושרים עד שתאשרו.",
 };
 type Strings = typeof he;
@@ -31,7 +31,7 @@ const en: Strings = {
   waitingFirst: "ROLLY is about to speak…",
   conversation: "Conversation", progress: "Progress", personalisation: "Personalisation",
   start: "Start", stop: "Stop", connecting: "Connecting…", listening: "Listening", user_speaking: "Hearing you", agent_speaking: "ROLLY is talking",
-  reconnecting: "Connection lost, reconnecting…", paused: "Paused (call or another app)", ended: "Conversation ended", error: "Problem", idle: "Ready",
+  reconnecting: "Connection lost, reconnecting…", paused: "Paused (call or another app)", music: "Playing music", tapToTalk: "Tap the microphone to talk again", ended: "Conversation ended", error: "Problem", idle: "Ready",
   captions: "Captions (debug)", latency: "Reply time", language: "Conversation language", hebrew: "עברית", english: "English", auto: "Automatic",
   ideas: "Ideas", doneItems: "Recently done", noTasks: "No open tasks. Ask ROLLY to note something.", nextStep: "Next step", achieved: "Achieved", goalPaused: "On hold", shareList: "Share the list",
   goals: "Goals", moved: "What we moved forward", recent: "Recent conversations", actionItems: "Tasks", nothingYet: "Nothing here yet. It fills in after the first conversation.",
@@ -40,7 +40,7 @@ const en: Strings = {
   masculine: "Masculine", feminine: "Feminine", plural: "Plural", reset: "Reset", name: "Name",
   kTrack: "Song", kArtist: "Artist", kAlbum: "Album", kShow: "Podcast", kEpisode: "Episode", openInSpotify: "Open in Spotify",
   services: "Connected services", soon: "Coming later", connect: "Connect", disconnect: "Disconnect", connected: "Connected",
-  googleService: "Google: calendar and mail", googleWhy: "ROLLY can tell you what is on your calendar and what is new in your mail (read only)", musicService: "Spotify: music and podcasts", musicWhy: "Find and recommend songs, artists and podcasts", exportData: "Export my data", deleteAccount: "Delete account and all data",
+  googleService: "Google: calendar and mail", googleWhy: "ROLLY can tell you what is on your calendar and what is new in your mail (read only)", musicService: "Spotify: music and podcasts", musicWhy: "Finds, recommends and plays songs and podcasts. Playing needs a connected Spotify Premium account", connectPlay: "Connect to play", exportData: "Export my data", deleteAccount: "Delete account and all data",
   sure: "Are you sure? This cannot be undone.", noSpeakerId: "ROLLY cannot tell who is speaking. Things said when it is unclear who said them are kept as unconfirmed until you confirm them.",
 };
 

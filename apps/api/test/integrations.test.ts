@@ -5,7 +5,7 @@ import type { Http } from "../src/integrations/http.ts";
 import { runTool, parsePlan, startOfDay, type ToolDeps } from "../src/integrations/tools.ts";
 import { seal, unseal, signState, verifyState } from "../src/integrations/crypto.ts";
 import { authUrl, GOOGLE_SCOPES } from "../src/integrations/google.ts";
-import { resetSpotifyToken } from "../src/integrations/spotify.ts";
+import { resetSpotifyToken, playTarget, authUrl as spotifyAuthUrl, SPOTIFY_SCOPES } from "../src/integrations/spotify.ts";
 import { core } from "../src/persona/core.ts";
 
 const NOW = new Date("2026-11-26T10:38:00Z");
@@ -34,9 +34,9 @@ function fakeHttp(routes: Record<string, (url: string, init?: Parameters<Http>[1
 
 const deps = (o: Partial<ToolDeps> & { refresh?: string | null; dropped?: string[] } = {}): ToolDeps => ({
   llm: o.llm ?? llmFor({ tool: "web" }), http: o.http ?? fakeHttp({}),
-  connections: { async googleRefresh() { return o.refresh === undefined ? "rt" : o.refresh; }, async dropGoogle(u) { o.dropped?.push(u); } },
+  connections: o.connections ?? { async googleRefresh() { return o.refresh === undefined ? "rt" : o.refresh; }, async dropGoogle(u) { o.dropped?.push(u); } },
   google: o.google === undefined ? { clientId: "cid", clientSecret: "sec", redirectUri: "https://api/cb" } : o.google,
-  spotify: o.spotify === undefined ? { clientId: "sid", clientSecret: "ssec", market: "IL" } : o.spotify,
+  spotify: o.spotify === undefined ? { clientId: "sid", clientSecret: "ssec", market: "IL" } : o.spotify, spotifyUser: o.spotifyUser,
 });
 
 describe("planning", () => {
@@ -162,6 +162,97 @@ describe("music", () => {
   });
 });
 
+describe("playing music on the user's Spotify", () => {
+  beforeEach(() => resetSpotifyToken());
+  const track = { kind: "track" as const, title: "Bohemian Rhapsody", subtitle: "Queen", image: null, url: "https://open.spotify.com/track/abc123?si=x", provider: "spotify" as const };
+  const user = { clientId: "sid", clientSecret: "ssec", redirectUri: "https://api/spotify/cb" };
+  const saved: string[] = [];
+  const conns = (refresh: string | null = "srt") => ({
+    async googleRefresh() { return null; }, async dropGoogle() {}, async spotifyRefresh() { return refresh; },
+    async saveSpotifyRefresh(_u: string, t: string) { saved.push(t); }, async dropSpotify() { saved.push("dropped"); } });
+  const sp = (o: { product?: string; devices?: unknown[]; token?: unknown; playing?: unknown } = {}) => {
+    const puts: { url: string; body: unknown }[] = [];
+    const http = fakeHttp({
+      "https://accounts.spotify.com/api/token": (_u, i) => Promise.resolve((i?.body ?? "").includes("refresh_token") ? (o.token ? ((o.token as { error?: string }).error ? { ok: false, status: 400, json: o.token } : ok(o.token)) : ok({ access_token: "ut" })) : ok({ access_token: "st", expires_in: 3600 })),
+      "https://api.spotify.com/v1/me/player/devices": () => Promise.resolve(ok({ devices: o.devices ?? [{ id: "d1", name: "iPhone", type: "Smartphone", is_active: false, is_restricted: false }] })),
+      "https://api.spotify.com/v1/me/player/play": (u, i) => { puts.push({ url: u, body: JSON.parse(i!.body!) }); return Promise.resolve({ ok: true, status: 204, json: null }); },
+      "https://api.spotify.com/v1/me/player/pause": () => Promise.resolve({ ok: true, status: 204, json: null }),
+      "https://api.spotify.com/v1/me/player": () => Promise.resolve(ok(o.playing ?? { is_playing: true, item: { uri: "spotify:track:abc123" } })),
+      "https://api.spotify.com/v1/me": () => Promise.resolve(ok({ product: o.product ?? "premium" })),
+      "https://api.spotify.com/v1/search": () => Promise.resolve(ok({ tracks: { items: [{ name: "Under Pressure", artists: [{ name: "Queen" }], album: { name: "Hot Space", images: [] }, external_urls: { spotify: "https://open.spotify.com/track/zzz9" } }] } })),
+    });
+    return { http, puts };
+  };
+  const d = (http: Http, c = conns()) => deps({ llm: llmFor({ tool: "music", action: "play" }), http, connections: c as never, spotifyUser: user } as never);
+  const run = (http: Http, over: Partial<Parameters<typeof runTool>[1]> = {}, c = conns()) => runTool({ ...d(http, c), connections: c as never }, { ...base, question: "תנגן את זה", lastMedia: [track], ...over });
+
+  it("turns a Spotify link into what the player takes", () => {
+    expect(playTarget(track.url)).toEqual({ kind: "track", uri: "spotify:track:abc123", context: false });
+    expect(playTarget("https://open.spotify.com/intl-he/album/XyZ1")).toEqual({ kind: "album", uri: "spotify:album:XyZ1", context: true });
+    expect(playTarget("https://evil.example/track/abc")).toBeNull();
+  });
+
+  it("checks everything first, tells the model what it is putting on, and starts nothing until asked to", async () => {
+    const { http, puts } = sp();
+    const r = await run(http);
+    expect(r).toMatchObject({ tool: "music", ok: true });
+    expect(r.message).toContain('"Bohemian Rhapsody" (Queen)');
+    expect(r.message).toContain("tap the screen");
+    expect(r.media?.[0]?.url).toBe(track.url);
+    expect(puts).toHaveLength(0); // the session starts it after Rolly has finished speaking
+    expect(await r.playback!.start()).toBe(true);
+    expect(puts[0]).toMatchObject({ body: { uris: ["spotify:track:abc123"] } });
+    expect(puts[0]!.url).toContain("device_id=d1");
+  });
+
+  it("plays an album as a context, and what was named in the request when it was named", async () => {
+    const { http, puts } = sp();
+    const album = { ...track, kind: "album" as const, url: "https://open.spotify.com/album/al1" };
+    await (await run(http, { lastMedia: [album] })).playback!.start();
+    expect(puts[0]!.body).toEqual({ context_uri: "spotify:album:al1" });
+    const named = await runTool({ ...d(http), llm: llmFor({ tool: "music", action: "play", query: "Queen Under Pressure", kind: "track" }) }, { ...base, question: "תנגן under pressure", lastMedia: [] });
+    expect(named.media?.[0]).toMatchObject({ title: "Under Pressure", url: "https://open.spotify.com/track/zzz9" });
+  });
+
+  it("stillPlaying is true while it is the same thing, false when it ended or something else took over", async () => {
+    expect(await (await run(sp().http)).playback!.stillPlaying()).toBe(true);
+    expect(await (await run(sp({ playing: { is_playing: true, item: { uri: "spotify:track:other" } } }).http)).playback!.stillPlaying()).toBe(false);
+    expect(await (await run(sp({ playing: { is_playing: false, item: null } }).http)).playback!.stillPlaying()).toBe(false);
+  });
+
+  it("refuses before promising anything: not connected, nothing to play, no Premium, no device, access withdrawn", async () => {
+    expect(await run(sp().http, {}, conns(null))).toMatchObject({ ok: false, reason: "not_connected" });
+    expect(await run(sp().http, { lastMedia: [] })).toMatchObject({ ok: false, reason: "nothing" });
+    const prem = await run(sp({ product: "free" }).http);
+    expect(prem).toMatchObject({ ok: false, reason: "premium" });
+    expect(prem.playback).toBeUndefined();
+    const nodev = await run(sp({ devices: [] }).http);
+    expect(nodev).toMatchObject({ ok: false, reason: "no_device" });
+    expect(nodev.message).toContain("open the Spotify app");
+    saved.length = 0;
+    const lost = await run(sp({ token: { error: "invalid_grant" } }).http);
+    expect(lost).toMatchObject({ ok: false, reason: "revoked" });
+  });
+
+  it("keeps a rotated refresh token", async () => {
+    saved.length = 0;
+    await run(sp({ token: { access_token: "ut", refresh_token: "srt2" } }).http);
+    expect(saved).toEqual(["srt2"]);
+  });
+
+  it("only plays when the plan says play (a recommendation request does not)", async () => {
+    const llm = llmFor({ tool: "music", action: "search", query: "queen", kind: "track" });
+    const r = await runTool({ ...d(sp().http), llm }, { ...base, question: "תמליץ לי על משהו של קווין", lastMedia: [] });
+    expect(r.playback).toBeUndefined();
+  });
+
+  it("asks Spotify for the playback scopes only", () => {
+    const u = new URL(spotifyAuthUrl(user, "st"));
+    expect(u.searchParams.get("scope")).toBe(SPOTIFY_SCOPES.join(" "));
+    expect(SPOTIFY_SCOPES).not.toContain("user-read-email");
+  });
+});
+
 describe("sealing and OAuth state", () => {
   it("seals a token so only the same secret opens it", () => {
     const s = seal("1//refresh", "secret-a");
@@ -175,6 +266,7 @@ describe("sealing and OAuth state", () => {
     expect(verifyState(st, "k", NOW.getTime() + 60_000)).toBe("user-1");
     expect(verifyState(st, "k", NOW.getTime() + 11 * 60_000)).toBeNull();
     expect(verifyState(st, "other", NOW.getTime())).toBeNull();
+    expect(verifyState(st, "k", NOW.getTime(), "spotify")).toBeNull(); // a Google state does not open the Spotify callback
     expect(verifyState(st.replace(/.$/, "x"), "k", NOW.getTime())).toBeNull();
   });
   it("asks Google for read-only access, offline", () => {

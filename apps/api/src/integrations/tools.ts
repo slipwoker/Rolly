@@ -17,14 +17,31 @@ import type { Http } from "./http.ts";
 import type { MediaItem } from "@rolly/contracts";
 
 export type ToolName = "web" | "calendar" | "email" | "music";
-export interface ToolPlan { tool: ToolName; query: string; kind: spotify.MusicKind; fromDay: number; days: number }
-export interface ToolArgs { userId: string; question: string; recent: { role: "user" | "agent"; text: string }[]; language: string; timeZone: string; now?: Date }
+export interface ToolPlan { tool: ToolName; action: "search" | "play"; query: string; kind: spotify.MusicKind; fromDay: number; days: number }
+export interface ToolArgs { /** what Rolly last showed as cards: "play this" means the first of them */ lastMedia?: MediaItem[]; userId: string; question: string; recent: { role: "user" | "agent"; text: string }[]; language: string; timeZone: string; now?: Date }
 export interface ToolOutcome { message: string; ok: boolean; reason?: string; tool: ToolName;
-  /** music: the results Rolly talks about, shown as cards in the chat */ media?: MediaItem[] }
+  /** music: the results Rolly talks about, shown as cards in the chat */ media?: MediaItem[];
+  /** music to start once Rolly has finished speaking (the voice session pauses listening while it plays) */
+  playback?: Playback }
+
+/** One song/show to be played on the user's Spotify. The voice session decides WHEN (after Rolly's reply). */
+export interface Playback {
+  title: string;
+  /** starts it; false = Spotify refused */
+  start(): Promise<boolean>;
+  /** false = it ended, was stopped, or Spotify moved on to something else */
+  stillPlaying(): Promise<boolean | "error">;
+  /** the user tapped to talk: pause the music */
+  stop(): Promise<void>;
+}
 
 /** Where the user's Google refresh token lives (the database, sealed); dropped when Google says access was withdrawn. */
-export interface Connections { googleRefresh(userId: string): Promise<string | null>; dropGoogle(userId: string): Promise<void> }
-export interface ToolDeps { llm: UtilityLlm | null; http: Http; connections: Connections; google: google.GoogleConfig | null; spotify: spotify.SpotifyConfig | null }
+export interface Connections {
+  googleRefresh(userId: string): Promise<string | null>; dropGoogle(userId: string): Promise<void>;
+  spotifyRefresh?(userId: string): Promise<string | null>; saveSpotifyRefresh?(userId: string, refreshToken: string): Promise<void>; dropSpotify?(userId: string): Promise<void>;
+}
+export interface ToolDeps { llm: UtilityLlm | null; http: Http; connections: Connections; google: google.GoogleConfig | null; spotify: spotify.SpotifyConfig | null;
+  /** the user-account side of Spotify (playback); null = not configured */ spotifyUser?: spotify.SpotifyOAuth | null }
 
 export const PLAN_PROMPT = `You route one request from a voice companion's user to the right tool. Reply with JSON only.
 
@@ -34,11 +51,11 @@ Tools:
 - "music": find a song, artist, album, podcast or podcast episode, or recommend music or podcasts to listen to.
 - "web": anything else that needs current facts from the internet.
 
-JSON: {"tool": "calendar"|"email"|"music"|"web", "query": string, "kind": "track"|"artist"|"album"|"show"|"episode"|"any", "from_day": number, "days": number}
+JSON: {"tool": "calendar"|"email"|"music"|"web", "action": "search"|"play", "query": string, "kind": "track"|"artist"|"album"|"show"|"episode"|"any", "from_day": number, "days": number}
 - email: query is a Gmail search ("is:unread newer_than:2d", "from:dana", "subject:flight"); default "is:unread newer_than:3d".
-- music: query is what to search the catalogue for: the title/artist the user named, or for a recommendation a few well-chosen search terms (genre, mood, a similar artist, a podcast topic). kind "show" for podcasts, "episode" for a specific episode, "any" if unsure.
+- music: action "play" ONLY when the user asks to play / put on something ("תנגן", "תשים", "play"); asking about or for a recommendation is "search". For "play": query is what to play when they named it ("Bohemian Rhapsody Queen"), or "" when they mean what was just mentioned ("play that", "תנגן את זה"). For "search": query is what to search the catalogue for: the title/artist the user named, or for a recommendation a few well-chosen search terms (genre, mood, a similar artist, a podcast topic). kind "show" for podcasts, "episode" for a specific episode, "any" if unsure.
 - calendar: from_day = days from today (0 = today, 1 = tomorrow), days = how many days to cover (1-7).
-- Unused fields: query "", kind "any", from_day 0, days 1.
+- Unused fields: action "search", query "", kind "any", from_day 0, days 1.
 
 The conversation so far:
 {recent}
@@ -73,11 +90,11 @@ export function parsePlan(obj: Record<string, unknown>): ToolPlan {
   const tool = (["calendar", "email", "music", "web"] as const).find((t) => t === obj.tool) ?? "web";
   const kind = (["track", "artist", "album", "show", "episode", "any"] as const).find((k) => k === obj.kind) ?? "any";
   const n = (v: unknown, lo: number, hi: number, d: number) => (typeof v === "number" && Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v))) : d);
-  return { tool, kind, query: typeof obj.query === "string" ? obj.query.slice(0, 200) : "", fromDay: n(obj.from_day, 0, 30, 0), days: n(obj.days, 1, 7, 1) };
+  return { tool, action: obj.action === "play" && tool === "music" ? "play" : "search", kind, query: typeof obj.query === "string" ? obj.query.slice(0, 200) : "", fromDay: n(obj.from_day, 0, 30, 0), days: n(obj.days, 1, 7, 1) };
 }
 
 export async function planTool(llm: UtilityLlm | null, a: ToolArgs, canRoute = true): Promise<ToolPlan> {
-  const fallback: ToolPlan = { tool: "web", query: "", kind: "any", fromDay: 0, days: 1 };
+  const fallback: ToolPlan = { tool: "web", action: "search", query: "", kind: "any", fromDay: 0, days: 1 };
   if (!llm || !canRoute) return fallback;
   try {
     const r = await llm.json(fill(PLAN_PROMPT, { recent: recentText(a.recent), question: a.question.replace(/\s+/g, " ").slice(0, 400) }), { maxTokens: 200, purpose: "tool_plan" });
@@ -115,6 +132,61 @@ async function compose(llm: UtilityLlm | null, a: ToolArgs, tool: Exclude<ToolNa
   return ans ? { answer: ans, picks } : null;
 }
 
+const PLAY_NOTES = {
+  not_connected: "Their Spotify account is not connected, so you cannot play anything. They can connect it in the app under connected services.",
+  nothing: "There is nothing to play yet: ask them in a few words what they want to hear.",
+  premium: "Spotify only lets Premium accounts be played from outside its own app, so you cannot play it for them.",
+  no_device: "Spotify is not open on their phone. Ask them to open the Spotify app once and then ask you again.",
+  revoked: "Their Spotify access was withdrawn. They can connect it again in the app.",
+};
+
+/**
+ * "Play it": the user's own Spotify, on their phone. Everything that can fail is checked BEFORE Rolly answers (Premium,
+ * a device that can play), so Rolly never promises music that will not start. The music itself starts later, once Rolly
+ * has finished speaking (voice/session.ts), and the session stops listening while it plays.
+ */
+async function playMusic(d: ToolDeps, a: ToolArgs, plan: ToolPlan): Promise<ToolOutcome> {
+  const user = d.spotifyUser, c = d.connections;
+  if (!user || !c.spotifyRefresh || !c.saveSpotifyRefresh) return note("music", PLAY_NOTES.not_connected, "not_connected");
+  const refresh = await c.spotifyRefresh(a.userId);
+  if (!refresh) return note("music", PLAY_NOTES.not_connected, "not_connected");
+
+  // what to play: what they named, else what Rolly just showed
+  let item: MediaItem | undefined;
+  if (plan.query) {
+    const hit = (await spotify.search(d.http, d.spotify!, plan.query, plan.kind === "any" ? "track" : plan.kind)).find((h) => h.url && spotify.playTarget(h.url));
+    if (hit) item = { kind: hit.kind, title: hit.name, subtitle: hit.by, image: hit.image, url: hit.url!, provider: "spotify" };
+  } else item = a.lastMedia?.find((m) => spotify.playTarget(m.url));
+  const target = item && spotify.playTarget(item.url);
+  if (!item || !target) return note("music", PLAY_NOTES.nothing, "nothing");
+
+  // an access token for this user (Spotify may rotate the refresh token: keep the new one)
+  let current = refresh, access = "", expires = 0;
+  const token = async () => {
+    if (access && Date.now() < expires) return access;
+    const t = await spotify.userToken(d.http, user, current);
+    if (t.refreshToken && t.refreshToken !== current) { current = t.refreshToken; await c.saveSpotifyRefresh!(a.userId, current); }
+    access = t.accessToken; expires = Date.now() + 50 * 60_000;
+    return access;
+  };
+  let check: spotify.PlayCheck;
+  try { check = await spotify.canPlay(d.http, await token()); }
+  catch (e) {
+    if (e instanceof spotify.SpotifyAuthLost) { await c.dropSpotify?.(a.userId); return note("music", PLAY_NOTES.revoked, "revoked"); }
+    throw e;
+  }
+  if (!check.ok) return note("music", check.reason === "failed" ? FAILED : PLAY_NOTES[check.reason], check.reason);
+  const device = check.deviceId;
+  const playback: Playback = {
+    title: item.title,
+    async start() { try { return await spotify.startPlayback(d.http, await token(), device, target); } catch { return false; } },
+    async stillPlaying() { try { return await spotify.stillPlaying(d.http, await token(), target); } catch { return "error"; } },
+    async stop() { try { await spotify.pausePlayback(d.http, await token()); } catch { /* the song ends by itself */ } },
+  };
+  return { tool: "music", ok: true, media: [item], playback, message: `${LOOKUP_TAG} You are going to play "${item.title}"${item.subtitle ? ` (${item.subtitle})` : ""} on their Spotify, on their phone.
+Tell them in a few words what you are putting on, in your own words. The music starts the moment you stop talking and you will not hear them while it plays: they tap the screen to talk again. Do not ask anything.` };
+}
+
 /** One tool call for one question. Never throws: every failure is an outcome the conversation can say. */
 export async function runTool(d: ToolDeps, a: ToolArgs): Promise<ToolOutcome> {
   // with neither Google nor Spotify configured there is nothing to choose between: straight to the web, no extra call
@@ -126,6 +198,7 @@ export async function runTool(d: ToolDeps, a: ToolArgs): Promise<ToolOutcome> {
     }
     if (plan.tool === "music") {
       if (!d.spotify) return note("music", NOT_CONNECTED.music, "unavailable");
+      if (plan.action === "play") return await playMusic(d, a, plan);
       const hits = await spotify.search(d.http, d.spotify, plan.query || a.question, plan.kind);
       // the composer sees the results numbered, without links or pictures; the ones it names become cards
       const c = await compose(d.llm, a, "music", hits.map(({ url: _u, image: _i, ...h }, i) => ({ i, ...h })));
