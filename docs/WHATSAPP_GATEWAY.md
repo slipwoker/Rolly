@@ -184,11 +184,10 @@ It is a heuristic: a skeleton under three letters matches only a whole name, a p
 (the chat's name is read back before every send). `GET /v1/stats` now has `unnamed_chats` (1:1 chats with no stored name, which no search can find) and a search that finds nothing is logged without the name.
 **Not verified on the real address book**: whether "Alex Dumsky" is stored under that name on the gateway is unknown; if it is one of the unnamed chats, this does not help.
 
-**Temporary diagnostics (2026-11-27).** To see how a contact is stored (the gateway's database is closed to outside connections by design), the owner can call
-`POST /v1/admin/whatsapp/lookup {user_id, q?, phone?}` on `rolly-api` with the admin token. It asks the gateway's `GET /v1/users/{uid}/debug/lookup` and returns the stored name
-and its UTF-8 bytes (hidden characters), whether it is a group, the kind of address the chat is keyed by (`lid`/`phone`/`group`), the number of messages, and the names WhatsApp
-knows for the number; never message text, a phone number or a chat address. **Remove** `whatsapp/adminRoutes.ts`, its line in `app.ts`, `debugLookup` in `gateway.ts` and
-`apps/wa-gateway/debug.go` once the question is answered.
+**Temporary diagnostics (2026-11-27), removed the same day.** The gateway's database is closed to outside connections by design, so an owner-only `POST /v1/admin/whatsapp/lookup` was added to see how a contact is
+stored (name and its UTF-8 bytes, address kind, what WhatsApp's contact store knows; never message text, a number or an address). It answered the question and is gone (`debug.go`, `adminRoutes.ts`, `debugLookup`).
+What it showed: "Alex Dumsky" was stored fine (the search was cross-script, now fixed); 40 chats had no name and WhatsApp's contact store had nothing for them, one of them a business account whose
+verified name arrives on the message (now used, see below). `GET /v1/stats` keeps `unnamed_chats` as a permanent number to watch.
 
 **Names of chats that are not saved contacts (2026-11-27).** Found in live use: of 317 chats, 40 had no name; the newest, with 1,037 messages, was "Instinct", a WhatsApp Business account the owner has not saved.
 WhatsApp's contact store had nothing for it (no saved name, no push name, no business name), but WhatsApp itself shows the business's **verified name**, which arrives on the message
