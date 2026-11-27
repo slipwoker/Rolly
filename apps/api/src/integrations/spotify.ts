@@ -48,8 +48,9 @@ export async function search(http: Http, c: SpotifyConfig, q: string, kind: Musi
 
 // ------------------------------------------------------------------------------------------------------------------
 // The user's own Spotify account: playback on their phone. Scopes: start playback and see devices (read/modify
-// playback state) and their plan (Premium is required by Spotify to control playback).
-export const SPOTIFY_SCOPES = ["user-modify-playback-state", "user-read-playback-state", "user-read-private"];
+// playback state). Premium is required by Spotify to control playback; since Feb 2026 Development Mode apps no longer see
+// the account's plan (`/me` has no `product`), so a free account is discovered when the play call is refused.
+export const SPOTIFY_SCOPES = ["user-modify-playback-state", "user-read-playback-state"];
 
 export interface SpotifyOAuth { clientId: string; clientSecret: string; redirectUri: string }
 const basic = (c: { clientId: string; clientSecret: string }) => "Basic " + Buffer.from(`${c.clientId}:${c.clientSecret}`).toString("base64");
@@ -88,15 +89,11 @@ export function playTarget(url: string): { kind: MusicKind; uri: string; context
   return { kind, uri: `spotify:${kind}:${m[2]}`, context: kind === "album" || kind === "artist" || kind === "show" };
 }
 
-export type PlayCheck = { ok: true; deviceId: string; deviceName: string } | { ok: false; reason: "premium" | "no_device" | "failed" };
+export type PlayCheck = { ok: true; deviceId: string; deviceName: string } | { ok: false; reason: "no_device" | "failed" };
 
-/** Before anything is said: is this account Premium, and is there a Spotify app on a device that can play? */
+/** Before anything is said: is there a Spotify app on a device that can play? (Premium shows up when the play call is refused.) */
 export async function canPlay(http: Http, accessToken: string): Promise<PlayCheck> {
-  const auth = { Authorization: `Bearer ${accessToken}` };
-  const me = await http("https://api.spotify.com/v1/me", { headers: auth });
-  if (!me.ok) return { ok: false, reason: "failed" };
-  if ((me.json as { product?: string } | null)?.product !== "premium") return { ok: false, reason: "premium" };
-  const d = await http("https://api.spotify.com/v1/me/player/devices", { headers: auth });
+  const d = await http("https://api.spotify.com/v1/me/player/devices", { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!d.ok) return { ok: false, reason: "failed" };
   const devices = ((d.json as { devices?: { id: string | null; name: string; type: string; is_active: boolean; is_restricted: boolean }[] } | null)?.devices ?? []).filter((x) => x.id && !x.is_restricted);
   const pick = devices.find((x) => x.is_active) ?? devices.find((x) => x.type === "Smartphone") ?? devices[0];

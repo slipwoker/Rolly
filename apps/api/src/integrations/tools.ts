@@ -135,7 +135,6 @@ async function compose(llm: UtilityLlm | null, a: ToolArgs, tool: Exclude<ToolNa
 const PLAY_NOTES = {
   not_connected: "Their Spotify account is not connected, so you cannot play anything. They can connect it in the app under connected services.",
   nothing: "There is nothing to play yet: ask them in a few words what they want to hear.",
-  premium: "Spotify only lets Premium accounts be played from outside its own app, so you cannot play it for them.",
   no_device: "Spotify is not open on their phone. Ask them to open the Spotify app once and then ask you again.",
   revoked: "Their Spotify access was withdrawn. They can connect it again in the app.",
 };
@@ -175,7 +174,7 @@ async function playMusic(d: ToolDeps, a: ToolArgs, plan: ToolPlan): Promise<Tool
     if (e instanceof spotify.SpotifyAuthLost) { await c.dropSpotify?.(a.userId); return note("music", PLAY_NOTES.revoked, "revoked"); }
     throw e;
   }
-  if (!check.ok) return note("music", check.reason === "failed" ? FAILED : PLAY_NOTES[check.reason], check.reason);
+  if (!check.ok) return note("music", check.reason === "failed" ? FAILED : PLAY_NOTES.no_device, check.reason);
   const device = check.deviceId;
   const playback: Playback = {
     title: item.title,

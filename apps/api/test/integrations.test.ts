@@ -220,18 +220,22 @@ describe("playing music on the user's Spotify", () => {
     expect(await (await run(sp({ playing: { is_playing: false, item: null } }).http)).playback!.stillPlaying()).toBe(false);
   });
 
-  it("refuses before promising anything: not connected, nothing to play, no Premium, no device, access withdrawn", async () => {
+  it("refuses before promising anything: not connected, nothing to play, no device, access withdrawn", async () => {
     expect(await run(sp().http, {}, conns(null))).toMatchObject({ ok: false, reason: "not_connected" });
     expect(await run(sp().http, { lastMedia: [] })).toMatchObject({ ok: false, reason: "nothing" });
-    const prem = await run(sp({ product: "free" }).http);
-    expect(prem).toMatchObject({ ok: false, reason: "premium" });
-    expect(prem.playback).toBeUndefined();
     const nodev = await run(sp({ devices: [] }).http);
     expect(nodev).toMatchObject({ ok: false, reason: "no_device" });
     expect(nodev.message).toContain("open the Spotify app");
     saved.length = 0;
     const lost = await run(sp({ token: { error: "invalid_grant" } }).http);
     expect(lost).toMatchObject({ ok: false, reason: "revoked" });
+  });
+
+  it("a free account is found out when Spotify refuses to play: start() is false and nothing is promised as playing", async () => {
+    const { http } = sp();
+    const refusing: Http = async (u, i) => (u.startsWith("https://api.spotify.com/v1/me/player/play") ? { ok: false, status: 403, json: { error: { reason: "PREMIUM_REQUIRED" } } } : http(u, i));
+    const r = await run(refusing);
+    expect(await r.playback!.start()).toBe(false);
   });
 
   it("keeps a rotated refresh token", async () => {
