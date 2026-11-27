@@ -10,7 +10,7 @@ import { RefreshControl, ScrollView, Share, StyleSheet, View } from "react-nativ
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../src/api";
-import { t, uiLang } from "../src/i18n";
+import { t, uiLang, useUiLang } from "../src/i18n";
 import { Backdrop, Card, Chip, CircleButton, IconTile, PressScale, TopBar, Txt, type IconName } from "../src/ui/components";
 import { spacing, useTheme } from "../src/ui/theme";
 
@@ -31,6 +31,7 @@ interface Progress {
 const date = (s: string) => new Date(s).toLocaleDateString(uiLang === "he" ? "he-IL" : "en-GB", { day: "numeric", month: "short" });
 
 export default function ProgressScreen() {
+  useUiLang();
   const c = useTheme();
   const [data, setData] = useState<Progress | null>(null);
   const [busy, setBusy] = useState(false);

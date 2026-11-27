@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { warmUp } from "../src/api";
 import { View } from "react-native";
-import { dirStyle, ensureDirection } from "../src/i18n";
+import { dirStyle, ensureDirection, useUiLang } from "../src/i18n";
 import { useTheme } from "../src/ui/theme";
 import { VoiceProvider } from "../src/voice/VoiceProvider";
 
@@ -16,6 +16,7 @@ void SplashScreen.preventAutoHideAsync().catch(() => {});
 
 /** No sign-in screen: the app opens straight on Home; the phone enrolls silently on first launch. */
 export default function Root() {
+  useUiLang(); // a language switch re-renders the navigator with the new direction
   const c = useTheme();
   const [fontsReady, fontError] = useFonts({ Rubik_400Regular, Rubik_500Medium, Rubik_600SemiBold, Rubik_700Bold });
   useEffect(() => { void warmUp().catch(() => { /* retried when a conversation starts; shown there if it fails */ }); }, []);

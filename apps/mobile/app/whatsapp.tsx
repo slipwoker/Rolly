@@ -13,7 +13,7 @@ import { Alert, AppState, ScrollView, Share, StyleSheet, TextInput, View } from 
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../src/api";
-import { fill, inputAlign, t, uiLang } from "../src/i18n";
+import { fill, inputAlign, t, uiLang, useUiLang } from "../src/i18n";
 import { formatCode, isEmail, linkError, minutesLeft, normalizePhone, stateView, type LinkError } from "../src/whatsapp";
 import { Backdrop, Button, Card, Chip, CircleButton, IconTile, TopBar, Txt } from "../src/ui/components";
 import { radius, spacing, type, useTheme } from "../src/ui/theme";
@@ -25,6 +25,7 @@ interface Started { state: string; code?: string; expires_in_s?: number }
 interface WebLink { url?: string; sent?: boolean; expires_in_s: number }
 
 export default function WhatsApp() {
+  useUiLang();
   const c = useTheme();
   const [state, setState] = useState("unavailable");
   const [emailOk, setEmailOk] = useState(false);

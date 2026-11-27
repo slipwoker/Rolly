@@ -8,7 +8,8 @@ import { Alert, AppState, Linking, ScrollView, Share, StyleSheet, TextInput, Vie
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { api, forgetDevice } from "../src/api";
-import { fill, inputAlign, isRTL, t } from "../src/i18n";
+import { fill, inputAlign, isRTL, t, useUiLang } from "../src/i18n";
+import { useVoiceSession } from "../src/voice/VoiceProvider";
 import { stateView } from "../src/whatsapp";
 import { Backdrop, Card, CircleButton, IconTile, PressScale, TopBar, Txt, type IconName } from "../src/ui/components";
 import { BrandIcon, type Brand } from "../src/ui/BrandIcon";
@@ -24,6 +25,8 @@ interface Memory { id: string; kind: string; content: string; status: "active" |
 const COLLAPSED = 6;
 
 export default function Personalisation() {
+  useUiLang();
+  const voice = useVoiceSession();
   const c = useTheme();
   const [me, setMe] = useState<Me | null>(null);
   const [mems, setMems] = useState<Memory[]>([]);
@@ -112,9 +115,11 @@ export default function Personalisation() {
               </View>
               <View style={[s.field, s.divided, { borderColor: c.border }]}>
                 <Txt variant="label">{t.language}</Txt>
-                <Segmented value={me?.preferred_language ?? null}
+                {/* one setting for the conversation and the app's own language (VoiceProvider saves it to the profile) */}
+                <Segmented value={voice.lang}
                   options={[{ value: "he", label: t.hebrew }, { value: "en", label: t.english }]}
-                  onChange={(l) => act(() => api("/v1/me", { method: "PATCH", body: { preferred_language: l } }))} />
+                  onChange={(l) => voice.setLang(l)} />
+                <Txt variant="caption" tone="dim">{t.langNote}</Txt>
               </View>
             </Card>
           </Animated.View>

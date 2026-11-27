@@ -1,5 +1,6 @@
 /** UI strings. Hebrew is the default UI language and is laid out right-to-left. */
-import { getLocales } from "expo-localization";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useReducer } from "react";
 import { I18nManager, Platform } from "react-native";
 
 const he = {
@@ -19,6 +20,7 @@ const he = {
   masculine: "זכר", feminine: "נקבה", plural: "רבים", reset: "לאפס", name: "שם",
   kTrack: "שיר", kArtist: "אמן", kAlbum: "אלבום", kShow: "פודקאסט", kEpisode: "פרק", openInSpotify: "פתיחה ב-Spotify",
   showAll: "הצגת הכל ({n})", showLess: "הצגת פחות", yourData: "המידע שלך", deleteItem: "למחוק את הפריט?", editItem: "לתקן", profile: "איך לדבר איתך",
+  langNote: "רולי מדבר בשפה הזו, וגם האפליקציה מוצגת בה.",
   services: "שירותים מחוברים", soon: "בקרוב", connect: "לחבר", disconnect: "לנתק", connected: "מחובר",
   signalsCalendar: "להבין מה חשוב לי מהיומן", signalsCalendarWhy: "לפני נסיעה ROLLY יציץ ביומן ל-14 הימים הקרובים (כותרות, שעות ומקום בלבד, בלי תיאורים) כדי לשאול על מה שמתקרב. פועל כברירת מחדל כשהשירות מחובר. אפשר לכבות בכל רגע, וזה מוחק מה שנלקח משם.", signalsMail: "להבין מה חשוב לי מהמייל", signalsMailWhy: "לפני נסיעה ROLLY יחפש במייל דברים הקשורים למה שמתקרב ביומן (שולח, נושא ותקציר קצר של עד שמונה הודעות, בלי תוכן מלא). פועל כברירת מחדל כשהשירות מחובר. אפשר לכבות בכל רגע, וזה מוחק מה שנלקח משם.", signalsWhatsapp: "להבין מה חשוב לי מהוואטסאפ", signalsWhatsappWhy: "לפני נסיעה ROLLY יקרא את ההודעות האחרונות (עד שלושה ימים) בעד חמש שיחות אישיות אחרונות. לא קבוצות, לא הודעות קוליות, ולא יזכיר מי כתב מה. פועל כברירת מחדל כשהשירות מחובר. אפשר לכבות בכל רגע, וזה מוחק מה שנלקח משם.", turnOn: "להפעיל", turnOff: "לכבות", signalsOn: "פועל",  googleService: "Google: יומן ומייל", googleWhy: "ROLLY יוכל לספר מה ביומן ומה חדש במייל, לשלוח מייל ולקבוע פגישות (רק אחרי שתאשרו בקול)", googleUpdateWhy: "מחובר לקריאה בלבד. כדי ש-ROLLY יוכל גם לשלוח מייל ולקבוע פגישות צריך לאשר הרשאות נוספות", updatePerms: "עדכון הרשאות", musicService: "Spotify: מוזיקה ופודקאסטים", musicWhy: "מחפש, ממליץ ופותח שירים ופודקאסטים ב-Spotify שבטלפון", exportData: "ייצוא המידע שלי", deleteAccount: "מחיקת החשבון וכל המידע",
   waService: "WhatsApp", waWhy: "ROLLY יקריא לך הודעות וישלח הודעות בקול. בכל שליחה הוא מקריא ומחכה שתאשר.", open: "פתח",
@@ -50,6 +52,7 @@ const en: Strings = {
   masculine: "Masculine", feminine: "Feminine", plural: "Plural", reset: "Reset", name: "Name",
   kTrack: "Song", kArtist: "Artist", kAlbum: "Album", kShow: "Podcast", kEpisode: "Episode", openInSpotify: "Open in Spotify",
   showAll: "Show all ({n})", showLess: "Show less", yourData: "Your data", deleteItem: "Delete this item?", editItem: "Correct", profile: "How to talk to you",
+  langNote: "Rolly talks in this language, and the app is shown in it too.",
   services: "Connected services", soon: "Coming later", connect: "Connect", disconnect: "Disconnect", connected: "Connected",
   signalsCalendar: "Understand what matters to me from my calendar", signalsCalendarWhy: "Before a ride ROLLY looks at your next 14 days (titles, times and place only, never descriptions) to ask about what is coming up. It is on by default while the service is connected. You can turn it off any time, which removes what came from it.", signalsMail: "Understand what matters to me from my mail", signalsMailWhy: "Before a ride ROLLY looks in your mail for things tied to what is coming up (sender, subject and a short snippet of up to eight messages, never full bodies). It is on by default while the service is connected. You can turn it off any time, which removes what came from it.", signalsWhatsapp: "Understand what matters to me from WhatsApp", signalsWhatsappWhy: "Before a ride ROLLY reads the latest messages (up to three days) in up to five recent one-to-one chats. Never groups, never voice notes, and it will not say who wrote what. It is on by default while the service is connected. You can turn it off any time, which removes what came from it.", turnOn: "Turn on", turnOff: "Turn off", signalsOn: "On",  googleService: "Google: calendar and mail", googleWhy: "ROLLY can tell you what is on your calendar and what is new in your mail, send email and set up meetings (only after you say yes out loud)", googleUpdateWhy: "Connected for reading only. To let ROLLY also send email and set up meetings, approve the extra permissions", updatePerms: "Update permissions", musicService: "Spotify: music and podcasts", musicWhy: "Finds, recommends and opens songs and podcasts in the Spotify app on your phone", exportData: "Export my data", deleteAccount: "Delete account and all data",
   waService: "WhatsApp", waWhy: "ROLLY reads your messages aloud and sends messages by voice. Before every send it reads the message back and waits for your yes.", open: "Open",
@@ -64,18 +67,54 @@ const en: Strings = {
   sure: "Are you sure? This cannot be undone.", noSpeakerId: "ROLLY cannot tell who is speaking. Things said when it is unclear who said them are kept as unconfirmed until you confirm them.",
 };
 
-export const uiLang: "he" | "en" = getLocales()[0]?.languageCode === "en" ? "en" : "he";
-export const t: Strings = uiLang === "he" ? he : en;
-export const isRTL = uiLang === "he";
+/**
+ * The app speaks the conversation language: one language everywhere, chosen in Personalisation (VoiceProvider owns
+ * the choice and calls setUiLang). It is cached on the phone so the very first frame is already in the right
+ * language; before anyone chooses, it is Hebrew, like the conversation (it never follows the phone's system language,
+ * see P1-D23). The exports below are live bindings: setUiLang reassigns them and re-renders every screen that calls
+ * useUiLang().
+ */
+export type UiLang = "he" | "en";
+export const LANG_KEY = "rolly.conv_lang";
 
+export function cachedLang(): UiLang | null {
+  try { const v = SecureStore.getItem(LANG_KEY); return v === "he" || v === "en" ? v : null; } catch { return null; }
+}
+
+export let uiLang: UiLang = "he";
+export let t: Strings = he;
+export let isRTL = true;
 /**
  * Layout direction applied explicitly on every root view (screens, modals). I18nManager.forceRTL only takes effect
- * after the app restarts, so without this the very first launch would be laid out left-to-right.
+ * after the app restarts, so without this the very first launch (and a language switch) would be laid out wrongly.
  */
-export const dirStyle = { direction: isRTL ? "rtl" : "ltr" } as const;
-
+export let dirStyle: { direction: "rtl" | "ltr" } = { direction: "rtl" };
 /** Text-input alignment to the reading start (right in Hebrew). Native flips "left" under an RTL layout; web does not. */
-export const inputAlign: "left" | "right" = Platform.OS === "web" && isRTL ? "right" : "left";
+export let inputAlign: "left" | "right" = "left";
+
+function apply(l: UiLang) {
+  uiLang = l;
+  t = l === "he" ? he : en;
+  isRTL = l === "he";
+  dirStyle = { direction: isRTL ? "rtl" : "ltr" };
+  inputAlign = Platform.OS === "web" && isRTL ? "right" : "left";
+}
+apply(cachedLang() ?? "he");
+
+const listeners = new Set<() => void>();
+/** Switch the whole app's language now (and its direction from the next launch on, for native views). */
+export function setUiLang(l: UiLang) {
+  if (l === uiLang) return;
+  apply(l);
+  try { I18nManager.forceRTL(isRTL); } catch { /* web */ }
+  listeners.forEach((f) => f());
+}
+/** Re-render this component when the app's language changes. */
+export function useUiLang(): UiLang {
+  const [, bump] = useReducer((x: number) => x + 1, 0);
+  useEffect(() => { listeners.add(bump); return () => { listeners.delete(bump); }; }, []);
+  return uiLang;
+}
 
 /** "{name}"-style placeholders. */
 export const fill = (s: string, v: Record<string, string>) => s.replace(/\{(\w+)\}/g, (_, k: string) => v[k] ?? "");
