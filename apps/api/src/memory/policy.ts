@@ -37,6 +37,8 @@ export function decide(item: Item, turns: SessionTurn[], session: { otherSpeaker
   const src = sourceTurn(item, turns);
   if (!src) return { status: "candidate", reason: "quote_not_found_in_user_turns", turn: item.turn, attribution: "not_found" };
   if (src.attribution === "uncertain") return { status: "candidate", reason: "uncertain_speaker", turn: src.idx, attribution: "uncertain" };
+  // Rolly said it back and the owner agreed: their own yes, in a turn with no hint of another speaker, in reply to an AGENT turn
+  if (item.confirmed && turns.find((t) => t.idx === src.idx - 1)?.role === "agent") return { status: "active", reason: "user_confirmed_phrasing", turn: src.idx, attribution: "primary" };
   if (session.otherSpeakersSuspected) return { status: "candidate", reason: "other_speakers_suspected", turn: src.idx, attribution: "primary" };
   if (!item.first_person) return { status: "candidate", reason: "not_first_person", turn: src.idx, attribution: "primary" };
   if (item.confidence < ACTIVE_MIN_CONFIDENCE) return { status: "candidate", reason: "low_confidence", turn: src.idx, attribution: "primary" };

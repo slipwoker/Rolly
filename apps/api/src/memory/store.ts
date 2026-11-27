@@ -525,7 +525,7 @@ export class MemoryStore {
     }
     const others = otherSpeakersSuspected(s.other_speakers_suspected, turns);
     const prov = (it: Item, d: Decision) => ({ source: "summarizer", session_id: sessionId, quote: it.quote.slice(0, 300), turn: d.turn,
-      attribution: d.attribution, reason: d.reason, confirmed: false, first_person: it.first_person });
+      attribution: d.attribution, reason: d.reason, confirmed: d.reason === "user_confirmed_phrasing", first_person: it.first_person });
 
     // conversation-level records: about the conversation, not claims about the user
     if (s.summary) await this.addMemory(userId, { kind: "summary", content: s.summary, status: "active", provenance: { source: "summarizer", session_id: sessionId, other_speakers_suspected: others }, sessionId });

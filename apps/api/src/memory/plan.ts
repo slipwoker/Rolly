@@ -12,7 +12,7 @@ import type { UtilityLlm } from "./llm.ts";
 import { formatTranscript, writeAbout } from "./summarizer.ts";
 
 export type GoalStatus = "active" | "paused" | "achieved" | "dropped";
-export type AgendaKind = "follow_up" | "goal_step" | "action_check" | "fresh";
+export type AgendaKind = "follow_up" | "goal_step" | "action_check" | "fresh" | "direction";
 
 /** `take`: Rolly's own opinion or angle on the topic, written by the stronger model so the small one has something real to say */
 export interface AgendaItem { topic: string; why: string; kind: AgendaKind; ref_id: string | null; take?: string }
@@ -50,9 +50,10 @@ Return ONLY a JSON object with these keys:
   "completed_action_items": [{"id": "<id from the open tasks>", "turn": <turn number>, "quote": "<the user's exact words>"}] for tasks the USER said they have done or no longer need.
   "agenda_outcome": [{"index": <number from the plan for this ride>, "outcome": "done" | "touched" | "skipped"}]
   "next_agenda": two or three things for Rolly to bring up on the NEXT ride, most valuable first:
-      {"topic": "<short, concrete>", "take": "<Rolly's own opinion or angle on it, one sentence a friend would say>", "why": "<one short sentence: why it is worth the user's time>", "kind": "follow_up" | "goal_step" | "action_check" | "fresh", "ref_id": "<id of the goal or task it is about, or null>"}
+      {"topic": "<short, concrete>", "take": "<Rolly's own opinion or angle on it, one sentence a friend would say>", "why": "<one short sentence: why it is worth the user's time>", "kind": "follow_up" | "goal_step" | "action_check" | "fresh" | "direction", "ref_id": "<id of the goal or task it is about, or null>"}
       follow_up = continue something left open in this conversation; goal_step = the next step of a goal; action_check = ask
       whether an open task got done; fresh = something new and interesting connected to what the user cares about.
+      direction = something the user said they want, worry about or are working toward (at work, with people, learning, health, anything), where a friend who wants them to get somewhere would ask where they want to take it. Only when the user actually said or clearly showed it: the "take" is a curious observation or one sharp question about THEIR situation, never a generic question about goals or plans. At most one direction item; none when there is nothing real in the transcript.
       Prefer what the user showed energy for. At most one action_check. Not skipped plan items the user clearly was not interested in.
       Always include one "fresh" item that is light: a small debate, an odd observation or a playful question connected to what the user cares about.
       "take" is what gives Rolly something real to say: a clear stance ("better one small investor who believes than months chasing a big fund"), a concrete angle, or a side in a small debate. Opinions and angles, not facts: state a fact only if it is certainly true. No general wisdom about life, nothing that starts with "sometimes". Leave "take" empty for an action_check.
@@ -82,7 +83,7 @@ Transcript (turn number, speaker, words):
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : typeof v === "string" && v.trim() !== "" && !isNaN(Number(v)) ? Number(v) : null);
 const arr = (v: unknown): Record<string, unknown>[] => (Array.isArray(v) ? v.filter((x) => x && typeof x === "object") as Record<string, unknown>[] : []);
-const KINDS: AgendaKind[] = ["follow_up", "goal_step", "action_check", "fresh"];
+const KINDS: AgendaKind[] = ["follow_up", "goal_step", "action_check", "fresh", "direction"];
 const STATUSES: GoalStatus[] = ["active", "paused", "achieved", "dropped"];
 
 export function normalizeAgendaItems(v: unknown, validRefs?: Set<string>): AgendaItem[] {
@@ -97,9 +98,9 @@ export function normalizeAgendaItems(v: unknown, validRefs?: Set<string>): Agend
       ref_id: ref && (!validRefs || validRefs.has(ref)) ? ref : null,
     });
   }
-  // at most one "did you do it?" per ride
-  let checks = 0;
-  return out.filter((i) => i.kind !== "action_check" || ++checks <= 1).slice(0, 3);
+  // at most one "did you do it?" and one "where do you want to take this?" per ride
+  let checks = 0, directions = 0;
+  return out.filter((i) => (i.kind !== "action_check" || ++checks <= 1) && (i.kind !== "direction" || ++directions <= 1)).slice(0, 3);
 }
 
 export function normalizePlan(obj: Record<string, unknown>, ids: { goals: Set<string>; tasks: Set<string> }): PlanResult {
