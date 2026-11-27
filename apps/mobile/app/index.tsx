@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../src/api";
 import { fill, t } from "../src/i18n";
 import { Backdrop, Chip, CircleButton, IconTile, PressScale, Row, Sheet, TopBar, Txt, cardStyle } from "../src/ui/components";
+import { MediaCard } from "../src/ui/MediaCard";
 import { RollyAvatar } from "../src/ui/RollyAvatar";
 import { radius, spacing, useTheme } from "../src/ui/theme";
 import { MicButton, Waveform } from "../src/ui/VoiceParts";
@@ -183,7 +184,10 @@ function Transcript() {
         m.role === "agent" ? (
           <Animated.View key={i} entering={FadeInUp.duration(260)} style={s.agentRow}>
             <View style={s.avatar}><RollyAvatar size={34} still framed /></View>
-            <View style={[cardStyle(c), s.bubble, s.agentBubble]}><Txt variant="body">{m.text}</Txt></View>
+            <View style={s.agentCol}>
+              <View style={[cardStyle(c), s.bubble, s.agentBubble]}><Txt variant="body">{m.text}</Txt></View>
+              {m.media?.map((it) => <MediaCard key={it.url} item={it} />)}
+            </View>
           </Animated.View>
         ) : (
           <Animated.View key={i} entering={FadeInUp.duration(260)} style={[s.bubble, s.userBubble, { backgroundColor: c.ink }]}>
@@ -214,6 +218,7 @@ const s = StyleSheet.create({
   chat: { padding: spacing.xl, gap: spacing.lg },
   agentRow: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md, maxWidth: "88%" },
   avatar: { marginTop: 2 },
+  agentCol: { flexShrink: 1, gap: spacing.sm },
   bubble: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: radius.lg, borderCurve: "continuous" },
   agentBubble: { flexShrink: 1, borderTopStartRadius: 6 },
   userBubble: { alignSelf: "flex-end", maxWidth: "80%", borderTopEndRadius: 6 },

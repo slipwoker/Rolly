@@ -119,7 +119,9 @@ describe("music", () => {
   const spotify = () => fakeHttp({
     "https://accounts.spotify.com/api/token": () => Promise.resolve(ok({ access_token: "st", expires_in: 3600 })),
     "https://api.spotify.com/v1/search": () => Promise.resolve(ok({
-      shows: { items: [{ name: "Hidden Brain", publisher: "NPR", description: "Psychology", external_urls: { spotify: "https://open.spotify.com/show/1" } }, null] } })),
+      shows: { items: [
+        { name: "Hidden Brain", publisher: "NPR", description: "Psychology", external_urls: { spotify: "https://open.spotify.com/show/1" }, images: [{ url: "https://i.scdn.co/big" }, { url: "https://i.scdn.co/mid" }, { url: "https://i.scdn.co/small" }] },
+        { name: "Other Show", publisher: "X", external_urls: { spotify: "https://open.spotify.com/show/2" }, images: [] }, null] } })),
   });
 
   it("searches podcasts with the planned query and keeps links out of the composer's data", async () => {
@@ -132,6 +134,26 @@ describe("music", () => {
     expect(url).toContain("market=IL");
     expect(llm.prompts.at(-1)).toContain("Hidden Brain");
     expect(llm.prompts.at(-1)).not.toContain("open.spotify.com");
+  });
+
+  it("returns the results it names as cards (cover, title, link), at most two, and never invented ones", async () => {
+    const llm = llmFor({ tool: "music", query: "psychology", kind: "show" }, "תנסה את Hidden Brain");
+    const orig = llm.json.bind(llm);
+    llm.json = async (p, o) => { const r = await orig(p, o); return o?.purpose === "tool" ? { ...r, obj: { ...r.obj, picks: [0, 0, 7] } } : r; };
+    const r = await runTool(deps({ llm, http: spotify() }), { ...base, question: "פודקאסט על פסיכולוגיה" });
+    expect(r.media).toEqual([{ kind: "show", title: "Hidden Brain", subtitle: "NPR", image: "https://i.scdn.co/mid", url: "https://open.spotify.com/show/1", provider: "spotify" }]);
+    expect(llm.prompts.at(-1)).toContain('"i":0');
+    expect(llm.prompts.at(-1)).not.toContain("i.scdn.co");
+  });
+
+  it("with no valid pick, shows the best match rather than nothing", async () => {
+    const r = await runTool(deps({ llm: llmFor({ tool: "music", kind: "show" }), http: spotify() }), { ...base, question: "Hidden Brain" });
+    expect(r.media?.map((m) => m.title)).toEqual(["Hidden Brain"]);
+  });
+
+  it("calendar and mail never produce cards", async () => {
+    const http = fakeHttp({ "https://oauth2.googleapis.com/token": () => Promise.resolve(ok({ access_token: "at" })), "https://www.googleapis.com/calendar": () => Promise.resolve(ok({ items: [] })) });
+    expect((await runTool(deps({ llm: llmFor({ tool: "calendar" }), http }), { ...base, question: "מה ביומן" })).media).toBeUndefined();
   });
 
   it("reports when Spotify is not configured", async () => {

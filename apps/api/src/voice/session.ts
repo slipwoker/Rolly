@@ -9,7 +9,7 @@
 import { randomUUID } from "node:crypto";
 import {
   OUTPUT_SAMPLE_RATE, INPUT_SAMPLE_RATE, PodEvent, packClientAudio,
-  type ClientMessage, type ClientSessionStart, type PodSessionContext, type ServerMessage,
+  type ClientMessage, type ClientSessionStart, type MediaItem, type PodSessionContext, type ServerMessage,
 } from "@rolly/contracts";
 import { PodSession, type PodAudio } from "./podClient.ts";
 import { Pacer, parseRemainingMinutes } from "./pacing.ts";
@@ -73,7 +73,7 @@ export interface SessionHooks {
    */
   /** the opening line of a conversation, as said: the next conversation of this user can start differently even if this one has not been saved yet */
   rememberOpener?(userId: string, text: string): void;
-  lookup?(args: { userId: string; sessionId: string; question: string; recent: { role: "user" | "agent"; text: string }[]; language: string }): Promise<{ message: string; ok: boolean; reason?: string }>;
+  lookup?(args: { userId: string; sessionId: string; question: string; recent: { role: "user" | "agent"; text: string }[]; language: string }): Promise<{ message: string; ok: boolean; reason?: string; media?: MediaItem[] }>;
   /** called at the end; returns the summary that is sent to the phone */
   finalize(args: { userId: string; sessionId: string; turns: SessionTurn[]; stats: Record<string, unknown>; endReason: string;
     describe: Record<string, unknown>; language: string; startedAt: Date;
@@ -150,7 +150,7 @@ export class VoiceSession {
   private userBusy = false; // the user is speaking, or has spoken and the reply has not started yet
   private userBusySince = 0;
   private lookupRunning = false;
-  private inject: { message: string; readyAt: number } | null = null;
+  private inject: { message: string; readyAt: number; media?: MediaItem[] } | null = null;
   private injectTimer: NodeJS.Timeout | null = null;
   /** the next agent turn answers an injected message, not the user: no reply-latency measurement for it */
   private injectedNext = false;
@@ -308,14 +308,14 @@ export class VoiceSession {
     const t0 = Date.now();
     const at_s = Math.round((t0 - this.startedAt.getTime()) / 1000);
     const recent = this.turns.slice(-6).map((t) => ({ role: t.role, text: t.text }));
-    const guard = new Promise<{ message: string; ok: boolean; reason?: string }>((r) => setTimeout(() => r({ message: LOOKUP_TIMEOUT_MESSAGE, ok: false, reason: "timeout" }), 18_000));
+    const guard = new Promise<{ message: string; ok: boolean; reason?: string; media?: MediaItem[] }>((r) => setTimeout(() => r({ message: LOOKUP_TIMEOUT_MESSAGE, ok: false, reason: "timeout" }), 18_000));
     Promise.race([this.hooks.lookup({ userId: this.userId, sessionId: this.sessionId, question, recent, language: this.language }), guard])
       .catch((e) => ({ message: LOOKUP_TIMEOUT_MESSAGE, ok: false, reason: String(e).slice(0, 80) }))
-      .then((r) => {
+      .then((r: { message: string; ok: boolean; reason?: string; media?: MediaItem[] }) => {
         const rec = { at_s, ok: r.ok, ...(r.reason ? { reason: r.reason } : {}), search_ms: Date.now() - t0, delivered_after_ms: null as number | null };
         this.stats.lookups.push(rec);
         if (this.closing) { this.lookupRunning = false; return; }
-        this.inject = { message: r.message, readyAt: Date.now() };
+        this.inject = { message: r.message, readyAt: Date.now(), media: r.media };
         const tryNow = () => {
           if (this.closing || !this.inject) { this.stopInject(); return; }
           const waited = Date.now() - this.inject.readyAt;
@@ -324,6 +324,8 @@ export class VoiceSession {
           const quiet = !this.agentBusy && !this.userBusy && Date.now() >= this.playbackUntil + 300;
           if (!quiet && waited < 20_000) return;
           this.injectedNext = true;
+          // cards first: the phone shows them under the reply that follows
+          if (this.inject.media?.length) this.send({ type: "agent.media", items: this.inject.media });
           this.pod?.sendText(this.inject.message);
           rec.delivered_after_ms = Date.now() - t0;
           this.stats.notes.push({ kind: r.ok ? "lookup_result" : "lookup_failed", at_s: Math.round((Date.now() - this.startedAt.getTime()) / 1000) });

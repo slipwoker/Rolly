@@ -9,7 +9,7 @@
  *  - forwards audio-session events (interruptions, Bluetooth route changes) to the server (client.audio)
  *  - if the connection drops unexpectedly, reconnects with a new session that resumes the conversation (resume_of)
  */
-import { unpackClientAudio, type ClientMessage, type ServerMessage } from "@rolly/contracts";
+import { unpackClientAudio, type ClientMessage, type MediaItem, type ServerMessage } from "@rolly/contracts";
 
 export type VoiceState = "idle" | "connecting" | "listening" | "user_speaking" | "agent_speaking" | "reconnecting" | "paused" | "ended" | "error";
 
@@ -43,6 +43,8 @@ export interface ControllerDeps {
   b64: { encode(bytes: Uint8Array): string; decode(s: string): Uint8Array };
   onState?(s: VoiceState, detail?: string): void;
   onCaption?(c: { role: "user" | "agent"; text: string; final: boolean; seq?: number }): void;
+  /** songs, shows... Rolly is about to talk about (shown as cards under its next reply) */
+  onMedia?(items: MediaItem[]): void;
   onMeasure?(m: { kind: "reply_ms" | "flush_ms"; value: number }): void;
   maxReconnects?: number;
 }
@@ -184,6 +186,9 @@ export class VoiceController {
         break;
       case "agent.turn_done":
         this.d.onCaption?.({ role: "agent", text: m.text, final: true, seq: m.seq });
+        break;
+      case "agent.media":
+        if (Array.isArray(m.items) && m.items.length) this.d.onMedia?.(m.items);
         break;
       case "agent.interrupted": {
         const t0 = this.now();

@@ -143,7 +143,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
         if (used >= config.lookupsPerDay) return refuse("limit");
         // web search, calendar, mail or music: a small planning call picks the tool (integrations/tools.ts)
         const r = await runTool({ llm, http: realHttp, connections, google: googleCfg, spotify: config.spotify }, { userId: args.userId, question: args.question, recent: args.recent, language: args.language, timeZone: config.timezone });
-        return { message: r.message, ok: r.ok, ...(r.reason ? { reason: r.reason } : {}) };
+        return { message: r.message, ok: r.ok, ...(r.reason ? { reason: r.reason } : {}), ...(r.media ? { media: r.media } : {}) };
       });
     },
     async finalize(args) {

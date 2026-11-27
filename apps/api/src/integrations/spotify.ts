@@ -7,7 +7,7 @@ import { form, type Http } from "./http.ts";
 
 export interface SpotifyConfig { clientId: string; clientSecret: string; market: string }
 export type MusicKind = "track" | "artist" | "album" | "show" | "episode" | "any";
-export interface MusicHit { kind: "track" | "artist" | "album" | "show" | "episode"; name: string; by: string | null; detail: string | null; url: string | null }
+export interface MusicHit { kind: "track" | "artist" | "album" | "show" | "episode"; name: string; by: string | null; detail: string | null; url: string | null; image: string | null }
 
 let cached: { token: string; exp: number; key: string } | null = null;
 
@@ -25,6 +25,11 @@ export const resetSpotifyToken = () => { cached = null; };
 
 type Item = Record<string, unknown> & { name?: string; external_urls?: { spotify?: string } };
 const url = (i: Item) => i.external_urls?.spotify ?? null;
+/** cover art: Spotify lists sizes largest first; the middle one (~300 px) is right for a card */
+const image = (i: Item) => {
+  const imgs = ((i.images ?? (i.album as Item | undefined)?.images) as { url?: string }[] | undefined) ?? [];
+  return (imgs[1] ?? imgs[0])?.url ?? null;
+};
 
 export async function search(http: Http, c: SpotifyConfig, q: string, kind: MusicKind): Promise<MusicHit[]> {
   const types = kind === "any" ? "track,artist,show,episode" : kind;
@@ -33,10 +38,10 @@ export async function search(http: Http, c: SpotifyConfig, q: string, kind: Musi
   const j = (r.json ?? {}) as Record<string, { items?: (Item | null)[] } | undefined>;
   const hits: MusicHit[] = [];
   const names = (a: unknown) => (Array.isArray(a) ? (a as Item[]).map((x) => x.name).filter(Boolean).slice(0, 2).join(", ") : null) || null;
-  for (const i of j.tracks?.items ?? []) if (i) hits.push({ kind: "track", name: String(i.name), by: names(i.artists), detail: (i.album as Item | undefined)?.name ? String((i.album as Item).name) : null, url: url(i) });
-  for (const i of j.artists?.items ?? []) if (i) hits.push({ kind: "artist", name: String(i.name), by: null, detail: names(i.genres ? (i.genres as string[]).map((g) => ({ name: g })) : null), url: url(i) });
-  for (const i of j.albums?.items ?? []) if (i) hits.push({ kind: "album", name: String(i.name), by: names(i.artists), detail: String(i.release_date ?? "").slice(0, 4) || null, url: url(i) });
-  for (const i of j.shows?.items ?? []) if (i) hits.push({ kind: "show", name: String(i.name), by: i.publisher ? String(i.publisher) : null, detail: i.description ? String(i.description).slice(0, 140) : null, url: url(i) });
-  for (const i of j.episodes?.items ?? []) if (i) hits.push({ kind: "episode", name: String(i.name), by: null, detail: i.description ? String(i.description).slice(0, 140) : null, url: url(i) });
+  for (const i of j.tracks?.items ?? []) if (i) hits.push({ kind: "track", name: String(i.name), by: names(i.artists), detail: (i.album as Item | undefined)?.name ? String((i.album as Item).name) : null, url: url(i), image: image(i) });
+  for (const i of j.artists?.items ?? []) if (i) hits.push({ kind: "artist", name: String(i.name), by: null, detail: names(i.genres ? (i.genres as string[]).map((g) => ({ name: g })) : null), url: url(i), image: image(i) });
+  for (const i of j.albums?.items ?? []) if (i) hits.push({ kind: "album", name: String(i.name), by: names(i.artists), detail: String(i.release_date ?? "").slice(0, 4) || null, url: url(i), image: image(i) });
+  for (const i of j.shows?.items ?? []) if (i) hits.push({ kind: "show", name: String(i.name), by: i.publisher ? String(i.publisher) : null, detail: i.description ? String(i.description).slice(0, 140) : null, url: url(i), image: image(i) });
+  for (const i of j.episodes?.items ?? []) if (i) hits.push({ kind: "episode", name: String(i.name), by: null, detail: i.description ? String(i.description).slice(0, 140) : null, url: url(i), image: image(i) });
   return hits;
 }

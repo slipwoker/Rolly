@@ -33,15 +33,30 @@ function harness() {
     queueMicrotask(() => s.onopen?.());
     return s;
   };
-  const ctl = new VoiceController({ audio, openSocket, getTicket: async () => "tkt", wsBase: "ws://x", b64, now: () => now, maxReconnects: 1 });
+  const media: unknown[] = [];
+  const ctl = new VoiceController({ audio, openSocket, getTicket: async () => "tkt", wsBase: "ws://x", b64, now: () => now, maxReconnects: 1, onMedia: (i) => media.push(i) });
   const server = (m: unknown) => sockets.at(-1)!.onmessage!({ data: JSON.stringify(m) });
   const serverAudio = (seq: number, n: number) => { const f = packClientAudio(seq, new Uint8Array(n)); sockets.at(-1)!.onmessage!({ data: f.buffer as ArrayBuffer }); };
   const mic = (t: number) => (cbs.mic as unknown as (f: { data: string; t: number }) => void)({ data: b64.encode(new Uint8Array(640)), t });
   const play = (e: object) => (cbs.play as unknown as (e: object) => void)(e);
-  return { ctl, sent, enqueued, flushed, sockets, server, serverAudio, mic, play, cbs, setNow: (n: number) => { now = n; } };
+  return { ctl, media, sent, enqueued, flushed, sockets, server, serverAudio, mic, play, cbs, setNow: (n: number) => { now = n; } };
 }
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
+
+describe("media cards", () => {
+  it("passes the items of agent.media on, and ignores an empty or malformed list", async () => {
+    const h = harness();
+    await h.ctl.start({ language: "he" });
+    await tick();
+    h.server({ type: "session.created", session_id: "s1", input_sample_rate: 16000, output_sample_rate: 24000, language: "he", proactive: true, onboarding: false });
+    const items = [{ kind: "track", title: "Bohemian Rhapsody", subtitle: "Queen", image: null, url: "https://open.spotify.com/track/1", provider: "spotify" }];
+    h.server({ type: "agent.media", items });
+    h.server({ type: "agent.media", items: [] });
+    h.server({ type: "agent.media" });
+    expect(h.media).toEqual([items]);
+  });
+});
 
 describe("VoiceController", () => {
   it("starts a session, streams the mic only after session.created, plays audio and measures reply time on the phone", async () => {

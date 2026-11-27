@@ -14,11 +14,13 @@ import { LOOKUP_FAILED_TAG, LOOKUP_TAG, lookupMessage, webLookup } from "../look
 import * as google from "./google.ts";
 import * as spotify from "./spotify.ts";
 import type { Http } from "./http.ts";
+import type { MediaItem } from "@rolly/contracts";
 
 export type ToolName = "web" | "calendar" | "email" | "music";
 export interface ToolPlan { tool: ToolName; query: string; kind: spotify.MusicKind; fromDay: number; days: number }
 export interface ToolArgs { userId: string; question: string; recent: { role: "user" | "agent"; text: string }[]; language: string; timeZone: string; now?: Date }
-export interface ToolOutcome { message: string; ok: boolean; reason?: string; tool: ToolName }
+export interface ToolOutcome { message: string; ok: boolean; reason?: string; tool: ToolName;
+  /** music: the results Rolly talks about, shown as cards in the chat */ media?: MediaItem[] }
 
 /** Where the user's Google refresh token lives (the database, sealed); dropped when Google says access was withdrawn. */
 export interface Connections { googleRefresh(userId: string): Promise<string | null>; dropGoogle(userId: string): Promise<void> }
@@ -53,7 +55,8 @@ Request: {question}
 Data:
 {data}
 
-Reply with JSON only: {"answer": string}`;
+Reply with JSON only: {"answer": string, "picks": number[]}
+"picks": music only: the "i" of each result you mention in the answer (at most two), else [].`;
 
 const TASKS: Record<Exclude<ToolName, "web">, string> = {
   calendar: "Say what is coming up in the order it happens, with the time in 24-hour form (and the place if there is one). If many events, the first three and how many more.",
@@ -101,14 +104,15 @@ export function startOfDay(now: Date, timeZone: string, plusDays: number): Date 
   return new Date(now.getTime() - sinceMidnight + plusDays * 86_400_000);
 }
 
-async function compose(llm: UtilityLlm | null, a: ToolArgs, tool: Exclude<ToolName, "web">, data: unknown): Promise<string | null> {
+async function compose(llm: UtilityLlm | null, a: ToolArgs, tool: Exclude<ToolName, "web">, data: unknown): Promise<{ answer: string; picks: number[] } | null> {
   if (!llm) return null;
   const now = a.now ?? new Date();
   const when = new Intl.DateTimeFormat("en-GB", { timeZone: a.timeZone, weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }).format(now);
   const r = await llm.json(fill(COMPOSE_PROMPT, { language: lang(a.language), task: TASKS[tool], now: `${when}, ${a.timeZone}`,
     question: a.question.replace(/\s+/g, " ").slice(0, 400), data: JSON.stringify(data).slice(0, 6000) }), { maxTokens: 400, purpose: "tool" });
   const ans = typeof r.obj.answer === "string" ? spoken(r.obj.answer) : "";
-  return ans || null;
+  const picks = Array.isArray(r.obj.picks) ? (r.obj.picks as unknown[]).filter((n): n is number => Number.isInteger(n)) : [];
+  return ans ? { answer: ans, picks } : null;
 }
 
 /** One tool call for one question. Never throws: every failure is an outcome the conversation can say. */
@@ -123,8 +127,13 @@ export async function runTool(d: ToolDeps, a: ToolArgs): Promise<ToolOutcome> {
     if (plan.tool === "music") {
       if (!d.spotify) return note("music", NOT_CONNECTED.music, "unavailable");
       const hits = await spotify.search(d.http, d.spotify, plan.query || a.question, plan.kind);
-      const ans = await compose(d.llm, a, "music", hits.map(({ url: _u, ...h }) => h));
-      return ans ? say("music", ans) : note("music", FAILED, "failed");
+      // the composer sees the results numbered, without links or pictures; the ones it names become cards
+      const c = await compose(d.llm, a, "music", hits.map(({ url: _u, image: _i, ...h }, i) => ({ i, ...h })));
+      if (!c) return note("music", FAILED, "failed");
+      const chosen = [...new Set(c.picks)].map((i) => hits[i]).filter((h): h is spotify.MusicHit => Boolean(h?.url)).slice(0, 2);
+      const media: MediaItem[] = (chosen.length ? chosen : hits.filter((h) => h.url).slice(0, 1))
+        .map((h) => ({ kind: h.kind, title: h.name, subtitle: h.by, image: h.image, url: h.url!, provider: "spotify" as const }));
+      return { ...say("music", c.answer), ...(media.length ? { media } : {}) };
     }
     // calendar / email: the user's own Google account
     if (!d.google) return note(plan.tool, NOT_CONNECTED[plan.tool], "unavailable");
@@ -139,8 +148,8 @@ export async function runTool(d: ToolDeps, a: ToolArgs): Promise<ToolOutcome> {
     const data = plan.tool === "calendar"
       ? await google.calendarEvents(d.http, token, startOfDay(a.now ?? new Date(), a.timeZone, plan.fromDay), plan.days, a.timeZone)
       : await google.mailSearch(d.http, token, plan.query || "is:unread newer_than:3d");
-    const ans = await compose(d.llm, a, plan.tool, data);
-    return ans ? say(plan.tool, ans) : note(plan.tool, FAILED, "failed");
+    const c = await compose(d.llm, a, plan.tool, data);
+    return c ? say(plan.tool, c.answer) : note(plan.tool, FAILED, "failed");
   } catch (e) {
     return note(plan.tool, FAILED, String(e).slice(0, 80));
   }
