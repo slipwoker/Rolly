@@ -20,6 +20,7 @@ import { LINES, runConversation, type Step } from "./selftest/scenarios.ts";
 import { NOTE, core } from "./persona/core.ts";
 import { lookupMessage } from "./lookup/web.ts";
 import { runTool, type Connections } from "./integrations/tools.ts";
+import { readCalendar } from "./signals/calendar.ts";
 import { realHttp } from "./integrations/http.ts";
 import * as googleApi from "./integrations/google.ts";
 import { TokenVault, readSealedToken, resealLegacyTokens, signState, verifyState } from "./integrations/crypto.ts";
@@ -122,12 +123,12 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       await store.markUsed(view.usedIds);
       sessionAgenda.set(sessionId, built.agenda);
       await audit.recordPrompt({ sessionId, userId, language: built.language, onboarding: built.onboarding, systemPrompt: built.system_prompt,
-        persona: core(built.language, { lookup, whatsapp, tools: { calendar: Boolean(googleCfg), music: Boolean(config.spotify), play: Boolean(config.spotify) } }), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })),
+        persona: core(built.language, { lookup, whatsapp, tools: { calendar: Boolean(googleCfg), music: Boolean(config.spotify), play: Boolean(config.spotify) } }), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind, source: a.source ?? null })),
         memoryIds: view.usedIds, sampling: config.llmSampling });
       const foreign = practiceLanguage(view);
       return {
         onboarding: built.onboarding, pacingScale: pacingScales.get(userId),
-        plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })), confirm: built.confirm,
+        plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind, source: a.source ?? null })), confirm: built.confirm,
         ctx: { session_id: sessionId, user_id: userId, language: built.language, system_prompt: built.system_prompt,
           opener_instruction: built.opener_instruction, proactive, journey: start.journey ?? {}, profile: built.profile,
           options: { llm: config.llmSampling, ...(foreign ? { speech: { foreign_language: foreign } } : {}) } },
@@ -205,7 +206,11 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     const tasks = await store.memories(userId, { kinds: ["action_item"], status: ["active"], limit: 30 });
     const had = sessionAgenda.get(sessionId) ?? [];
     sessionAgenda.delete(sessionId);
+    // the calendar, only with the user's standing consent for it; never allowed to break the look-ahead
+    const cal = await readCalendar({ consent: async (u, src) => (await db.query("SELECT enabled FROM signal_consent WHERE user_id=$1 AND source=$2", [u, src])).rows[0]?.enabled === true,
+      connections, google: googleCfg, http: realHttp }, userId, new Date(), config.timezone).catch(() => null);
     const plan = await planNext(llm, turns, {
+      calendar: cal?.lines,
       summary: summary.summary, language: summary.language, progress: summary.progress,
       goals: goals.map((g) => ({ id: g.id, content: g.content, state: [g.state_note, g.next_step ? `next: ${g.next_step}` : null].filter(Boolean).join(" ") || null })),
       tasks: tasks.map((t) => ({ id: t.id, content: t.content })), agenda: had,
@@ -219,6 +224,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     const cons = await consolidate(store, llm, userId).catch((e) => ({ digest: false, history: false, skipped: String(e).slice(0, 120) }));
     await store.addSessionStats(sessionId, {
       lookahead_ms: Date.now() - t0,
+      signals: { calendar_events_read: cal?.read ?? null }, // a count, never the content
       plan: { method: plan.method, error: plan.error, ms: plan.ms, applied: res.applied, refused: res.refused, next_agenda: plan.next_agenda.length,
         agenda_outcome: plan.agenda_outcome.map((o) => ({ kind: had[o.index]?.kind ?? null, outcome: o.outcome })) },
       scrub: scrubbed, consolidate: cons,
@@ -291,6 +297,19 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
         { id: "music", provider: "spotify", status: config.spotify ? "connected" : "not_available", account: null },
       ];
     };
+    // standing consent to look at a connected source before a ride (P1-D41); off unless the user turns it on; turning it off removes what came from it
+    app.get("/v1/signals/consent", async (req, reply) => {
+      const id = user(req, reply); if (!id) return;
+      const r = await db.query<{ source: string; enabled: boolean }>("SELECT source, enabled FROM signal_consent WHERE user_id=$1", [id]);
+      return { calendar: r.rows.find((x) => x.source === "calendar")?.enabled === true };
+    });
+    app.put("/v1/signals/consent", async (req, reply) => {
+      const id = user(req, reply); if (!id) return;
+      const b = parse(z.object({ source: z.enum(["calendar"]), enabled: z.boolean() }), req.body, reply); if (!b) return;
+      await db.query(`INSERT INTO signal_consent(user_id, source, enabled) VALUES ($1,$2,$3) ON CONFLICT (user_id, source) DO UPDATE SET enabled=$3, updated_at=now()`, [id, b.source, b.enabled]);
+      if (!b.enabled) await store.dropAgendaSource(id, b.source);
+      return { ok: true };
+    });
     app.get("/v1/integrations", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
       return { services: await servicesFor(id) };
@@ -321,6 +340,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       const rt = await connections.googleRefresh(id);
       if (rt) await googleApi.revoke(realHttp, rt);
       await connections.dropGoogle(id);
+      await store.dropAgendaSource(id, "calendar"); // what came from the calendar leaves the plan with the connection
       return { disconnected: true };
     });
 

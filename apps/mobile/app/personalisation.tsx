@@ -30,10 +30,12 @@ export default function Personalisation() {
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [wa, setWa] = useState<{ available: boolean; state: string } | null>(null);
+  const [calSignal, setCalSignal] = useState(false); // standing consent: ROLLY may look at the calendar before a ride (off unless the user turns it on)
   const load = useCallback(() => {
     api<Me>("/v1/me").then(setMe).catch(() => {});
     api<{ memories: Memory[] }>("/v1/memories").then((r) => setMems(r.memories)).catch(() => {});
     api<{ available: boolean; state: string }>("/v1/whatsapp").then(setWa).catch(() => setWa(null)); // the row only shows when the server has WhatsApp
+    api<{ calendar: boolean }>("/v1/signals/consent").then((r) => setCalSignal(r.calendar)).catch(() => setCalSignal(false));
   }, []);
   useFocusEffect(load);
   // coming back from the browser after the Google consent page
@@ -148,6 +150,12 @@ export default function Personalisation() {
                           ? <SmallButton label={t.disconnect} onPress={() => confirmDanger(t.disconnect, () => act(() => api("/v1/integrations/google", { method: "DELETE" })))} />
                           : google.status === "not_connected" ? <SmallButton label={t.connect} primary onPress={connectGoogle} />
                           : <Badge label={t.soon} />} />
+                    ) : null,
+                    google?.status === "connected" ? (
+                      <ServiceRow key="gs" brand="google" title={t.signalsCalendar} sub={t.signalsCalendarWhy}
+                        action={calSignal
+                          ? <SmallButton label={t.turnOff} onPress={() => act(() => api("/v1/signals/consent", { method: "PUT", body: { source: "calendar", enabled: false } }))} />
+                          : <SmallButton label={t.turnOn} primary onPress={() => act(() => api("/v1/signals/consent", { method: "PUT", body: { source: "calendar", enabled: true } }))} />} />
                     ) : null,
                     wa?.available ? (
                       <ServiceRow key="w" brand="whatsapp" title={t.waService}

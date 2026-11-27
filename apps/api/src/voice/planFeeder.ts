@@ -14,7 +14,7 @@
  *  - halfway through the ride the pending item is sent unconditionally (pacing).
  * Each item is shown once.
  */
-export interface PlanItem { topic: string; take?: string | null; kind?: string }
+export interface PlanItem { topic: string; take?: string | null; kind?: string; source?: "calendar" | null }
 export interface FeederNote { text: string; turns: number; maxUserWords?: number; minStreak?: number }
 
 /** a user turn of at most this many words means "the conversation has run dry" */
@@ -45,10 +45,12 @@ export class PlanFeeder {
   /** The same text whether the item waits for a dry turn or is sent at once: the pod replaces a note with the same text. */
   private text(item: PlanItem): string {
     const take = item.take ? ` Your own take on it: ${item.take}` : "";
+    // said openly: where it comes from, so it never feels like a guess about their life
+    const from = item.source === "calendar" ? " You know this from their calendar: say so in a few words (the event and the day only, nothing else from it)." : "";
     const how = item.kind === "action_check" ? "Ask about it once, lightly; if it is not done, do not push."
       : item.kind === "direction" ? "Say it as one short statement about what you noticed, then stop."
       : "Say it in your own words, as one short statement.";
-    return `Bring up this now: ${item.topic.replace(/[.]+$/, "")}.${take} ${how}`;
+    return `Bring up this now: ${item.topic.replace(/[.]+$/, "")}.${take}${from} ${how}`;
   }
 
   /**

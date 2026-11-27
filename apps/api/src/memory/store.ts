@@ -380,6 +380,13 @@ export class MemoryStore {
     };
   }
 
+  /** Consent for a source was withdrawn: plan items that came from it leave the stored plan at once. */
+  async dropAgendaSource(userId: string, source: string): Promise<void> {
+    const a = (await this.profile(userId)).next_agenda;
+    if (!a?.items?.some((i) => i.source === source)) return;
+    await this.db.query("UPDATE profiles SET next_agenda=$2 WHERE user_id=$1", [userId, JSON.stringify({ ...a, items: a.items.filter((i) => i.source !== source) })]);
+  }
+
   // ------------------------------------------------------------ goals that develop over time
   /** Every goal with how it stands; a goal without a track row yet is simply "active" with no notes. */
   async goals(userId: string): Promise<GoalRow[]> {
