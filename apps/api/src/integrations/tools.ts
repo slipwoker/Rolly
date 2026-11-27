@@ -193,6 +193,13 @@ export async function runTool(d: ToolDeps, a: ToolArgs): Promise<ToolOutcome> {
     if (!d.google) return note(plan.tool, NOT_CONNECTED[plan.tool], "unavailable");
     const refresh = await d.connections.googleRefresh(a.userId);
     if (!refresh) return note(plan.tool, NOT_CONNECTED[plan.tool], "not_connected");
+    // Google's consent screen lets the user untick a permission: say what is missing instead of failing with a 403
+    const sc = await d.connections.googleScopes?.(a.userId);
+    if (sc !== undefined && sc !== null) {
+      const g = google.grants(sc);
+      if (plan.tool === "calendar" ? !g.calendarRead : !g.mailRead)
+        return note(plan.tool, `Their Google connection does not include permission for their ${plan.tool === "calendar" ? "calendar" : "mail"} (on Google's screen each permission has a box that can be left unticked). They can fix it in the app under connected services: tap update permissions and tick all the boxes.`, "needs_update");
+    }
     let token: string;
     try { token = await google.accessToken(d.http, d.google, refresh); }
     catch (e) {

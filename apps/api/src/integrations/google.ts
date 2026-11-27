@@ -13,10 +13,19 @@ export const SCOPE_GMAIL_SEND = "https://www.googleapis.com/auth/gmail.send";
 export const GOOGLE_SCOPES = [SCOPE_CALENDAR_EVENTS, SCOPE_GMAIL_READ, SCOPE_GMAIL_SEND, "https://www.googleapis.com/auth/userinfo.email"];
 
 /** What a stored connection may do. Connections made before writing existed only have the read-only calendar scope. */
-export function grants(scopes: string): { read: boolean; sendMail: boolean; writeCalendar: boolean } {
+export function grants(scopes: string): { read: boolean; mailRead: boolean; calendarRead: boolean; sendMail: boolean; writeCalendar: boolean } {
   const has = (x: string) => scopes.split(/\s+/).includes(x);
-  return { read: has(SCOPE_GMAIL_READ) || has("https://www.googleapis.com/auth/calendar.readonly") || has(SCOPE_CALENDAR_EVENTS), sendMail: has(SCOPE_GMAIL_SEND), writeCalendar: has(SCOPE_CALENDAR_EVENTS) };
+  // Google's consent screen lets the user untick individual permissions: each one is checked on its own
+  const calendarRead = has(SCOPE_CALENDAR_EVENTS) || has("https://www.googleapis.com/auth/calendar.readonly"), mailRead = has(SCOPE_GMAIL_READ);
+  return { read: mailRead || calendarRead, mailRead, calendarRead, sendMail: has(SCOPE_GMAIL_SEND), writeCalendar: has(SCOPE_CALENDAR_EVENTS) };
 }
+
+/** Google says why in the body ({"error":{"message":..., "errors":[{"reason":...}]}}); the audit shows it */
+export const why = (j: unknown): string => {
+  const e = (j as { error?: { message?: string; errors?: { reason?: string }[] } | string } | null)?.error;
+  const m = typeof e === "string" ? e : [e?.errors?.[0]?.reason, e?.message].filter(Boolean).join(": ");
+  return m ? `: ${m}`.slice(0, 200) : "";
+};
 
 export interface GoogleConfig { clientId: string; clientSecret: string; redirectUri: string }
 
@@ -65,7 +74,7 @@ export async function calendarEvents(http: Http, token: string, from: Date, days
     timeMin: from.toISOString(), timeMax: to.toISOString(), singleEvents: "true", orderBy: "startTime", maxResults: "15", timeZone,
   });
   const r = await http(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (!r.ok) throw new Error(`calendar HTTP ${r.status}`);
+  if (!r.ok) throw new Error(`calendar HTTP ${r.status}${why(r.json)}`);
   const items = ((r.json as { items?: Record<string, unknown>[] } | null)?.items ?? []);
   return items.filter((e) => e.status !== "cancelled").map((e) => {
     const s = e.start as { dateTime?: string; date?: string } | undefined, en = e.end as { dateTime?: string; date?: string } | undefined;
@@ -80,7 +89,7 @@ export interface MailItem { from: string; subject: string; snippet: string; date
 export async function mailSearch(http: Http, token: string, q: string): Promise<MailItem[]> {
   const auth = { Authorization: `Bearer ${token}` };
   const list = await http("https://gmail.googleapis.com/gmail/v1/users/me/messages?" + form({ q: q || "in:inbox", maxResults: "5" }), { headers: auth });
-  if (!list.ok) throw new Error(`gmail HTTP ${list.status}`);
+  if (!list.ok) throw new Error(`gmail HTTP ${list.status}${why(list.json)}`);
   const ids = ((list.json as { messages?: { id: string }[] } | null)?.messages ?? []).map((m) => m.id);
   const out = await Promise.all(ids.map(async (id) => {
     const r = await http(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(id)}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`, { headers: auth });
