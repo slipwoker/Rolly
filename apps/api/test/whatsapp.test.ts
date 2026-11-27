@@ -204,6 +204,24 @@ describe("sending", () => {
   });
 });
 
+describe("a question about the ability itself", () => {
+  it("is answered 'yes, I can' by the flow, never sent to the web, and needs no check of the voice", async () => {
+    const gw = new FakeGateway();
+    const f = flowOf(gw, scripted({ kind: "how" }, { kind: "how" }));
+    const r = await f.handle(args({ question: "תבדוק לי אם אתה יכול לשלוח הודעות בוואטסאפ" }));
+    expect(r?.ok).toBe(true);
+    expect(r?.message).toContain("YES");
+    expect(r?.message).toContain("Never say you cannot send");
+    const passenger = await f.handle(args({ question: "אתה יכול לשלוח וואטסאפ?", attribution: "uncertain" }));
+    expect(passenger?.ok).toBe(true);
+    expect(gw.calls.filter((c) => c === "confirm" || c.startsWith("draft") || c.startsWith("messages"))).toHaveLength(0);
+  });
+  it("parseIntent knows it", () => { expect(parseIntent({ kind: "how" })).toEqual({ kind: "how" }); });
+  it("the persona says it too", () => {
+    expect(core("he", { lookup: true, whatsapp: true })).toContain("If they ask whether you can read or send WhatsApp, say yes at once");
+  });
+});
+
 describe("disconnecting by voice", () => {
   it("asks first, and only a later yes removes the link and the stored messages", async () => {
     const gw = new FakeGateway();
