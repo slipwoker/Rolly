@@ -13,20 +13,26 @@ import type { UtilityLlm } from "../memory/llm.ts";
 import { LOOKUP_FAILED_TAG, LOOKUP_TAG, lookupMessage, webLookup } from "../lookup/web.ts";
 import * as google from "./google.ts";
 import * as spotify from "./spotify.ts";
+import type { GoogleActions } from "./actions.ts";
 import type { Http } from "./http.ts";
 import type { MediaItem } from "@rolly/contracts";
 
-export type ToolName = "web" | "calendar" | "email" | "music";
-export interface ToolPlan { tool: ToolName; action: "search" | "play"; query: string; kind: spotify.MusicKind; fromDay: number; days: number }
-export interface ToolArgs { /** what Rolly last showed as cards: "play this" means the first of them */ lastMedia?: MediaItem[]; userId: string; question: string; recent: { role: "user" | "agent"; text: string }[]; language: string; timeZone: string; now?: Date }
+export type ToolName = "web" | "calendar" | "email" | "music" | "confirm" | "cancel";
+export interface ToolPlan { tool: ToolName; action: "search" | "play" | "send" | "create"; query: string; kind: spotify.MusicKind; fromDay: number; days: number;
+  /** email to send */ to: string; subject: string; body: string;
+  /** event to add: start is local "YYYY-MM-DDTHH:mm" */ title: string; start: string; durationMin: number; location: string | null; attendees: string[] }
+export interface ToolArgs { sessionId?: string; /** "uncertain" when weak hints suggest another voice */ attribution?: "primary" | "uncertain"; /** user turns so far: a draft can only be confirmed by a later turn */ userTurns?: number;
+  /** what Rolly last showed as cards: "play this" means the first of them */ lastMedia?: MediaItem[]; userId: string; question: string; recent: { role: "user" | "agent"; text: string }[]; language: string; timeZone: string; now?: Date }
 export interface ToolOutcome { message: string; ok: boolean; reason?: string; tool: ToolName;
   /** music: the results Rolly talks about, shown as cards in the chat */ media?: MediaItem[];
   /** play it: open this Spotify link on the phone once Rolly has finished speaking */
   open?: { url: string } }
 
 /** Where the user's Google refresh token lives (the database, sealed); dropped when Google says access was withdrawn. */
-export interface Connections { googleRefresh(userId: string): Promise<string | null>; dropGoogle(userId: string): Promise<void> }
-export interface ToolDeps { llm: UtilityLlm | null; http: Http; connections: Connections; google: google.GoogleConfig | null; spotify: spotify.SpotifyConfig | null }
+export interface Connections { googleRefresh(userId: string): Promise<string | null>; dropGoogle(userId: string): Promise<void>;
+  /** the scopes this user granted (space separated), to know whether writing is allowed */ googleScopes?(userId: string): Promise<string | null> }
+export interface ToolDeps { llm: UtilityLlm | null; http: Http; connections: Connections; google: google.GoogleConfig | null; spotify: spotify.SpotifyConfig | null;
+  /** sending email and adding events (after a spoken yes); null = off */ actions?: GoogleActions | null }
 
 export const PLAN_PROMPT = `You route one request from a voice companion's user to the right tool. Reply with JSON only.
 
@@ -35,19 +41,24 @@ Tools:
 - "email": the user's own mail (new or unread messages, did someone write, what did X send).
 - "music": find a song, artist, album, podcast or podcast episode, or recommend music or podcasts to listen to.
 - "web": anything else that needs current facts from the internet.
+- "confirm" / "cancel": ONLY when something is waiting for their answer (see below): "confirm" when their words clearly say yes to it (yes, send it, go ahead, כן, שלח, תוסיף), "cancel" when they say no, stop, never mind. If nothing is waiting never use them.
 
-JSON: {"tool": "calendar"|"email"|"music"|"web", "action": "search"|"play", "query": string, "kind": "track"|"artist"|"album"|"show"|"episode"|"any", "from_day": number, "days": number}
-- email: query is a Gmail search ("is:unread newer_than:2d", "from:dana", "subject:flight"); default "is:unread newer_than:3d".
+JSON: {"tool": "calendar"|"email"|"music"|"web"|"confirm"|"cancel", "action": "search"|"play"|"send"|"create", "to": string, "subject": string, "body": string, "title": string, "start": string, "duration_min": number, "location": string, "attendees": string[], "query": string, "kind": "track"|"artist"|"album"|"show"|"episode"|"any", "from_day": number, "days": number}
+- email, action "send": they ask to write or send an email ("תשלח מייל לדנה ש...", "write to Dana"). to = the person's name as they said it, or the address if they said it (spoken "dana at gmail dot com" becomes dana@gmail.com); subject = a short subject in their language; body = the message itself in first person, as they would write it, only what they said (no greeting, sign-off or details they did not say). Every other email request is action "search" (reading mail).
+- email, action "search": query is a Gmail search ("is:unread newer_than:2d", "from:dana", "subject:flight"); default "is:unread newer_than:3d".
 - music: anything about a song, artist, album, podcast or Spotify is "music", never "web".
   action "play": the user wants it played or opened: "play", "put on", "open it", "send/give me the link" ("תנגן", "תשים", "תפתח", "תן לי קישור", "פתחת?"). action "search": they ask about something or for a recommendation.
   For "play": query = the song or show to play, from the conversation: what they named, else what the companion just named or recommended ("Three Little Birds Bob Marley"). Leave query "" only when "shown as cards" below lists it and they mean that. For "search": query = what to search the catalogue for: the title/artist the user named, or for a recommendation a few well-chosen search terms (genre, mood, a similar artist, a podcast topic). kind "show" for podcasts, "episode" for a specific episode, "track" for a song, "any" if unsure.
-- calendar: from_day = days from today (0 = today, 1 = tomorrow), days = how many days to cover (1-7).
-- Unused fields: action "search", query "", kind "any", from_day 0, days 1.
+- calendar, action "create": they ask to add, schedule or set a meeting or appointment ("קבע לי פגישה", "תוסיף ליומן", "זמן את דנה"). title = what it is; start = local date and time "YYYY-MM-DDTHH:mm" worked out from Now below (the next such day if they say only a weekday; leave "" if they gave no time); duration_min = minutes (60 if they said nothing); location = "" if none; attendees = names or addresses of the people to invite ([] if none). Every other calendar request is action "search" (reading).
+- calendar, action "search": from_day = days from today (0 = today, 1 = tomorrow), days = how many days to cover (1-7).
+- Unused fields: action "search", to/subject/body/title/start/location "", duration_min 60, attendees [], query "", kind "any", from_day 0, days 1.
 
 The conversation so far:
 {recent}
 
 Shown to the user as cards just now: {shown}
+Waiting for their answer: {waiting}
+Now: {now}
 
 Request: {question}
 `;
@@ -64,7 +75,7 @@ Data:
 Reply with JSON only: {"answer": string, "picks": number[]}
 "picks": music only: the "i" of each result you mention in the answer (at most two), else [].`;
 
-const TASKS: Record<Exclude<ToolName, "web">, string> = {
+const TASKS: Record<Exclude<ToolName, "web" | "confirm" | "cancel">, string> = {
   calendar: "Say what is coming up in the order it happens, with the time in 24-hour form (and the place if there is one). If many events, the first three and how many more.",
   email: "Say how many messages and who they are from and what they are about, the newest first, at most three. Do not read long text; never repeat passwords, codes or numbers that look like one.",
   music: "If they asked for a specific song, artist or show, say what you found. If they asked for a recommendation, pick one or two of the results and say in a few words why they fit; do not list everything.",
@@ -76,17 +87,21 @@ const recentText = (r: ToolArgs["recent"]) => r.slice(-6).map((t) => `${t.role =
 const spoken = (s: string) => s.replace(/\[[^\]]*\]\([^)]*\)/g, " ").replace(/https?:\/\/\S+/g, " ").replace(/[*_#`]+/g, "").replace(/\s+/g, " ").trim().slice(0, 500);
 
 export function parsePlan(obj: Record<string, unknown>): ToolPlan {
-  const tool = (["calendar", "email", "music", "web"] as const).find((t) => t === obj.tool) ?? "web";
+  const tool = (["calendar", "email", "music", "web", "confirm", "cancel"] as const).find((t) => t === obj.tool) ?? "web";
   const kind = (["track", "artist", "album", "show", "episode", "any"] as const).find((k) => k === obj.kind) ?? "any";
   const n = (v: unknown, lo: number, hi: number, d: number) => (typeof v === "number" && Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v))) : d);
-  return { tool, action: obj.action === "play" && tool === "music" ? "play" : "search", kind, query: typeof obj.query === "string" ? obj.query.slice(0, 200) : "", fromDay: n(obj.from_day, 0, 30, 0), days: n(obj.days, 1, 7, 1) };
+  const str = (v: unknown, max: number) => (typeof v === "string" ? v.replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, "").trim().slice(0, max) : "");
+  const action = tool === "music" && obj.action === "play" ? "play" : tool === "email" && obj.action === "send" ? "send" : tool === "calendar" && obj.action === "create" ? "create" : "search";
+  return { tool, action, to: str(obj.to, 120), subject: str(obj.subject, 200), body: str(obj.body, 2000), title: str(obj.title, 200), start: str(obj.start, 16), location: str(obj.location, 200) || null,
+    durationMin: n(obj.duration_min, 5, 480, 60), attendees: Array.isArray(obj.attendees) ? (obj.attendees as unknown[]).map((x) => str(x, 120)).filter(Boolean).slice(0, 5) : [], kind, query: typeof obj.query === "string" ? obj.query.slice(0, 200) : "", fromDay: n(obj.from_day, 0, 30, 0), days: n(obj.days, 1, 7, 1) };
 }
 
-export async function planTool(llm: UtilityLlm | null, a: ToolArgs, canRoute = true): Promise<ToolPlan> {
-  const fallback: ToolPlan = { tool: "web", action: "search", query: "", kind: "any", fromDay: 0, days: 1 };
+export async function planTool(llm: UtilityLlm | null, a: ToolArgs, canRoute = true, d?: Pick<ToolDeps, "actions">): Promise<ToolPlan> {
+  const fallback: ToolPlan = { tool: "web", action: "search", query: "", kind: "any", fromDay: 0, days: 1, to: "", subject: "", body: "", title: "", start: "", durationMin: 60, location: null, attendees: [] };
   if (!llm || !canRoute) return fallback;
   try {
-    const r = await llm.json(fill(PLAN_PROMPT, { recent: recentText(a.recent), shown: a.lastMedia?.map((m) => `${m.title}${m.subtitle ? ` (${m.subtitle})` : ""}`).join("; ") || "(nothing)", question: a.question.replace(/\s+/g, " ").slice(0, 400) }), { maxTokens: 200, purpose: "tool_plan" });
+    const r = await llm.json(fill(PLAN_PROMPT, { recent: recentText(a.recent), waiting: (d?.actions && a.sessionId ? d.actions.waiting(a.sessionId) : null) ?? "(nothing)",
+      now: new Intl.DateTimeFormat("en-GB", { timeZone: a.timeZone, weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(a.now ?? new Date()) + `, ${a.timeZone}`, shown: a.lastMedia?.map((m) => `${m.title}${m.subtitle ? ` (${m.subtitle})` : ""}`).join("; ") || "(nothing)", question: a.question.replace(/\s+/g, " ").slice(0, 400) }), { maxTokens: 700, purpose: "tool_plan" });
     return parsePlan(r.obj);
   } catch { return fallback; }
 }
@@ -110,7 +125,7 @@ export function startOfDay(now: Date, timeZone: string, plusDays: number): Date 
   return new Date(now.getTime() - sinceMidnight + plusDays * 86_400_000);
 }
 
-async function compose(llm: UtilityLlm | null, a: ToolArgs, tool: Exclude<ToolName, "web">, data: unknown): Promise<{ answer: string; picks: number[] } | null> {
+async function compose(llm: UtilityLlm | null, a: ToolArgs, tool: Exclude<ToolName, "web" | "confirm" | "cancel">, data: unknown): Promise<{ answer: string; picks: number[] } | null> {
   if (!llm) return null;
   const now = a.now ?? new Date();
   const when = new Intl.DateTimeFormat("en-GB", { timeZone: a.timeZone, weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }).format(now);
@@ -146,9 +161,19 @@ const PLAY_NOTES_NOTHING = "There is nothing to play yet: ask them in a few word
 /** One tool call for one question. Never throws: every failure is an outcome the conversation can say. */
 export async function runTool(d: ToolDeps, a: ToolArgs): Promise<ToolOutcome> {
   // with neither Google nor Spotify configured there is nothing to choose between: straight to the web, no extra call
-  const plan = await planTool(d.llm, a, Boolean(d.google || d.spotify));
+  const plan = await planTool(d.llm, a, Boolean(d.google || d.spotify), d);
   try {
-    if (plan.tool === "web") {
+    // writing (an email, an event) and the yes or no to a draft: integrations/actions.ts, which holds the safety rules
+    const writes = plan.tool === "confirm" || plan.tool === "cancel" || (plan.tool === "email" && plan.action === "send") || (plan.tool === "calendar" && plan.action === "create");
+    if (writes) {
+      if (!d.actions || !a.sessionId) return note(plan.tool, "You cannot do that here.", "unavailable");
+      const who = { userId: a.userId, sessionId: a.sessionId, language: a.language, attribution: a.attribution, userTurns: a.userTurns };
+      const r = plan.tool === "confirm" ? await d.actions.confirm(who) : plan.tool === "cancel" ? d.actions.cancel(who)
+        : plan.tool === "email" ? await d.actions.draftEmail(who, { to: plan.to, subject: plan.subject, body: plan.body })
+        : await d.actions.draftEvent(who, { title: plan.title, start: plan.start, durationMin: plan.durationMin, location: plan.location, attendees: plan.attendees });
+      return { tool: plan.tool, ok: r.ok, message: r.message, ...(r.reason ? { reason: r.reason } : {}) };
+    }
+    if (plan.tool === "web" || plan.tool === "confirm" || plan.tool === "cancel") {
       const r = await webLookup(d.llm, { question: a.question, recent: a.recent, language: a.language, timeZone: a.timeZone, now: a.now });
       return { tool: "web", ok: r.ok, message: lookupMessage(r), ...(r.ok ? {} : { reason: r.reason }) };
     }
@@ -180,6 +205,6 @@ export async function runTool(d: ToolDeps, a: ToolArgs): Promise<ToolOutcome> {
     const c = await compose(d.llm, a, plan.tool, data);
     return c ? say(plan.tool, c.answer) : note(plan.tool, FAILED, "failed");
   } catch (e) {
-    return note(plan.tool, FAILED, String(e).slice(0, 80));
+    return note(plan.tool, FAILED, String(e).slice(0, 200));
   }
 }
