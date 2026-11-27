@@ -20,6 +20,7 @@ import { LINES, runConversation, type Step } from "./selftest/scenarios.ts";
 import { NOTE, core } from "./persona/core.ts";
 import { lookupMessage } from "./lookup/web.ts";
 import { runTool, type Connections } from "./integrations/tools.ts";
+import { recoverOrphans } from "./memory/recover.ts";
 import { readCalendar } from "./signals/calendar.ts";
 import { signalEnabled, signalSettings } from "./signals/consent.ts";
 import { readMail } from "./signals/mail.ts";
@@ -110,6 +111,8 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
   // sending email and adding events: draft, read back, a later spoken yes (integrations/actions.ts)
   const actions = googleCfg ? new GoogleActions({ http: realHttp, cfg: googleCfg, connections, timeZone: config.timezone }) : null;
   const hooks: SessionHooks = {
+    recordTurn: (_userId, sessionId, turn) => store.recordTurn(sessionId, turn),
+    heartbeat: (sessionId) => store.heartbeat(sessionId),
     rememberOpener(userId, text) { recentOpeners.set(userId, text); },
     async prepare(userId, sessionId, start) {
       const planning = lookahead.get(userId);
@@ -184,6 +187,10 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       try { return await p; } finally { setTimeout(() => finalizing.delete(args.sessionId), 60_000); }
     },
   };
+  // conversations cut off by a crash or a restart that did not wait: finish them from their saved turns (memory/recover.ts, P1-D45)
+  const recover = () => recoverOrphans(store, hooks.finalize, (m, x) => console.log(JSON.stringify({ level: "info", msg: m, ...x }))).catch(() => 0);
+  setTimeout(() => void recover(), 20_000).unref();
+  setInterval(() => void recover(), 60_000).unref();
   async function finalizeSession({ userId, sessionId, turns, stats, endReason, describe, language, notes }: Parameters<SessionHooks["finalize"]>[0]) {
       const visible = turns.filter((t) => !t.text.startsWith("["));
       let summary: SummaryResult | null = null;

@@ -1,5 +1,5 @@
 import { loadConfig, missingSettings } from "./config.ts";
-import { buildServer } from "./server.ts";
+import { buildServer, drain } from "./server.ts";
 import { buildContext, emptyMemory } from "./persona/promptBuilder.ts";
 import type { SessionHooks } from "./voice/session.ts";
 
@@ -33,6 +33,19 @@ async function main() {
   }
   const app = await buildServer(deps);
   await app.listen({ port: config.port, host: config.host });
+  // A deploy must not cut conversations (P1-D45): on SIGTERM let the running ones finish, then hand the rest over and stop.
+  let stopping = false;
+  for (const sig of ["SIGTERM", "SIGINT"] as const) {
+    process.on(sig, () => {
+      if (stopping) return;
+      stopping = true;
+      void (async () => {
+        try { await drain(config.drainMaxS * 1000, (m, x) => app.log.info(x ?? {}, m)); } catch (e) { app.log.error({ error: String(e).slice(0, 200) }, "drain failed"); }
+        await app.close().catch(() => {});
+        process.exit(0);
+      })();
+    });
+  }
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
