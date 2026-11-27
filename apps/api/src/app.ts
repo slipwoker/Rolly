@@ -21,6 +21,7 @@ import { NOTE, core } from "./persona/core.ts";
 import { lookupMessage } from "./lookup/web.ts";
 import { runTool, type Connections } from "./integrations/tools.ts";
 import { readCalendar } from "./signals/calendar.ts";
+import { signalEnabled, signalSettings } from "./signals/consent.ts";
 import { readMail } from "./signals/mail.ts";
 import { readWhatsApp } from "./signals/whatsapp.ts";
 import { deriveFromLines } from "./signals/derive.ts";
@@ -210,7 +211,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     const had = sessionAgenda.get(sessionId) ?? [];
     sessionAgenda.delete(sessionId);
     // the calendar, only with the user's standing consent for it; never allowed to break the look-ahead
-    const cal = await readCalendar({ consent: async (u, src) => (await db.query("SELECT enabled FROM signal_consent WHERE user_id=$1 AND source=$2", [u, src])).rows[0]?.enabled === true,
+    const cal = await readCalendar({ consent: (u, src) => signalEnabled(db, u, src),
       connections, google: googleCfg, http: realHttp }, userId, new Date(), config.timezone).catch(() => null);
     const plan = await planNext(llm, turns, {
       calendar: cal?.lines,
@@ -220,7 +221,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       addressing: (await store.addressing(userId)).value,
     });
     // mail and WhatsApp, each only with its own standing consent; one labelled item at most from each, never breaking the look-ahead
-    const consentOf = async (u: string, src: string) => (await db.query("SELECT enabled FROM signal_consent WHERE user_id=$1 AND source=$2", [u, src])).rows[0]?.enabled === true;
+    const consentOf = (u: string, src: "mail" | "whatsapp") => signalEnabled(db, u, src);
     const lang = { calendar: cal?.lines, language: summary.language, addressing: (await store.addressing(userId)).value };
     const mailRead = await readMail({ consent: consentOf, connections, google: googleCfg, http: realHttp }, userId, cal?.lines ?? []).catch(() => null);
     const waRead = await readWhatsApp({ consent: consentOf, gateway }, userId, new Date()).catch(() => null);
@@ -313,9 +314,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     // standing consent to look at a connected source before a ride (P1-D41); off unless the user turns it on; turning it off removes what came from it
     app.get("/v1/signals/consent", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
-      const r = await db.query<{ source: string; enabled: boolean }>("SELECT source, enabled FROM signal_consent WHERE user_id=$1", [id]);
-      const on = (src: string) => r.rows.find((x) => x.source === src)?.enabled === true;
-      return { calendar: on("calendar"), mail: on("mail"), whatsapp: on("whatsapp") };
+      return signalSettings(db, id);
     });
     app.put("/v1/signals/consent", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
