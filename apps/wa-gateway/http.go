@@ -32,6 +32,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /v1/users/{uid}/send/draft", s.auth(http.HandlerFunc(s.draft)))
 	mux.Handle("POST /v1/users/{uid}/send/confirm", s.auth(http.HandlerFunc(s.confirm)))
 	mux.Handle("DELETE /v1/users/{uid}/send/drafts/{id}", s.auth(http.HandlerFunc(s.cancelDraft)))
+	mux.Handle("GET /v1/users/{uid}/debug/lookup", s.auth(http.HandlerFunc(s.debugLookup))) // TEMPORARY, see debug.go
 	mux.Handle("GET /v1/users/{uid}/chats", s.auth(http.HandlerFunc(s.chats)))
 	mux.Handle("GET /v1/users/{uid}/chats/{ref}/messages", s.auth(http.HandlerFunc(s.messages)))
 	return mux
@@ -320,4 +321,18 @@ func (s *Server) stats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, st)
+}
+
+// GET /v1/users/{uid}/debug/lookup?q=name&phone=972... : TEMPORARY, see debug.go.
+func (s *Server) debugLookup(w http.ResponseWriter, r *http.Request) {
+	id, ok := uid(w, r)
+	if !ok {
+		return
+	}
+	res, err := s.m.DebugLookup(r.Context(), id, r.URL.Query().Get("q"), r.URL.Query().Get("phone"))
+	if err != nil {
+		writeJSON(w, 500, map[string]string{"error": "internal error"})
+		return
+	}
+	writeJSON(w, 200, res)
 }

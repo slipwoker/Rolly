@@ -26,6 +26,8 @@ export interface Gateway {
   link(userId: string, mode: "qr" | "code", phone: string | undefined, consent: boolean): Promise<Record<string, unknown>>;
   /** counts only, for the owner (no user data) */
   stats(): Promise<Record<string, unknown>>;
+  /** TEMPORARY (apps/wa-gateway/debug.go): how a contact is stored, by name and/or phone number; owner only */
+  debugLookup(userId: string, o: { q?: string; phone?: string }): Promise<Record<string, unknown>>;
   unlink(userId: string): Promise<void>;
 }
 
@@ -54,6 +56,7 @@ export function httpGateway(cfg: { url: string; token: string }): Gateway {
     cancel: async (userId, draftId) => { await call("DELETE", `${u(userId)}/send/drafts/${encodeURIComponent(draftId)}`); },
     link: (userId, mode, phone, consent) => call("POST", `${u(userId)}/link`, { mode, consent, ...(phone ? { phone } : {}) }, 20_000),
     stats: () => call("GET", "/v1/stats"),
+    debugLookup: (userId, o) => call("GET", `${u(userId)}/debug/lookup?q=${encodeURIComponent(o.q ?? "")}&phone=${encodeURIComponent(o.phone ?? "")}`),
     unlink: async (userId) => { await call("DELETE", u(userId)); },
   };
 }

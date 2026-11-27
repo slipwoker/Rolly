@@ -342,3 +342,5 @@ func (s *MessageStore) Totals(ctx context.Context, since time.Time) (messages, c
 	err = s.db.QueryRowContext(ctx, s.q(`SELECT COUNT(*) FROM wa_sends WHERE ts >= ?`), since.UnixMilli()).Scan(&sends)
 	return
 }
+
+func isNoRows(err error) bool { return errors.Is(err, sql.ErrNoRows) }
