@@ -315,11 +315,13 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     const servicesFor = async (userId: string) => {
       const g = await db.query<{ account_label: string | null; scopes: string }>("SELECT account_label, scopes FROM integrations WHERE user_id=$1 AND provider='google'", [userId]).catch(() => ({ rows: [] as { account_label: string | null; scopes: string }[] }));
       const gr = g.rows[0] ? googleApi.grants(g.rows[0].scopes) : null;
-      // "needs_update": connected before writing existed, so it can read but not send or add events until the user taps once more
-      const google = !googleCfg ? "not_available" : !g.rows[0] ? "not_connected" : gr?.sendMail && gr.writeCalendar ? "connected" : "needs_update";
+      const google = !googleCfg ? "not_available" : !g.rows[0] ? "not_connected" : "connected";
+      // can_write false: connected before writing existed, so it reads but cannot send or add events until the user taps "update
+      // permissions". A separate flag, not a new status: app builds that do not know it must still see "connected".
+      const can_write = Boolean(gr?.sendMail && gr.writeCalendar);
       return [
-        { id: "calendar", provider: "google", status: google, account: g.rows[0]?.account_label ?? null },
-        { id: "email", provider: "google", status: google, account: g.rows[0]?.account_label ?? null },
+        { id: "calendar", provider: "google", status: google, account: g.rows[0]?.account_label ?? null, can_write },
+        { id: "email", provider: "google", status: google, account: g.rows[0]?.account_label ?? null, can_write },
         // search, recommendations and "play it" (opens Spotify on the phone) need no account of the user's
         { id: "music", provider: "spotify", status: config.spotify ? "connected" : "not_available", account: null },
       ];
