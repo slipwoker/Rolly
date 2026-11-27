@@ -96,7 +96,7 @@ export function loadConfig(env = process.env): Config {
     port: Number(env.PORT ?? 8080),
     host: env.HOST ?? "0.0.0.0",
     databaseUrl: env.DATABASE_URL || null,
-    gpuWorkerUrl: req(env, "ROLLY_GPU_WORKER_URL", "https://gn48mxl9lsf1nv-8000.proxy.runpod.net/v1"),
+    gpuWorkerUrl: req(env, "ROLLY_GPU_WORKER_URL", "https://c9yxo4cxgae2u8-8000.proxy.runpod.net/v1"),
     gpuApiKey: env.ROLLY_GPU_API_KEY ?? "",
     openaiApiKey: env.OPENAI_API_KEY || null,
     utilityModel: env.ROLLY_UTILITY_LLM_MODEL ?? "gpt-6-luna",

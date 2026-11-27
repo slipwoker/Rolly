@@ -32,7 +32,7 @@ projects:
               - key: NODE_VERSION
                 value: "22"
               - key: ROLLY_GPU_WORKER_URL
-                value: https://gn48mxl9lsf1nv-8000.proxy.runpod.net/v1
+                value: https://c9yxo4cxgae2u8-8000.proxy.runpod.net/v1
               - key: ROLLY_UTILITY_LLM_MODEL
                 value: gpt-6-luna
               - key: ROLLY_UTILITY_LLM_REASONING
