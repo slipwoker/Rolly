@@ -25,7 +25,7 @@ Return ONLY a JSON object with these keys:
   "preferred_name": ITEM or null — what the user wants to be called, only if they said it about themselves,
   "travel_goals": list of ITEM — what the user said would make their travel time valuable,
   "interests": list of ITEM,
-  "goals": list of ITEM — something the user wants to achieve or become, at work, with people, learning, health, anything: said outright, or clearly implied by what they care about and work on (a goal is wider than one task: "get ready for the investor meeting", "move to freelancing"; one concrete errand is an action item). When Rolly said a goal back in its own words and the user agreed ("yes", "exactly", "keep it"), return it with "confirmed": true, "turn": the turn of the user's agreement and "quote": the user's agreeing words,
+  "goals": list of ITEM — something the user wants to achieve or become, at work, with people, learning, health, anything, that they said about themselves (a goal is wider than one task: "get ready for the investor meeting", "move to freelancing"; one concrete errand is an action item; a taste, a mood or how they like the ride to feel (quiet, a kind of music) is a preference, never a goal). When Rolly said a goal back in its own words and the user agreed ("yes", "exactly", "keep it"), return it with "confirmed": true, "turn": the turn of the user's agreement and "quote": the user's agreeing words,
   "action_items": list of ITEM — concrete things the user said THEY will do, or asked Rolly to note as a task,
   "ideas": list of ITEM — ideas the user came up with or asked Rolly to note or keep (not tasks),
   "facts": list of ITEM — other durable facts about the user (work, family situation, routines), only if stated by the user about themselves,
