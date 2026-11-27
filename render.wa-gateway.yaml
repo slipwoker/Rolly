@@ -6,8 +6,11 @@
 #   ROLLY_WA_GATEWAY_URL=http://rolly-wa-gateway:10000 and the shared bearer token.
 # - exactly ONE instance: a linked WhatsApp device cannot be connected twice (numInstances stays 1, never autoscale).
 # - its own database, so the messages of this feature live (and can be dropped) apart from rolly-api's.
-# - deploys are manual (autoDeploy false): a deploy drops every live WhatsApp connection for a few seconds and the
-#   accounts reconnect staggered; do it when nobody is driving.
+# - deploys follow `main`, but ONLY when something under apps/wa-gateway changes (buildFilter, like rolly-api's): a push that
+#   touches the site, the app or the voice service must not restart this service. Every deploy drops the WhatsApp
+#   connections for a few seconds (the accounts reconnect staggered) and, for a moment, runs the old and the new instance
+#   together: the old one is told "replaced" and must not touch the account state (fixed in PR #38; check that after a deploy
+#   GET /v1/admin/whatsapp on rolly-api still shows the account as connected).
 projects:
   - name: Rolly
     environments:
@@ -22,7 +25,13 @@ projects:
             branch: main
             dockerfilePath: ./apps/wa-gateway/Dockerfile
             dockerContext: ./apps/wa-gateway
-            autoDeploy: false
+            autoDeploy: true
+            buildFilter:   # only the gateway's own code restarts it
+              paths:
+                - "apps/wa-gateway/**"
+              ignoredPaths:
+                - "**/*.md"
+                - "apps/wa-gateway/**/*_test.go"
             envVars:
               - key: DATABASE_URL
                 fromDatabase:

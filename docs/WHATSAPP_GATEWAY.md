@@ -139,7 +139,7 @@ service, `DATABASE_URL`, `WA_GATEWAY_TOKEN`, `WA_STT_URL`, optional `WA_STT_TOKE
 - Linking needs `consent: true` (the app must show the terms); the time is stored. `GET /v1/stats` (gateway) and `GET /v1/admin/whatsapp` (rolly-api, admin token): counts by state, live connections, stored messages, sends; no user data.
 - "Disconnect WhatsApp" by voice: asked first, a later yes unlinks and deletes everything (marker 4/4, intent 4/4 on the real models).
 - Regression tests for the link-timer race (a paired client is never dropped; state is set before the timer is cancelled).
-- `apps/wa-gateway/Dockerfile` and `render.wa-gateway.yaml` (private service, ONE instance, own database, manual deploys). **Not applied**:
+- `apps/wa-gateway/Dockerfile` and `render.wa-gateway.yaml` (private service, ONE instance, own database; deploys follow `main` only for changes under `apps/wa-gateway`). **Not applied**:
   the Docker image could not be built here (no Docker daemon); the Go build with the same flags works. Creating the services costs money and touches
   the shared Render workspace, so it waits for the owner. `PRIVACY.md` has the new WhatsApp section.
 
@@ -169,3 +169,9 @@ is emailed. The page `/link/wa#<token>` (any computer) starts a QR link for the 
   The address is used for that one message and is not stored or logged.
 - Residual risk: whoever holds a live link can show the QR, and whoever scans it connects THEIR WhatsApp to this Rolly account. Hence the short life, and the consent before the link exists.
 Tests: `apps/api/test/webLink.test.ts` (routes, tokens, limits, mail shape), `apps/mobile/test/whatsapp.test.ts`. The page was also run in Chromium against a fake gateway (QR, success, expired).
+
+### Deploys of the gateway (2026-11-27)
+The gateway first had `autoDeploy: false`; it now follows `main` through a `buildFilter` on `apps/wa-gateway/**` (the Blueprint needs one plan and approval on Render
+to apply that). A deploy runs the old and the new instance together for a moment; the old one gets "replaced stream". Before PR #38 it wrote `conflict` and then
+`reconnecting` over the new instance's `connected`; now it writes nothing. That fix was first exercised by a deploy whose OLD instance still had the old code, so
+the first real proof is the NEXT deploy: check `GET /v1/admin/whatsapp` (admin) afterwards.
