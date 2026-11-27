@@ -46,75 +46,10 @@ export async function search(http: Http, c: SpotifyConfig, q: string, kind: Musi
   return hits;
 }
 
-// ------------------------------------------------------------------------------------------------------------------
-// The user's own Spotify account: playback on their phone. Scopes: start playback and see devices (read/modify
-// playback state). Premium is required by Spotify to control playback; since Feb 2026 Development Mode apps no longer see
-// the account's plan (`/me` has no `product`), so a free account is discovered when the play call is refused.
-export const SPOTIFY_SCOPES = ["user-modify-playback-state", "user-read-playback-state"];
-
-export interface SpotifyOAuth { clientId: string; clientSecret: string; redirectUri: string }
-const basic = (c: { clientId: string; clientSecret: string }) => "Basic " + Buffer.from(`${c.clientId}:${c.clientSecret}`).toString("base64");
-
-export function authUrl(c: SpotifyOAuth, state: string): string {
-  return "https://accounts.spotify.com/authorize?" + form({ client_id: c.clientId, response_type: "code", redirect_uri: c.redirectUri, scope: SPOTIFY_SCOPES.join(" "), state, show_dialog: "true" });
-}
-
-export async function exchangeCode(http: Http, c: SpotifyOAuth, code: string): Promise<{ refreshToken: string; account: string | null } | null> {
-  const r = await http("https://accounts.spotify.com/api/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: basic(c) },
-    body: form({ grant_type: "authorization_code", code, redirect_uri: c.redirectUri }) });
-  const j = r.json as { access_token?: string; refresh_token?: string } | null;
-  if (!r.ok || !j?.access_token || !j.refresh_token) return null;
-  const me = await http("https://api.spotify.com/v1/me", { headers: { Authorization: `Bearer ${j.access_token}` } }).catch(() => null);
-  const m = me?.json as { display_name?: string; id?: string } | null;
-  return { refreshToken: j.refresh_token, account: m?.display_name || m?.id || null };
-}
-
-export class SpotifyAuthLost extends Error {}
-
-/** Spotify may hand back a NEW refresh token on refresh: the caller stores it when present. */
-export async function userToken(http: Http, c: SpotifyOAuth, refreshToken: string): Promise<{ accessToken: string; refreshToken: string | null }> {
-  const r = await http("https://accounts.spotify.com/api/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: basic(c) },
-    body: form({ grant_type: "refresh_token", refresh_token: refreshToken }) });
-  const j = r.json as { access_token?: string; refresh_token?: string; error?: string } | null;
-  if (r.status === 400 && j?.error === "invalid_grant") throw new SpotifyAuthLost("the user revoked access");
-  if (!r.ok || !j?.access_token) throw new Error(`spotify token HTTP ${r.status}`);
-  return { accessToken: j.access_token, refreshToken: j.refresh_token ?? null };
-}
-
 /** https://open.spotify.com/track/ID?... -> what the player API takes */
 export function playTarget(url: string): { kind: MusicKind; uri: string; context: boolean } | null {
   const m = /^https:\/\/open\.spotify\.com\/(?:intl-[a-z]+\/)?(track|episode|album|artist|show)\/([A-Za-z0-9]+)/.exec(url);
   if (!m) return null;
   const kind = m[1] as MusicKind;
   return { kind, uri: `spotify:${kind}:${m[2]}`, context: kind === "album" || kind === "artist" || kind === "show" };
-}
-
-export type PlayCheck = { ok: true; deviceId: string; deviceName: string } | { ok: false; reason: "no_device" | "failed" };
-
-/** Before anything is said: is there a Spotify app on a device that can play? (Premium shows up when the play call is refused.) */
-export async function canPlay(http: Http, accessToken: string): Promise<PlayCheck> {
-  const d = await http("https://api.spotify.com/v1/me/player/devices", { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (!d.ok) return { ok: false, reason: "failed" };
-  const devices = ((d.json as { devices?: { id: string | null; name: string; type: string; is_active: boolean; is_restricted: boolean }[] } | null)?.devices ?? []).filter((x) => x.id && !x.is_restricted);
-  const pick = devices.find((x) => x.is_active) ?? devices.find((x) => x.type === "Smartphone") ?? devices[0];
-  return pick ? { ok: true, deviceId: pick.id!, deviceName: pick.name } : { ok: false, reason: "no_device" };
-}
-
-export async function startPlayback(http: Http, accessToken: string, deviceId: string, t: { uri: string; context: boolean }): Promise<boolean> {
-  const r = await http("https://api.spotify.com/v1/me/player/play?" + form({ device_id: deviceId }), { method: "PUT",
-    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" }, body: JSON.stringify(t.context ? { context_uri: t.uri } : { uris: [t.uri] }) });
-  return r.ok; // 204
-}
-
-export async function pausePlayback(http: Http, accessToken: string): Promise<void> {
-  await http("https://api.spotify.com/v1/me/player/pause", { method: "PUT", headers: { Authorization: `Bearer ${accessToken}` } }).catch(() => {});
-}
-
-/** Is what we started still the thing playing? false = it ended, the user stopped it, or Spotify moved on to something else (autoplay). */
-export async function stillPlaying(http: Http, accessToken: string, t: { uri: string; context: boolean }): Promise<boolean | "error"> {
-  const r = await http("https://api.spotify.com/v1/me/player", { headers: { Authorization: `Bearer ${accessToken}` } }).catch(() => null);
-  if (!r || (!r.ok && r.status !== 204)) return "error";
-  const j = r.json as { is_playing?: boolean; item?: { uri?: string } | null; context?: { uri?: string } | null } | null;
-  if (!j || !j.is_playing) return false; // 204: nothing playing
-  return t.context ? j.context?.uri === t.uri : j.item?.uri === t.uri;
 }

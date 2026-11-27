@@ -22,7 +22,6 @@ import { lookupMessage } from "./lookup/web.ts";
 import { runTool, type Connections } from "./integrations/tools.ts";
 import { realHttp } from "./integrations/http.ts";
 import * as googleApi from "./integrations/google.ts";
-import * as spotifyApi from "./integrations/spotify.ts";
 import { seal, unseal, signState, verifyState } from "./integrations/crypto.ts";
 import { AuditRecorder } from "./audit/recorder.ts";
 import { loadPricing } from "./audit/pricing.ts";
@@ -81,17 +80,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
   // connected services (src/integrations): Google refresh tokens are kept sealed in PostgreSQL, keyed by the server's auth secret
   const sealKey = authSecret;
   const googleCfg = config.google ? { ...config.google, redirectUri: `${config.publicUrl}/v1/integrations/google/callback` } : null;
-  const spotifyUserCfg = config.spotify ? { clientId: config.spotify.clientId, clientSecret: config.spotify.clientSecret, redirectUri: `${config.publicUrl}/v1/integrations/spotify/callback` } : null;
-  const saveToken = (userId: string, provider: string, refresh: string, scopes: string, label: string | null) => db.query(
-    `INSERT INTO integrations(user_id, provider, refresh_enc, scopes, account_label) VALUES ($1,$2,$3,$4,$5)
-     ON CONFLICT (user_id, provider) DO UPDATE SET refresh_enc=$3, scopes=$4, account_label=COALESCE($5, integrations.account_label), created_at=now()`, [userId, provider, seal(refresh, sealKey), scopes, label]);
   const connections: Connections = {
-    async spotifyRefresh(userId) {
-      const r = await db.query<{ refresh_enc: string }>("SELECT refresh_enc FROM integrations WHERE user_id=$1 AND provider='spotify'", [userId]);
-      return r.rows[0] ? unseal(r.rows[0].refresh_enc, sealKey) : null;
-    },
-    async saveSpotifyRefresh(userId, token) { await saveToken(userId, "spotify", token, spotifyApi.SPOTIFY_SCOPES.join(" "), null); },
-    async dropSpotify(userId) { await db.query("DELETE FROM integrations WHERE user_id=$1 AND provider='spotify'", [userId]); },
     async googleRefresh(userId) {
       const r = await db.query<{ refresh_enc: string }>("SELECT refresh_enc FROM integrations WHERE user_id=$1 AND provider='google'", [userId]);
       return r.rows[0] ? unseal(r.rows[0].refresh_enc, sealKey) : null;
@@ -153,8 +142,8 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
           .catch(() => ({ rows: [{ n: 0 }] }))).rows[0]?.n ?? 0;
         if (used >= config.lookupsPerDay) return refuse("limit");
         // web search, calendar, mail or music: a small planning call picks the tool (integrations/tools.ts)
-        const r = await runTool({ llm, http: realHttp, connections, google: googleCfg, spotify: config.spotify, spotifyUser: spotifyUserCfg }, { userId: args.userId, lastMedia: args.lastMedia, question: args.question, recent: args.recent, language: args.language, timeZone: config.timezone });
-        return { message: r.message, ok: r.ok, ...(r.reason ? { reason: r.reason } : {}), ...(r.media ? { media: r.media } : {}), ...(r.playback ? { playback: r.playback } : {}) };
+        const r = await runTool({ llm, http: realHttp, connections, google: googleCfg, spotify: config.spotify }, { userId: args.userId, lastMedia: args.lastMedia, question: args.question, recent: args.recent, language: args.language, timeZone: config.timezone });
+        return { message: r.message, ok: r.ok, ...(r.reason ? { reason: r.reason } : {}), ...(r.media ? { media: r.media } : {}), ...(r.open ? { open: r.open } : {}) };
       });
     },
     async finalize(args) {
@@ -275,12 +264,11 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     const servicesFor = async (userId: string) => {
       const g = await db.query<{ account_label: string | null }>("SELECT account_label FROM integrations WHERE user_id=$1 AND provider='google'", [userId]).catch(() => ({ rows: [] as { account_label: string | null }[] }));
       const google = !googleCfg ? "not_available" : g.rows[0] ? "connected" : "not_connected";
-      const sp = await db.query<{ account_label: string | null }>("SELECT account_label FROM integrations WHERE user_id=$1 AND provider='spotify'", [userId]).catch(() => ({ rows: [] as { account_label: string | null }[] }));
       return [
         { id: "calendar", provider: "google", status: google, account: g.rows[0]?.account_label ?? null },
         { id: "email", provider: "google", status: google, account: g.rows[0]?.account_label ?? null },
-        // search needs no account ("search_only"); playing on the phone needs the user's own Spotify ("connected")
-        { id: "music", provider: "spotify", status: !config.spotify ? "not_available" : sp.rows[0] ? "connected" : "search_only", account: sp.rows[0]?.account_label ?? null },
+        // search, recommendations and "play it" (opens Spotify on the phone) need no account of the user's
+        { id: "music", provider: "spotify", status: config.spotify ? "connected" : "not_available", account: null },
       ];
     };
     app.get("/v1/integrations", async (req, reply) => {
@@ -307,30 +295,6 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
         ON CONFLICT (user_id, provider) DO UPDATE SET refresh_enc=$2, scopes=$3, account_label=$4, created_at=now()`, [uid, seal(g.refreshToken, sealKey), g.scopes, g.email]);
       app.log.info({ user_id: uid }, "google connected");
       return page(true);
-    });
-    app.post("/v1/integrations/spotify/start", async (req, reply) => {
-      const id = user(req, reply); if (!id) return;
-      if (!spotifyUserCfg) return reply.code(503).send({ error: "spotify is not configured" });
-      return { url: spotifyApi.authUrl(spotifyUserCfg, signState(id, authSecret, Date.now(), "spotify")) };
-    });
-    app.get("/v1/integrations/spotify/callback", async (req, reply) => {
-      const q = (req.query ?? {}) as { code?: string; state?: string; error?: string };
-      const page = (ok: boolean) => reply.type("text/html; charset=utf-8").send(
-        `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rolly</title>` +
-        `<body style="font-family:-apple-system,system-ui,sans-serif;text-align:center;padding:4rem 1.5rem"><h2>${ok ? "Spotify connected ✓" : "Could not connect Spotify"}</h2>` +
-        `<p>${ok ? "חוזרים ל-Rolly. אפשר לסגור את הדף הזה." : "נסו שוב מתוך האפליקציה."}</p></body>`);
-      const uid = verifyState(q.state, authSecret, Date.now(), "spotify");
-      if (!spotifyUserCfg || !uid || q.error || !q.code) return page(false);
-      const g = await spotifyApi.exchangeCode(realHttp, spotifyUserCfg, q.code).catch(() => null);
-      if (!g) return page(false);
-      await saveToken(uid, "spotify", g.refreshToken, spotifyApi.SPOTIFY_SCOPES.join(" "), g.account);
-      app.log.info({ user_id: uid }, "spotify connected");
-      return page(true);
-    });
-    app.delete("/v1/integrations/spotify", async (req, reply) => {
-      const id = user(req, reply); if (!id) return;
-      await connections.dropSpotify!(id); // Spotify has no revoke endpoint: the user can remove the app at spotify.com/account/apps
-      return { disconnected: true };
     });
     app.delete("/v1/integrations/google", async (req, reply) => {
       const id = user(req, reply); if (!id) return;

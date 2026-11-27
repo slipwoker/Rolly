@@ -43,6 +43,8 @@ export interface ControllerDeps {
   b64: { encode(bytes: Uint8Array): string; decode(s: string): Uint8Array };
   onState?(s: VoiceState, detail?: string): void;
   onCaption?(c: { role: "user" | "agent"; text: string; final: boolean; seq?: number }): void;
+  /** open a link outside the app (Linking.openURL) */
+  openUrl?(url: string): void;
   /** songs, shows... Rolly is about to talk about (shown as cards under its next reply) */
   onMedia?(items: MediaItem[]): void;
   onMeasure?(m: { kind: "reply_ms" | "flush_ms"; value: number }): void;
@@ -187,13 +189,11 @@ export class VoiceController {
       case "agent.turn_done":
         this.d.onCaption?.({ role: "agent", text: m.text, final: true, seq: m.seq });
         break;
-      case "mic.paused":
-        // music is about to play on the user's Spotify: release the microphone and the audio session so Spotify can use them
+      case "open.url":
+        // Rolly was asked to play something: release the microphone and audio session, then open it in Spotify. Only Spotify links.
+        if (!/^https:\/\/open\.spotify\.com\//.test(m.url)) break;
         this.set("music");
-        void this.d.audio.stop().catch(() => {});
-        break;
-      case "mic.resumed":
-        void this.restartAudio();
+        void this.d.audio.stop().catch(() => {}).then(() => this.d.openUrl?.(m.url));
         break;
       case "agent.media":
         if (Array.isArray(m.items) && m.items.length) this.d.onMedia?.(m.items);
@@ -254,17 +254,17 @@ export class VoiceController {
     if ((e.event === "restarted" || e.event === "interruption_ended") && this.state === "paused") this.set("listening");
   }
 
-  /** The user tapped to talk while music plays: tell the server (it pauses the music) and listen again at once. */
+  /** The user came back from Spotify and tapped to talk: tell the server and take the microphone back. */
   async resumeFromMusic(): Promise<void> {
     if (this.state !== "music") return;
     this.send({ type: "client.resume" });
     await this.restartAudio();
   }
 
-  /** The song ended (server: mic.resumed) or the user tapped: take the microphone back. */
+  /** Take the microphone back after Spotify. */
   private async restartAudio(): Promise<void> {
     if (this.state !== "music" || this.ending || this.disposed) return;
-    this.set("listening"); // first, so a second trigger (tap and song end together) does nothing
+    this.set("listening"); // first, so a second tap does nothing
     try { await this.d.audio.start(); } catch (e) { this.set("error", `microphone: ${String(e)}`); }
   }
 

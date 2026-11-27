@@ -11,7 +11,6 @@ import { startFakePod, tone, type FakePod } from "./fakePod.ts";
 let pod: FakePod, app: FastifyInstance, port: number;
 const finalized: { turns: SessionTurn[]; stats: Record<string, unknown>; endReason: string }[] = [];
 const lookups: { userId: string; question: string; lastMedia: unknown[] }[] = [];
-const music: string[] = [];
 
 beforeAll(async () => {
   pod = await startFakePod({ script: ["שלום", "מה נשמע", "רגע", "שקט", "עוד חמש דקות אני מגיע", "תרשום לי משהו", "סתם", "כלום", "בסדר", "תנגן את זה", "תנגן משהו"], token: "test-key",
@@ -37,12 +36,11 @@ beforeAll(async () => {
     async lookup({ userId, question, lastMedia }) {
       lookups.push({ userId, question, lastMedia });
       await new Promise((r) => setTimeout(r, 100));
-      // "u-lookup-music": the answer is "putting on a song"; "-end": the song ends by itself, otherwise it plays until the user taps
+      // "u-lookup-music": the answer is "opening a song in Spotify"
       if (userId.startsWith("u-lookup-music")) {
-        const ends = userId.endsWith("-end");
-        return { message: "[lookup_result - not said by the user] Putting on Bohemian Rhapsody.", ok: true,
+        return { message: "[lookup_result - not said by the user] Opening Bohemian Rhapsody.", ok: true,
           media: [{ kind: "track" as const, title: "Bohemian Rhapsody", subtitle: "Queen", image: null, url: "https://open.spotify.com/track/1", provider: "spotify" as const }],
-          playback: { title: "Bohemian Rhapsody", async start() { music.push("start"); return true; }, async stillPlaying() { return !ends; }, async stop() { music.push("stop"); } } };
+          open: { url: "https://open.spotify.com/track/1" } };
       }
       return userId === "u-lookup-fail" ? { message: "[lookup_failed - not said by the user] did not work", ok: false, reason: "failed" }
         : { message: "[lookup_result - not said by the user] What you found: 23 to 30 degrees.", ok: true };
@@ -281,8 +279,7 @@ describe("relay phone <-> rolly-api <-> pod", () => {
     expect(((await res.json()) as { active_sessions: number }).active_sessions).toBe(0);
   }, 30_000);
 
-  it("music: it starts only after Rolly has finished speaking, listening is off while it plays, and a tap pauses it and brings listening back", async () => {
-    music.length = 0;
+  it("music: Spotify is opened on the phone only after Rolly has finished speaking, listening is off until the user taps", async () => {
     const phone = new Phone();
     await phone.connect(`ws://127.0.0.1:${port}/v1/voice?dev_user=u-lookup-music`);
     phone.send({ type: "session.start", language: "he" });
@@ -290,34 +287,19 @@ describe("relay phone <-> rolly-api <-> pod", () => {
     const end = await phone.say(speech(600));
     await phone.waitReply(end - 1, 5000);
     await phone.waitFor(() => [...phone.turns.values()].some((t) => t.done && t.text.startsWith("Said: [lookup_result")), 8000, "the answer turn");
-    await phone.waitFor(() => phone.events.some((e) => e.msg.type === "mic.paused"), 8000, "mic.paused");
-    // the card came before the reply, the music only after the reply had been played out
+    await phone.waitFor(() => phone.events.some((e) => e.msg.type === "open.url"), 8000, "open.url");
+    // the card came first, the link only after the reply had been played out
     const types = phone.events.map((e) => e.msg.type);
-    expect(types.indexOf("agent.media")).toBeLessThan(types.indexOf("mic.paused"));
-    expect(music).toEqual(["start"]);
+    expect(types.indexOf("agent.media")).toBeLessThan(types.indexOf("open.url"));
+    expect(phone.events.find((e) => e.msg.type === "open.url")!.msg).toMatchObject({ url: "https://open.spotify.com/track/1" });
     const heard = pod.audioBytes;
     await new Promise((r) => setTimeout(r, 700)); // the test phone keeps streaming silence; none of it may reach the model
     expect(pod.audioBytes).toBe(heard);
     phone.send({ type: "client.resume" });
-    await phone.waitFor(() => phone.events.some((e) => e.msg.type === "mic.resumed"), 5000, "mic.resumed");
-    expect(music).toEqual(["start", "stop"]);
+    await new Promise((r) => setTimeout(r, 400));
+    expect(pod.audioBytes).toBeGreaterThan(heard); // listening again
     phone.send({ type: "session.end" });
     await phone.waitFor(() => phone.events.some((e) => e.msg.type === "session.closed"), 5000, "closed");
-    expect((finalized.at(-1)!.stats.notes as { kind: string }[]).map((n) => n.kind)).toEqual(expect.arrayContaining(["music_started", "music_stopped_by_user"]));
+    expect((finalized.at(-1)!.stats.notes as { kind: string }[]).map((n) => n.kind)).toEqual(expect.arrayContaining(["music_opened", "music_back"]));
   }, 40_000);
-
-  it("music that ends by itself brings listening back without a tap", async () => {
-    music.length = 0;
-    const phone = new Phone();
-    await phone.connect(`ws://127.0.0.1:${port}/v1/voice?dev_user=u-lookup-music-end`);
-    phone.send({ type: "session.start", language: "he" });
-    await phone.waitReply(0, 5000);
-    const end = await phone.say(speech(600));
-    await phone.waitReply(end - 1, 5000);
-    await phone.waitFor(() => phone.events.some((e) => e.msg.type === "mic.paused"), 8000, "mic.paused");
-    await phone.waitFor(() => phone.events.some((e) => e.msg.type === "mic.resumed"), 20_000, "mic.resumed after the song");
-    expect(music).toEqual(["start"]); // not paused: it had ended
-    phone.send({ type: "session.end" });
-    await phone.waitFor(() => phone.events.some((e) => e.msg.type === "session.closed"), 5000, "closed");
-  }, 50_000);
 });

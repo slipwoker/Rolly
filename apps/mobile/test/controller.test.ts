@@ -35,17 +35,18 @@ function harness() {
     return s;
   };
   const media: unknown[] = [];
-  const ctl = new VoiceController({ audio, openSocket, getTicket: async () => "tkt", wsBase: "ws://x", b64, now: () => now, maxReconnects: 1, onMedia: (i) => media.push(i) });
+  const opened: string[] = [];
+  const ctl = new VoiceController({ audio, openSocket, getTicket: async () => "tkt", wsBase: "ws://x", b64, now: () => now, maxReconnects: 1, onMedia: (i) => media.push(i), openUrl: (u) => opened.push(u) });
   const server = (m: unknown) => sockets.at(-1)!.onmessage!({ data: JSON.stringify(m) });
   const serverAudio = (seq: number, n: number) => { const f = packClientAudio(seq, new Uint8Array(n)); sockets.at(-1)!.onmessage!({ data: f.buffer as ArrayBuffer }); };
   const mic = (t: number) => (cbs.mic as unknown as (f: { data: string; t: number }) => void)({ data: b64.encode(new Uint8Array(640)), t });
   const play = (e: object) => (cbs.play as unknown as (e: object) => void)(e);
-  return { ctl, media, audioCalls, sent, enqueued, flushed, sockets, server, serverAudio, mic, play, cbs, setNow: (n: number) => { now = n; } };
+  return { ctl, media, opened, audioCalls, sent, enqueued, flushed, sockets, server, serverAudio, mic, play, cbs, setNow: (n: number) => { now = n; } };
 }
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
-describe("music", () => {
+describe("music: Spotify is opened on the phone", () => {
   const up = async () => {
     const h = harness();
     await h.ctl.start({ language: "he" });
@@ -53,33 +54,30 @@ describe("music", () => {
     h.server({ type: "session.created", session_id: "s1", input_sample_rate: 16000, output_sample_rate: 24000, language: "he", proactive: true, onboarding: false });
     return h;
   };
-  it("releases the microphone while music plays and sends no audio; a tap tells the server and listens again", async () => {
+  it("releases the microphone, then opens the link; no audio is sent until the user taps to talk again", async () => {
     const h = await up();
     h.audioCalls.length = 0;
-    h.server({ type: "mic.paused", reason: "music" });
+    h.server({ type: "open.url", url: "https://open.spotify.com/track/1" });
     expect(h.ctl.state).toBe("music");
+    await tick();
     expect(h.audioCalls).toEqual(["stop"]);
+    expect(h.opened).toEqual(["https://open.spotify.com/track/1"]); // after the audio session was released
     h.mic(20_000);
     expect(h.sent.filter((m) => "binary" in m)).toHaveLength(0);
     await h.ctl.resumeFromMusic();
     expect(h.ctl.state).toBe("listening");
     expect(h.audioCalls).toEqual(["stop", "start"]);
     expect(h.sent.some((m) => "type" in m && m.type === "client.resume")).toBe(true);
-    h.server({ type: "mic.resumed" }); // the server confirms: already listening, nothing starts twice
-    await tick();
-    expect(h.audioCalls).toEqual(["stop", "start"]);
   });
-  it("when the song ends by itself the server says so and the microphone comes back without a tap", async () => {
+  it("opens only Spotify links, whatever the server sends", async () => {
     const h = await up();
-    h.server({ type: "mic.paused", reason: "music" });
-    h.audioCalls.length = 0;
-    h.server({ type: "mic.resumed" });
+    h.server({ type: "open.url", url: "https://evil.example/x" });
+    h.server({ type: "open.url", url: "http://open.spotify.com/track/1" });
     await tick();
+    expect(h.opened).toEqual([]);
     expect(h.ctl.state).toBe("listening");
-    expect(h.audioCalls).toEqual(["start"]);
-    expect(h.sent.some((m) => "type" in m && m.type === "client.resume")).toBe(false);
   });
-  it("a tap when no music is playing does nothing", async () => {
+  it("a tap when nothing was opened does nothing", async () => {
     const h = await up();
     await h.ctl.resumeFromMusic();
     expect(h.sent.some((m) => "type" in m && m.type === "client.resume")).toBe(false);

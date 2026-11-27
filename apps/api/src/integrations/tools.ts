@@ -21,27 +21,12 @@ export interface ToolPlan { tool: ToolName; action: "search" | "play"; query: st
 export interface ToolArgs { /** what Rolly last showed as cards: "play this" means the first of them */ lastMedia?: MediaItem[]; userId: string; question: string; recent: { role: "user" | "agent"; text: string }[]; language: string; timeZone: string; now?: Date }
 export interface ToolOutcome { message: string; ok: boolean; reason?: string; tool: ToolName;
   /** music: the results Rolly talks about, shown as cards in the chat */ media?: MediaItem[];
-  /** music to start once Rolly has finished speaking (the voice session pauses listening while it plays) */
-  playback?: Playback }
-
-/** One song/show to be played on the user's Spotify. The voice session decides WHEN (after Rolly's reply). */
-export interface Playback {
-  title: string;
-  /** starts it; false = Spotify refused */
-  start(): Promise<boolean>;
-  /** false = it ended, was stopped, or Spotify moved on to something else */
-  stillPlaying(): Promise<boolean | "error">;
-  /** the user tapped to talk: pause the music */
-  stop(): Promise<void>;
-}
+  /** play it: open this Spotify link on the phone once Rolly has finished speaking */
+  open?: { url: string } }
 
 /** Where the user's Google refresh token lives (the database, sealed); dropped when Google says access was withdrawn. */
-export interface Connections {
-  googleRefresh(userId: string): Promise<string | null>; dropGoogle(userId: string): Promise<void>;
-  spotifyRefresh?(userId: string): Promise<string | null>; saveSpotifyRefresh?(userId: string, refreshToken: string): Promise<void>; dropSpotify?(userId: string): Promise<void>;
-}
-export interface ToolDeps { llm: UtilityLlm | null; http: Http; connections: Connections; google: google.GoogleConfig | null; spotify: spotify.SpotifyConfig | null;
-  /** the user-account side of Spotify (playback); null = not configured */ spotifyUser?: spotify.SpotifyOAuth | null }
+export interface Connections { googleRefresh(userId: string): Promise<string | null>; dropGoogle(userId: string): Promise<void> }
+export interface ToolDeps { llm: UtilityLlm | null; http: Http; connections: Connections; google: google.GoogleConfig | null; spotify: spotify.SpotifyConfig | null }
 
 export const PLAN_PROMPT = `You route one request from a voice companion's user to the right tool. Reply with JSON only.
 
@@ -133,58 +118,26 @@ async function compose(llm: UtilityLlm | null, a: ToolArgs, tool: Exclude<ToolNa
 }
 
 const PLAY_NOTES = {
-  not_connected: "Their Spotify account is not connected, so you cannot play anything. They can connect it in the app under connected services.",
   nothing: "There is nothing to play yet: ask them in a few words what they want to hear.",
-  no_device: "Spotify is not open on their phone. Ask them to open the Spotify app once and then ask you again.",
-  revoked: "Their Spotify access was withdrawn. They can connect it again in the app.",
 };
 
 /**
- * "Play it": the user's own Spotify, on their phone. Everything that can fail is checked BEFORE Rolly answers (Premium,
- * a device that can play), so Rolly never promises music that will not start. The music itself starts later, once Rolly
- * has finished speaking (voice/session.ts), and the session stops listening while it plays.
+ * "Play it": the song's link is opened in the Spotify app on the user's phone, after Rolly has said so (voice/session.ts).
+ * No Spotify account is connected and no player API is used, so it works for every user and every plan (Spotify limits its
+ * player API to a handful of allowlisted users). What to play: what they named, else what Rolly just showed as a card.
  */
 async function playMusic(d: ToolDeps, a: ToolArgs, plan: ToolPlan): Promise<ToolOutcome> {
-  const user = d.spotifyUser, c = d.connections;
-  if (!user || !c.spotifyRefresh || !c.saveSpotifyRefresh) return note("music", PLAY_NOTES.not_connected, "not_connected");
-  const refresh = await c.spotifyRefresh(a.userId);
-  if (!refresh) return note("music", PLAY_NOTES.not_connected, "not_connected");
-
-  // what to play: what they named, else what Rolly just showed
   let item: MediaItem | undefined;
   if (plan.query) {
     const hit = (await spotify.search(d.http, d.spotify!, plan.query, plan.kind === "any" ? "track" : plan.kind)).find((h) => h.url && spotify.playTarget(h.url));
     if (hit) item = { kind: hit.kind, title: hit.name, subtitle: hit.by, image: hit.image, url: hit.url!, provider: "spotify" };
   } else item = a.lastMedia?.find((m) => spotify.playTarget(m.url));
-  const target = item && spotify.playTarget(item.url);
-  if (!item || !target) return note("music", PLAY_NOTES.nothing, "nothing");
-
-  // an access token for this user (Spotify may rotate the refresh token: keep the new one)
-  let current = refresh, access = "", expires = 0;
-  const token = async () => {
-    if (access && Date.now() < expires) return access;
-    const t = await spotify.userToken(d.http, user, current);
-    if (t.refreshToken && t.refreshToken !== current) { current = t.refreshToken; await c.saveSpotifyRefresh!(a.userId, current); }
-    access = t.accessToken; expires = Date.now() + 50 * 60_000;
-    return access;
-  };
-  let check: spotify.PlayCheck;
-  try { check = await spotify.canPlay(d.http, await token()); }
-  catch (e) {
-    if (e instanceof spotify.SpotifyAuthLost) { await c.dropSpotify?.(a.userId); return note("music", PLAY_NOTES.revoked, "revoked"); }
-    throw e;
-  }
-  if (!check.ok) return note("music", check.reason === "failed" ? FAILED : PLAY_NOTES.no_device, check.reason);
-  const device = check.deviceId;
-  const playback: Playback = {
-    title: item.title,
-    async start() { try { return await spotify.startPlayback(d.http, await token(), device, target); } catch { return false; } },
-    async stillPlaying() { try { return await spotify.stillPlaying(d.http, await token(), target); } catch { return "error"; } },
-    async stop() { try { await spotify.pausePlayback(d.http, await token()); } catch { /* the song ends by itself */ } },
-  };
-  return { tool: "music", ok: true, media: [item], playback, message: `${LOOKUP_TAG} You are going to play "${item.title}"${item.subtitle ? ` (${item.subtitle})` : ""} on their Spotify, on their phone.
-Tell them in a few words what you are putting on, in your own words. The music starts the moment you stop talking and you will not hear them while it plays: they tap the screen to talk again. Do not ask anything.` };
+  if (!item) return note("music", PLAY_NOTES_NOTHING, "nothing");
+  return { tool: "music", ok: true, media: [item], open: { url: item.url },
+    message: `${LOOKUP_TAG} You are going to open "${item.title}"${item.subtitle ? ` (${item.subtitle})` : ""} in Spotify on their phone.
+Tell them in a few words, in your own words, that you are opening it. The screen switches to Spotify the moment you stop talking and you will not hear them until they come back and tap the screen. Do not ask anything.` };
 }
+const PLAY_NOTES_NOTHING = "There is nothing to play yet: ask them in a few words what they want to hear.";
 
 /** One tool call for one question. Never throws: every failure is an outcome the conversation can say. */
 export async function runTool(d: ToolDeps, a: ToolArgs): Promise<ToolOutcome> {

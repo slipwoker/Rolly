@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { RollyAudio } from "../../modules/rolly-audio/src";
 import type { MediaItem } from "@rolly/contracts";
+import { Linking } from "react-native";
 import { WS_URL, voiceTicket } from "../api";
 import { VoiceController, type NativeAudio, type VoiceState } from "./controller";
 
@@ -56,6 +57,7 @@ export function useVoice() {
     const c = new VoiceController({
       audio: native, openSocket: (url) => new WebSocket(url) as never, getTicket: voiceTicket, wsBase: WS_URL, b64,
       onState: (s, d) => { setState(s); setDetail(d); },
+      openUrl: (u) => { Linking.openURL(u).catch(() => {}); },
       onMedia: (items) => { pendingMedia.current = items; },
       onMeasure: (m) => { if (m.kind === "reply_ms") setLastReplyMs(m.value); },
       onCaption: (cap) => setCaptions((prev) => {

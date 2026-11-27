@@ -13,7 +13,7 @@ import { radius, spacing, type, useTheme } from "../src/ui/theme";
 interface Me {
   preferred_name: string | null; preferred_language: "he" | "en" | null;
   addressing: { value: "masculine" | "feminine" | "plural" | null; status: "unknown" | "inferred" | "confirmed"; evidence_count: number };
-  connected_services: { id: string; provider: "google" | "spotify"; status: "connected" | "not_connected" | "search_only" | "not_available"; account: string | null }[];
+  connected_services: { id: string; provider: "google" | "spotify"; status: "connected" | "not_connected" | "not_available"; account: string | null }[];
 }
 interface Memory { id: string; kind: string; content: string; status: "active" | "candidate"; quote: string | null }
 
@@ -30,7 +30,6 @@ export default function Personalisation() {
   // coming back from the browser after the Google consent page
   useEffect(() => { const sub = AppState.addEventListener("change", (st) => { if (st === "active") load(); }); return () => sub.remove(); }, [load]);
   const connectGoogle = () => act(async () => { const r = await api<{ url: string }>("/v1/integrations/google/start", { method: "POST", body: {} }); await Linking.openURL(r.url); });
-  const connectSpotify = () => act(async () => { const r = await api<{ url: string }>("/v1/integrations/spotify/start", { method: "POST", body: {} }); await Linking.openURL(r.url); });
   const google = me?.connected_services.find((x) => x.provider === "google");
   const spotify = me?.connected_services.find((x) => x.provider === "spotify");
 
@@ -132,12 +131,9 @@ export default function Personalisation() {
                 <View style={s.service}>
                   <View style={{ flex: 1 }}>
                     <Txt variant="body">{t.musicService}</Txt>
-                    <Txt variant="caption" tone="dim">{spotify.status === "connected" ? (spotify.account ?? t.connected) : t.musicWhy}</Txt>
+                    <Txt variant="caption" tone="dim">{t.musicWhy}</Txt>
                   </View>
-                  {spotify.status === "connected"
-                    ? <Button icon="x" label={t.disconnect} onPress={() => confirmDanger(t.disconnect, () => act(() => api("/v1/integrations/spotify", { method: "DELETE" })))} />
-                    : spotify.status === "search_only" ? <Button variant="primary" icon="play" label={t.connectPlay} onPress={connectSpotify} />
-                    : <View style={[s.badge, { backgroundColor: c.accentSoft }]}><Txt variant="micro" tone="accent">{t.soon}</Txt></View>}
+                  <View style={[s.badge, { backgroundColor: c.accentSoft }]}><Txt variant="micro" tone="accent">{spotify.status === "connected" ? t.available : t.soon}</Txt></View>
                 </View>
               ) : null}
             </Card>
