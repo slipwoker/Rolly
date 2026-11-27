@@ -1,0 +1,34 @@
+{
+    "id": "6cce41cc-3286-4c90-a82a-060e68fcb70a",
+    "scenario": "relay",
+    "lang": "en",
+    "status": "failed",
+    "started": "2026-11-27T07:27:39.946Z",
+    "results": [],
+    "user_id": "ee191882-f867-46b2-b7a8-8c3d87164fbc",
+    "error": "Error: speech endpoint: HTTP 503",
+    "state": {
+        "profile": {
+            "preferred_name": null,
+            "preferred_language": null,
+            "addressing": {
+                "value": null,
+                "status": "unknown",
+                "evidence": {}
+            }
+        },
+        "memories": [],
+        "progress": [],
+        "goals": [],
+        "tasks_open": [],
+        "ideas": [],
+        "tasks_done": [],
+        "next_agenda": [],
+        "digest": null,
+        "scrub_pending": 0,
+        "sessions": [],
+        "next_opener_instruction": "[journey_start - not said by the user] The first ride together has just started. Open now: a short hello for the morning and one light, specific question (their name, or what this drive is for). Under fifteen words, nothing about yourself.",
+        "next_prompt_chars": 2693,
+        "next_prompt_memory_part": "## First ride together\nYou know nothing about them yet. Get to know them lightly: their name once, then take the first thing they mention and run with it. If they give you little, bring a light, concrete topic yourself.\nYou do not know whether to address them as a man or a woman: phrase things without gendered second person (impersonal or plural forms), and never ask about it. If they tell you, follow it at once.\n\nLocal time: Friday 09:27 (morning).\n"
+    }
+}
