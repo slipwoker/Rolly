@@ -11,7 +11,7 @@ import { api, forgetDevice } from "../src/api";
 import { fill, inputAlign, isRTL, t, useUiLang } from "../src/i18n";
 import { useVoiceSession } from "../src/voice/VoiceProvider";
 import { stateView } from "../src/whatsapp";
-import { Backdrop, Card, CircleButton, IconTile, PressScale, TopBar, Txt, type IconName } from "../src/ui/components";
+import { Backdrop, Button, Card, CircleButton, IconTile, PressScale, Sheet, ToggleRow, TopBar, Txt, type IconName } from "../src/ui/components";
 import { BrandIcon, type Brand } from "../src/ui/BrandIcon";
 import { radius, spacing, type, useTheme } from "../src/ui/theme";
 
@@ -35,10 +35,12 @@ export default function Personalisation() {
   const [wa, setWa] = useState<{ available: boolean; state: string } | null>(null);
   // standing consent, per source: ROLLY may look at it before a ride (off unless the user turns it on)
   const [sig, setSig] = useState<{ calendar: boolean; mail: boolean; whatsapp: boolean }>({ calendar: false, mail: false, whatsapp: false });
-  const setConsent = (source: "calendar" | "mail" | "whatsapp", enabled: boolean) => act(() => api("/v1/signals/consent", { method: "PUT", body: { source, enabled } }));
-  const consentButton = (source: "calendar" | "mail" | "whatsapp") => sig[source]
-    ? <SmallButton label={t.turnOff} onPress={() => setConsent(source, false)} />
-    : <SmallButton label={t.turnOn} primary onPress={() => setConsent(source, true)} />;
+  // the switch moves at once; the server follows (a failure reloads the truth)
+  const setConsent = (source: "calendar" | "mail", enabled: boolean) => {
+    setSig((x) => ({ ...x, [source]: enabled }));
+    api("/v1/signals/consent", { method: "PUT", body: { source, enabled } }).catch(load);
+  };
+  const [googleOpen, setGoogleOpen] = useState(false);
   const load = useCallback(() => {
     api<Me>("/v1/me").then(setMe).catch(() => {});
     api<{ memories: Memory[] }>("/v1/memories").then((r) => setMems(r.memories)).catch(() => {});
@@ -154,28 +156,17 @@ export default function Personalisation() {
                 <View>
                   {[
                     google ? (
-                      <ServiceRow key="g" brand="google" title={t.googleService}
-                        sub={google.status === "connected" ? (google.can_write === false ? t.googleUpdateWhy : (google.account ?? t.connected)) : t.googleWhy}
-                        action={google.status === "connected"
-                          ? (google.can_write === false
-                            ? <SmallButton label={t.updatePerms} primary onPress={connectGoogle} />
-                            : <SmallButton label={t.disconnect} onPress={() => confirmDanger(t.disconnect, () => act(() => api("/v1/integrations/google", { method: "DELETE" })))} />)
-                          : google.status === "not_connected" ? <SmallButton label={t.connect} primary onPress={connectGoogle} />
-                          : <Badge label={t.soon} />} />
-                    ) : null,
-                    google?.status === "connected" ? (
-                      <ServiceRow key="gs" brand="google" title={t.signalsCalendar} sub={t.signalsCalendarWhy} action={consentButton("calendar")} />
-                    ) : null,
-                    google?.status === "connected" ? (
-                      <ServiceRow key="gm" brand="google" title={t.signalsMail} sub={t.signalsMailWhy} action={consentButton("mail")} />
+                      google.status === "connected" ? (
+                        <ServiceRow key="g" brand="google" title={t.googleService} onPress={() => setGoogleOpen(true)}
+                          sub={google.can_write === false ? t.googleUpdateWhy : (google.account ?? t.connected)} warn={google.can_write === false} />
+                      ) : (
+                        <ServiceRow key="g" brand="google" title={t.googleService} sub={t.googleWhy}
+                          action={google.status === "not_connected" ? <SmallButton label={t.connect} primary onPress={connectGoogle} /> : <Badge label={t.soon} />} />
+                      )
                     ) : null,
                     wa?.available ? (
-                      <ServiceRow key="w" brand="whatsapp" title={t.waService}
-                        sub={t[stateView(wa.state).text]} warn={stateView(wa.state).warn}
-                        action={<SmallButton label={t.open} primary={wa.state !== "connected"} onPress={() => router.push("/whatsapp")} />} />
-                    ) : null,
-                    wa?.available && wa.state === "connected" ? (
-                      <ServiceRow key="ws" brand="whatsapp" title={t.signalsWhatsapp} sub={t.signalsWhatsappWhy} action={consentButton("whatsapp")} />
+                      <ServiceRow key="w" brand="whatsapp" title={t.waService} onPress={() => router.push("/whatsapp")}
+                        sub={t[stateView(wa.state).text]} warn={stateView(wa.state).warn} />
                     ) : null,
                     spotify ? (
                       <ServiceRow key="s" brand="spotify" title={t.musicService} sub={t.musicWhy}
@@ -200,6 +191,30 @@ export default function Personalisation() {
           </Animated.View>
         </ScrollView>
       </SafeAreaView>
+
+      {/* Google: the account, what ROLLY may look at before a ride, and disconnect */}
+      <Sheet visible={googleOpen && google?.status === "connected"} onClose={() => setGoogleOpen(false)}>
+        <View style={s.sheetHead}>
+          <BrandIcon brand="google" size={44} />
+          <View style={{ flex: 1 }}>
+            <Txt variant="title">{t.googleService}</Txt>
+            {google?.account ? <Txt variant="caption" tone="dim">{google.account}</Txt> : null}
+          </View>
+        </View>
+        {google?.can_write === false ? (
+          <View style={{ gap: spacing.sm }}>
+            <Txt variant="caption" tone="danger">{t.googleUpdateWhy}</Txt>
+            <Button variant="primary" icon="refresh-cw" label={t.updatePerms} onPress={() => { setGoogleOpen(false); connectGoogle(); }} />
+          </View>
+        ) : null}
+        <View>
+          <ToggleRow title={t.signalsCalendar} sub={t.signalsCalendarWhy} value={sig.calendar} onChange={(v) => setConsent("calendar", v)} />
+          <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderColor: c.border }} />
+          <ToggleRow title={t.signalsMail} sub={t.signalsMailWhy} value={sig.mail} onChange={(v) => setConsent("mail", v)} />
+        </View>
+        <Button variant="danger" icon="link-2" label={t.disconnect}
+          onPress={() => confirmDanger(t.disconnect, () => { setGoogleOpen(false); void act(() => api("/v1/integrations/google", { method: "DELETE" })); })} />
+      </Sheet>
     </View>
   );
 }
@@ -248,18 +263,21 @@ function Segmented<V extends string>({ value, options, onChange }: { value: V | 
   );
 }
 
-/** One connected service: its logo, name, one or two lines of status, and a single compact action at the end. */
-function ServiceRow({ brand, title, sub, action, warn }: { brand: Brand; title: string; sub: string; action: ReactNode; warn?: boolean }) {
-  return (
+/** One connected service: its logo, name and status. It either opens the service's details (chevron) or carries a
+ *  single compact action (connect / coming soon) at the end. */
+function ServiceRow({ brand, title, sub, action, warn, onPress }: { brand: Brand; title: string; sub: string; action?: ReactNode; warn?: boolean; onPress?: () => void }) {
+  const c = useTheme();
+  const body = (
     <View style={s.serviceRow}>
       <BrandIcon brand={brand} />
       <View style={{ flex: 1, gap: 2 }}>
         <Txt variant="bodyStrong" numberOfLines={2}>{title}</Txt>
         <Txt variant="caption" tone={warn ? "danger" : "dim"} numberOfLines={2}>{sub}</Txt>
       </View>
-      {action}
+      {onPress ? <Feather name="chevron-right" size={18} color={c.faint} style={isRTL ? { transform: [{ scaleX: -1 }] } : undefined} /> : action}
     </View>
   );
+  return onPress ? <PressScale accessibilityRole="button" onPress={onPress} scaleTo={0.98}>{body}</PressScale> : body;
 }
 
 function SmallButton({ label, onPress, primary }: { label: string; onPress: () => void; primary?: boolean }) {
@@ -302,6 +320,7 @@ const s = StyleSheet.create({
   iconAction: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   input: { flex: 1, borderRadius: radius.md, padding: spacing.md, minHeight: 64 },
   more: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.xs, height: 40, borderRadius: radius.full },
+  sheetHead: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   serviceRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: spacing.md, minHeight: 68 },
   small: { minWidth: 64, height: 34, paddingHorizontal: spacing.md, borderRadius: radius.full, alignItems: "center", justifyContent: "center" },
   actionRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: spacing.md },
