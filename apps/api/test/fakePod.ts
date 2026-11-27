@@ -13,6 +13,8 @@ export interface FakePod {
   starts: Record<string, unknown>[]; // ctx of every session start
   notes: { text: string; turns: number; max_user_words?: number; min_streak?: number }[]; // notes received on the note channel
   texts: string[]; // typed / injected text messages received ({"type":"text"})
+  /** bytes of microphone audio received so far */
+  audioBytes: number;
   close(): Promise<void>;
 }
 
@@ -39,6 +41,7 @@ export async function startFakePod(opts: { script: string[]; token?: string; rep
   const server: Server = createServer((_req, res) => { res.writeHead(404); res.end(); });
   const wss = new WebSocketServer({ noServer: true });
   let line = 0;
+  let audioBytes = 0;
   server.on("upgrade", (req, socket, head) => {
     if (opts.token && req.headers.authorization !== `Bearer ${opts.token}`) { socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n"); socket.destroy(); return; }
     wss.handleUpgrade(req, socket, head, (ws) => session(ws));
@@ -91,6 +94,7 @@ export async function startFakePod(opts: { script: string[]; token?: string; rep
           return;
         }
         const pcm = m as Buffer;
+        audioBytes += pcm.length;
         const ms = (pcm.length / 2 / 16000) * 1000;
         streamMs += ms;
         const db = rmsDb(pcm);
@@ -119,7 +123,7 @@ export async function startFakePod(opts: { script: string[]; token?: string; rep
   await new Promise<void>((r) => server.listen(0, "127.0.0.1", () => r()));
   const port = (server.address() as { port: number }).port;
   return {
-    url: `http://127.0.0.1:${port}/v1`, starts, notes, texts,
+    url: `http://127.0.0.1:${port}/v1`, starts, notes, texts, get audioBytes() { return audioBytes; },
     close: () => new Promise((r) => { wss.clients.forEach((c) => c.terminate()); server.close(() => r()); }),
   };
 }

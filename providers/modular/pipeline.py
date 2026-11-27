@@ -181,7 +181,8 @@ class ModularProvider(VoiceProvider):
                 pins = await probe.pins(word, 3.0)
         self.tts.set_pronunciations(pins)
         if pins:
-            print(f"[pron] {self.ctx.session_id[:8]}: {pins}", flush=True)
+            # how many names were pinned, never which (the name is personal data; the worker log is not the place for it)
+            print(f"[pron] {self.ctx.session_id[:8]}: {len(pins)} name(s) pinned", flush=True)
             if getattr(self, "_emit", None):  # shows in the session's metrics (stats.pod_metrics_count.name_pinned)
                 await self.emit(base.METRIC, name="name_pinned", value_ms=float(len(pins)))
 

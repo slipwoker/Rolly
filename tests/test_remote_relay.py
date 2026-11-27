@@ -14,7 +14,9 @@ def worker():
     import uvicorn
 
     os.environ.update({"ROLLY_GPU_API_KEY": "relay-test-key", "ROLLY_WORKER_PROVIDER": "mock"})
+    import backend.gpu_worker as gw
     from backend.gpu_worker import app, state
+    gw.TOKEN = "relay-test-key"  # the key is read at import; another test module may have imported the worker first
 
     port = free_port()
     srv = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))

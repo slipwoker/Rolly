@@ -12,10 +12,11 @@ function harness() {
   const sent: (ClientMessage | { binary: number })[] = [];
   const enqueued: { seq: number; bytes: number }[] = [];
   const flushed: number[] = [];
+  const audioCalls: string[] = [];
   const cbs: Record<string, (e: never) => void> = {};
   const audio: NativeAudio = {
-    start: async () => ({ route: "speaker", bluetooth_hfp: false }),
-    stop: async () => {},
+    start: async () => { audioCalls.push("start"); return { route: "speaker", bluetooth_hfp: false }; },
+    stop: async () => { audioCalls.push("stop"); },
     enqueue: (seq, data) => enqueued.push({ seq, bytes: b64.decode(data).length }),
     flush: (seq) => { flushed.push(seq); return 1; },
     onMicFrame: (cb) => { cbs.mic = cb as never; return () => {}; },
@@ -33,15 +34,69 @@ function harness() {
     queueMicrotask(() => s.onopen?.());
     return s;
   };
-  const ctl = new VoiceController({ audio, openSocket, getTicket: async () => "tkt", wsBase: "ws://x", b64, now: () => now, maxReconnects: 1 });
+  const media: unknown[] = [];
+  const opened: string[] = [];
+  const ctl = new VoiceController({ audio, openSocket, getTicket: async () => "tkt", wsBase: "ws://x", b64, now: () => now, maxReconnects: 1, onMedia: (i) => media.push(i), openUrl: (u) => opened.push(u) });
   const server = (m: unknown) => sockets.at(-1)!.onmessage!({ data: JSON.stringify(m) });
   const serverAudio = (seq: number, n: number) => { const f = packClientAudio(seq, new Uint8Array(n)); sockets.at(-1)!.onmessage!({ data: f.buffer as ArrayBuffer }); };
   const mic = (t: number) => (cbs.mic as unknown as (f: { data: string; t: number }) => void)({ data: b64.encode(new Uint8Array(640)), t });
   const play = (e: object) => (cbs.play as unknown as (e: object) => void)(e);
-  return { ctl, sent, enqueued, flushed, sockets, server, serverAudio, mic, play, cbs, setNow: (n: number) => { now = n; } };
+  return { ctl, media, opened, audioCalls, sent, enqueued, flushed, sockets, server, serverAudio, mic, play, cbs, setNow: (n: number) => { now = n; } };
 }
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
+
+describe("music: Spotify is opened on the phone", () => {
+  const up = async () => {
+    const h = harness();
+    await h.ctl.start({ language: "he" });
+    await tick();
+    h.server({ type: "session.created", session_id: "s1", input_sample_rate: 16000, output_sample_rate: 24000, language: "he", proactive: true, onboarding: false });
+    return h;
+  };
+  it("releases the microphone, then opens the link; no audio is sent until the user taps to talk again", async () => {
+    const h = await up();
+    h.audioCalls.length = 0;
+    h.server({ type: "open.url", url: "https://open.spotify.com/track/1" });
+    expect(h.ctl.state).toBe("music");
+    await tick();
+    expect(h.audioCalls).toEqual(["stop"]);
+    expect(h.opened).toEqual(["https://open.spotify.com/track/1"]); // after the audio session was released
+    h.mic(20_000);
+    expect(h.sent.filter((m) => "binary" in m)).toHaveLength(0);
+    await h.ctl.resumeFromMusic();
+    expect(h.ctl.state).toBe("listening");
+    expect(h.audioCalls).toEqual(["stop", "start"]);
+    expect(h.sent.some((m) => "type" in m && m.type === "client.resume")).toBe(true);
+  });
+  it("opens only Spotify links, whatever the server sends", async () => {
+    const h = await up();
+    h.server({ type: "open.url", url: "https://evil.example/x" });
+    h.server({ type: "open.url", url: "http://open.spotify.com/track/1" });
+    await tick();
+    expect(h.opened).toEqual([]);
+    expect(h.ctl.state).toBe("listening");
+  });
+  it("a tap when nothing was opened does nothing", async () => {
+    const h = await up();
+    await h.ctl.resumeFromMusic();
+    expect(h.sent.some((m) => "type" in m && m.type === "client.resume")).toBe(false);
+  });
+});
+
+describe("media cards", () => {
+  it("passes the items of agent.media on, and ignores an empty or malformed list", async () => {
+    const h = harness();
+    await h.ctl.start({ language: "he" });
+    await tick();
+    h.server({ type: "session.created", session_id: "s1", input_sample_rate: 16000, output_sample_rate: 24000, language: "he", proactive: true, onboarding: false });
+    const items = [{ kind: "track", title: "Bohemian Rhapsody", subtitle: "Queen", image: null, url: "https://open.spotify.com/track/1", provider: "spotify" }];
+    h.server({ type: "agent.media", items });
+    h.server({ type: "agent.media", items: [] });
+    h.server({ type: "agent.media" });
+    expect(h.media).toEqual([items]);
+  });
+});
 
 describe("VoiceController", () => {
   it("starts a session, streams the mic only after session.created, plays audio and measures reply time on the phone", async () => {

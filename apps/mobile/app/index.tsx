@@ -3,6 +3,7 @@
  * Idle: a short greeting under the avatar. Live: the line being said right now; the notes button flips to a chat-style
  * transcript. The session lives in VoiceProvider, so it keeps running while Progress/Personalisation are open.
  */
+import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect } from "expo-router";
@@ -13,11 +14,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../src/api";
 import { fill, t } from "../src/i18n";
 import { Backdrop, Chip, CircleButton, IconTile, PressScale, Row, Sheet, TopBar, Txt, cardStyle } from "../src/ui/components";
+import { MediaCard } from "../src/ui/MediaCard";
 import { RollyAvatar } from "../src/ui/RollyAvatar";
 import { radius, spacing, useTheme } from "../src/ui/theme";
 import { MicButton, Waveform } from "../src/ui/VoiceParts";
 import type { VoiceState } from "../src/voice/controller";
 import { useVoiceSession, type ConvLang } from "../src/voice/VoiceProvider";
+import { isNight } from "../src/ui/daypart";
 
 const LIVE: VoiceState[] = ["listening", "user_speaking", "agent_speaking"];
 const LANG_SHORT: Record<ConvLang, string> = { he: "עב", en: "EN", auto: "A" };
@@ -26,7 +29,8 @@ const TRIP_MINUTES = [10, 20, 40] as const;
 
 function greeting(name: string | null): string {
   const h = new Date().getHours();
-  const base = h >= 5 && h < 12 ? t.morning : h >= 12 && h < 17 ? t.afternoon : t.evening;
+  // "good evening" once the sun is down (16:37 in a Tel Aviv November), not only from 17:00
+  const base = h >= 5 && h < 12 ? t.morning : h >= 12 && h < 17 && !isNight() ? t.afternoon : t.evening;
   return name ? `${base}, ${name}` : base;
 }
 
@@ -52,14 +56,16 @@ export default function Home() {
   }, []));
 
   const label = (t as Record<string, string>)[v.state] ?? v.state;
-  const sub = !v.active ? "" : v.state === "listening" || v.state === "user_speaking" ? t.sayIt : label;
+  const sub = !v.active ? "" : v.state === "listening" || v.state === "user_speaking" ? t.sayIt : v.state === "music" ? t.tapToTalk : label;
   const last = v.captions[v.captions.length - 1];
   const plainBg = c.dark ? c.bg : "#FFFFFF";
   const showChat = chat && v.captions.length > 0;
 
   const toggle = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (v.active) void v.stop(); else void v.start();
+    // while music plays, the big button means "talk": it pauses the music and listens again (the small x ends the conversation)
+    if (v.state === "music") void v.resumeFromMusic();
+    else if (v.active) void v.stop(); else void v.start();
   };
   const go = (path: "/progress" | "/personalisation") => { setMenu(false); router.push(path); };
 
@@ -127,11 +133,23 @@ export default function Home() {
 
         {showChat ? (
           <View style={s.chatBar}>
-            <View style={[cardStyle(c), s.pill]}>
-              <Waveform level={v.state === "user_speaking" ? 1 : v.state === "agent_speaking" ? 0.7 : v.state === "listening" ? 0.25 : 0} color={c.text} height={20} />
-              <Txt variant="caption" tone="dim" numberOfLines={1} style={{ flex: 1 }}>{label}</Txt>
-            </View>
-            <CircleButton icon={v.active ? "square" : "mic"} label={v.active ? t.stop : t.start} size={52} variant="ink" onPress={toggle} />
+            {v.active ? (
+              <View style={[cardStyle(c), s.pill]}>
+                <Waveform level={v.state === "user_speaking" ? 1 : v.state === "agent_speaking" ? 0.7 : v.state === "listening" ? 0.3 : 0.15} color={c.text} height={22} />
+                <Txt variant="caption" tone="dim" numberOfLines={1} style={{ flex: 1 }}>{label}</Txt>
+              </View>
+            ) : (
+              /* no live conversation: say how it ended and how to start a new one (no flat waveform) */
+              <View style={{ flex: 1 }}><PressScale accessibilityRole="button" accessibilityLabel={t.start} onPress={toggle} scaleTo={0.98} style={[cardStyle(c), s.pillBody]}>
+                <Feather name={v.state === "error" ? "alert-circle" : v.state === "ended" ? "check-circle" : "mic"} size={20}
+                  color={v.state === "error" ? c.danger : v.state === "ended" ? c.ok : c.dim} />
+                <View style={{ flex: 1 }}>
+                  <Txt variant="label" numberOfLines={1}>{label}</Txt>
+                  <Txt variant="micro" tone="faint" numberOfLines={1}>{t.startHint}</Txt>
+                </View>
+              </PressScale></View>
+            )}
+            <CircleButton icon={v.active && v.state !== "music" ? "square" : "mic"} label={v.state === "music" ? t.tapToTalk : v.active ? t.stop : t.start} size={52} variant="ink" onPress={toggle} />
           </View>
         ) : (
           <View style={s.controls}>
@@ -143,7 +161,7 @@ export default function Home() {
                 </PressScale>
               ) : null}
             </View>
-            <MicButton icon={v.active ? "square" : "mic"} label={v.active ? t.stop : t.start} live={LIVE.includes(v.state)} onPress={toggle} />
+            <MicButton icon={v.active && v.state !== "music" ? "square" : "mic"} label={v.state === "music" ? t.tapToTalk : v.active ? t.stop : t.start} live={LIVE.includes(v.state)} onPress={toggle} />
             <View style={[s.side, { alignItems: "flex-end" }]}>
               {v.active ? <CircleButton icon="x" label={t.endConv} onPress={() => void v.stop()} /> : null}
             </View>
@@ -183,7 +201,10 @@ function Transcript() {
         m.role === "agent" ? (
           <Animated.View key={i} entering={FadeInUp.duration(260)} style={s.agentRow}>
             <View style={s.avatar}><RollyAvatar size={34} still framed /></View>
-            <View style={[cardStyle(c), s.bubble, s.agentBubble]}><Txt variant="body">{m.text}</Txt></View>
+            <View style={s.agentCol}>
+              <View style={[cardStyle(c), s.bubble, s.agentBubble]}><Txt variant="body">{m.text}</Txt></View>
+              {m.media?.map((it) => <MediaCard key={it.url} item={it} />)}
+            </View>
           </Animated.View>
         ) : (
           <Animated.View key={i} entering={FadeInUp.duration(260)} style={[s.bubble, s.userBubble, { backgroundColor: c.ink }]}>
@@ -214,9 +235,11 @@ const s = StyleSheet.create({
   chat: { padding: spacing.xl, gap: spacing.lg },
   agentRow: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md, maxWidth: "88%" },
   avatar: { marginTop: 2 },
+  agentCol: { flexShrink: 1, gap: spacing.sm },
   bubble: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: radius.lg, borderCurve: "continuous" },
   agentBubble: { flexShrink: 1, borderTopStartRadius: 6 },
   userBubble: { alignSelf: "flex-end", maxWidth: "80%", borderTopEndRadius: 6 },
   chatBar: { flexDirection: "row", alignItems: "center", gap: spacing.md, paddingHorizontal: spacing.xl, paddingTop: spacing.sm, paddingBottom: spacing.sm },
   pill: { flex: 1, height: 52, borderRadius: radius.full, flexDirection: "row", alignItems: "center", gap: spacing.md, paddingHorizontal: spacing.xl },
+  pillBody: { height: 52, borderRadius: radius.full, flexDirection: "row", alignItems: "center", gap: spacing.md, paddingHorizontal: spacing.xl },
 });
