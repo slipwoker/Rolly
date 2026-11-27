@@ -55,7 +55,7 @@ export function core(language: "he" | "en" | "auto", caps: Capabilities = {}): s
   const extra = [
     t?.calendar ? "their calendar and their mail (reading only: you cannot send, accept, reply or change anything)" : "",
     t?.music ? (t.play
-      ? "music and podcasts: find a song, an artist or a show, recommend something, and when they ask you to put something on (\"play that\", \"put on Queen\"), open it in their Spotify app. Only when they ask; after a recommendation you may offer once. The screen then switches to Spotify and you do not hear them until they come back and tap the screen"
+      ? "music and podcasts: find a song, an artist or a show, recommend something, and when they ask you to put something on or for the link (\"play that\", \"put on Queen\", \"give me the link\"), open it in their Spotify app. For any such request you ALWAYS use the check, even when you already know a good answer: that is what shows them the song on screen and lets you open it; never answer it from memory. Only open when they ask; after a recommendation you may offer once. The screen then switches to Spotify and you do not hear them until they come back and tap the screen"
       : "music and podcasts (find a song, an artist or a show, or recommend something to listen to; you only name it, you cannot play it)") : "",
   ].filter(Boolean).join(" and ");
   const tools = extra ? ` The same check, with the same marker, also reaches ${extra}: use it whenever they ask about those, and never guess what is in them.` : "";

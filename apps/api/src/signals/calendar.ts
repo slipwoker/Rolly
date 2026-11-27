@@ -1,6 +1,6 @@
 /**
  * What the calendar says about the next two weeks, read in the background before the plan for the next ride is made
- * (P1-D41). Only with the user's standing consent for this source (signal_consent), only titles, times and places (never
+ * (P1-D42). Only with the user's standing consent for this source (signal_consent), only titles, times and places (never
  * descriptions or attendees), and never stored: the lines go into one model call and what is kept is the plan item, which
  * names its source and expires on the day of the event.
  */

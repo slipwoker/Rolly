@@ -1,4 +1,4 @@
-/** Standing consent for a source and what leaves with it (P1-D41), against a real PostgreSQL (TEST_DATABASE_URL). */
+/** Standing consent for a source and what leaves with it (P1-D42), against a real PostgreSQL (TEST_DATABASE_URL). */
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createPool, migrate, type Db } from "../src/db/index.ts";

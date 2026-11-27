@@ -1,5 +1,5 @@
 /**
- * Mail that bears on what is coming up, read in the background before a ride (P1-D42), only with the standing consent for
+ * Mail that bears on what is coming up, read in the background before a ride (P1-D43), only with the standing consent for
  * mail and a Google connection. Gmail's own headers and snippet only, never bodies; at most eight messages. What to look for
  * comes from the next calendar events (their distinctive words); without calendar lines, the last three days of real mail
  * (no promotions or social). Every line goes through `sanitize` and is cut. Nothing is stored.

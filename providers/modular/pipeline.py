@@ -29,6 +29,7 @@ from .llm import LLMResult, OpenAICompatLLM
 from .stt import discard_reason, get_stt
 from .text import FOREIGN_LANGS, LOOKUP_MARKER, MarkerFilter, SentenceChunker, TurnNotes, clean_for_speech, echo_like, has_stop_word, question_guard_note, user_wants_to_end
 from .pronounce import get_probe, usable_name
+from .turnend import judge as judge_turn_end, mode_from as turn_end_mode, override_for as turn_end_override
 from .tts import TTSRouter
 from .vad import Endpointer, SileroVAD, VadConfig
 
@@ -86,6 +87,9 @@ class ModularProvider(VoiceProvider):
         # user/agent exchanges kept verbatim before the older half is compacted into a synopsis
         self.max_history_turns = int(config.get("max_history_turns") or 24)
         # after a reply that ended with a question, tell the model (for that turn only) to answer with a statement
+        # smart end of turn (turnend.py): "off", "shadow" (verdicts measured, nothing changes) or "on"
+        self.turn_end_mode = turn_end_mode(config.get("turn_end"))
+        self._verdict_open: dict | None = None
         self.question_guard = str(config.get("question_guard", "true")).lower() not in ("0", "false", "no", "off")
         # notes from the caller for the next turns (pacing, memory hints): shown to the model, never stored in history
         self.notes = TurnNotes()
@@ -125,6 +129,8 @@ class ModularProvider(VoiceProvider):
                   "bargein_floor_db"):
             if k in opts:
                 setattr(self.vad_cfg, k, float(opts[k]))
+        if "turn_end" in opts:
+            self.turn_end_mode = turn_end_mode(opts["turn_end"])
         # Sampling for this conversation, chosen by the caller (it measures them against bot-like phrasing): a short
         # whitelist with bounded values, applied to this session's requests only.
         llm_opts = opts.get("llm") if isinstance(opts.get("llm"), dict) else {}
@@ -144,6 +150,20 @@ class ModularProvider(VoiceProvider):
             gate = _Gate(self, committed=True)
             self._gate = gate
             self._turn = asyncio.create_task(self._run_turn(gate, text=self.ctx.opener_instruction, proactive=True))
+
+    async def _turn_end_verdict(self, text: str, utt: dict) -> None:
+        """Has the user finished?  Read from the speculative transcript, while the utterance waits in its pause (turnend.py)."""
+        verdict = judge_turn_end(text, utt.get("speech_ms"))
+        override = turn_end_override(verdict, self.turn_end_mode)
+        applied = override is not None and self.endpointer.set_endpoint_override(override)
+        self._verdict_open = {"verdict": verdict, "applied": bool(applied)}
+        await self.emit(base.METRIC, name=f"turn_end_{verdict}" + ("_applied" if applied else ""), value_ms=float(self.endpointer.silence_ms))
+
+    async def _turn_end_outcome(self, kind: str) -> None:
+        """What followed the verdict: the user spoke again ("resumed": a pause was not an end) or the turn ended ("ended")."""
+        v, self._verdict_open = self._verdict_open, None
+        if v:
+            await self.emit(base.METRIC, name=f"turn_end_{kind}_{v['verdict']}", value_ms=1.0)
 
     async def _load_pronunciations(self) -> None:
         """How the Hebrew voice says the user's name in this conversation (pronounce.py).  The user's own correction, kept by
@@ -209,6 +229,7 @@ class ModularProvider(VoiceProvider):
         self.endpointer.gate_db = self._bargein_gate() if guarded else None
         for ev in self.endpointer.feed(pcm16, agent_audible=guarded):
             if ev.kind == "start":
+                self._verdict_open = None
                 await self.emit(base.USER_SPEECH_STARTED, audio_ms=ev.audio_ms)
                 if self._agent_audible():
                     st = self._turn_state or {}
@@ -228,9 +249,11 @@ class ModularProvider(VoiceProvider):
                 self._gate = gate
                 self._turn = asyncio.create_task(self._run_turn(gate, audio=ev.audio, speculative=True, utt={**self._utt, **(ev.info or {})}))
             elif ev.kind == "resume":
+                await self._turn_end_outcome("resumed")
                 if self._gate is not None and not self._gate.committed:
                     await self._cancel_turn(emit_interrupt=False)
             elif ev.kind == "end":
+                await self._turn_end_outcome("ended")
                 await self.emit(base.USER_SPEECH_STOPPED, audio_end_ms=ev.audio_ms)
                 if self._gate is not None and not self._gate.committed and self._turn and not self._turn.done():
                     await self._gate.commit()
@@ -495,6 +518,8 @@ class ModularProvider(VoiceProvider):
                                 max_prob=utt.get("max_prob"), mean_prob=utt.get("mean_prob"), speech_ms=utt.get("speech_ms"),
                                 ref_level_db=round(self._ref_level, 1) if self._ref_level is not None else None,
                                 discarded=why, rejected_text=rejected)
+                if text and speculative and self.turn_end_mode != "off":
+                    await self._turn_end_verdict(text, utt)
                 if not text:
                     resume = self._resume
                     if resume and utt.get("barge_in") and time.monotonic() - resume["t"] < 20:

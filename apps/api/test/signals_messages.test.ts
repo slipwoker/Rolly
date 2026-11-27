@@ -8,7 +8,7 @@ import { PlanFeeder } from "../src/voice/planFeeder.ts";
 const now = new Date("2026-11-27T08:00:00Z");
 const ts = (hoursAgo: number) => Math.floor(now.getTime() / 1000 - hoursAgo * 3600);
 
-describe("what is derived from mail and WhatsApp (P1-D42)", () => {
+describe("what is derived from mail and WhatsApp (P1-D43)", () => {
   it("the source label is set by code, whatever the model wrote; the expiry stays within a month", () => {
     const a = normalizeDerived({ item: { topic: "הכנה לפגישה", take: "מה חסר?", why: "w", source: "calendar", expires_at: "2026-12-04" } }, "whatsapp", now)!;
     expect(a).toMatchObject({ kind: "direction", source: "whatsapp", expires_at: "2026-12-04", ref_id: null });

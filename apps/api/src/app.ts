@@ -311,7 +311,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
         { id: "music", provider: "spotify", status: config.spotify ? "connected" : "not_available", account: null },
       ];
     };
-    // standing consent to look at a connected source before a ride (P1-D41); off unless the user turns it on; turning it off removes what came from it
+    // standing consent to look at a connected source before a ride (P1-D42); off unless the user turns it on; turning it off removes what came from it
     app.get("/v1/signals/consent", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
       return signalSettings(db, id);

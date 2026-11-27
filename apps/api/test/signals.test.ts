@@ -6,7 +6,7 @@ import { readCalendar } from "../src/signals/calendar.ts";
 const now = new Date("2026-11-27T08:00:00Z");
 const stored = (items: any[]) => ({ created_at: now.toISOString(), session_id: null, items });
 
-describe("calendar signals (P1-D41)", () => {
+describe("calendar signals (P1-D42)", () => {
   it("keeps source and a valid expiry on a plan item, and drops a malformed date", () => {
     const [a, b] = normalizeAgendaItems([{ topic: "הפגישה", kind: "direction", source: "calendar", expires_at: "2026-12-04T10:00:00Z" }, { topic: "x", kind: "fresh", source: "sms", expires_at: "tomorrow" }]);
     expect(a).toMatchObject({ source: "calendar", expires_at: "2026-12-04" });
