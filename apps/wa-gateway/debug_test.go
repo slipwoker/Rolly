@@ -24,7 +24,7 @@ func TestDebugLookupShowsTheShapeOfAStoredName(t *testing.T) {
 	g := &Ingester{msgs: m.msgs, retention: time.Hour, now: time.Now}
 	_ = g.Message(ctx, "u", fakeDir{}, textEvt(pn, pn, "m1", "hi", false, time.Now()), "")
 
-	byName, err := m.DebugLookup(ctx, "u", "אלכס דומסקי", "")
+	byName, err := m.DebugLookup(ctx, "u", "אלכס דומסקי", "", false)
 	if err != nil || len(byName.Chats) != 1 {
 		t.Fatalf("by name: %+v %v", byName, err)
 	}
@@ -39,7 +39,7 @@ func TestDebugLookupShowsTheShapeOfAStoredName(t *testing.T) {
 		t.Fatalf("counts: %+v", byName)
 	}
 
-	byPhone, err := m.DebugLookup(ctx, "u", "", "+972 50-643-0688")
+	byPhone, err := m.DebugLookup(ctx, "u", "", "+972 50-643-0688", false)
 	if err != nil || len(byPhone.Chats) != 1 || byPhone.Chats[0].AddressKind != "phone" {
 		t.Fatalf("by phone: %+v %v", byPhone, err)
 	}
@@ -49,10 +49,10 @@ func TestDebugLookupShowsTheShapeOfAStoredName(t *testing.T) {
 			t.Fatalf("the answer must carry no number, address or message text: %s", b)
 		}
 	}
-	if none, _ := m.DebugLookup(ctx, "u", "", "972999999999"); len(none.Chats) != 0 {
+	if none, _ := m.DebugLookup(ctx, "u", "", "972999999999", false); len(none.Chats) != 0 {
 		t.Fatalf("an unknown number finds nothing: %+v", none)
 	}
-	if other, _ := m.DebugLookup(ctx, "someone-else", "alex", "972506430688"); len(other.Chats) != 0 {
+	if other, _ := m.DebugLookup(ctx, "someone-else", "alex", "972506430688", false); len(other.Chats) != 0 {
 		t.Fatalf("another user's chats must not be visible: %+v", other)
 	}
 }
@@ -64,5 +64,40 @@ func TestDebugRouteNeedsTheToken(t *testing.T) {
 	}
 	if c := do(srv, "GET", "/v1/users/u/debug/lookup?q=alex", testToken, "").Code; c != 200 {
 		t.Fatalf("with token: %d", c)
+	}
+}
+
+func TestDebugLookupListsTheNewestUnnamedChats(t *testing.T) {
+	m := testManager(t, 5)
+	ctx := context.Background()
+	for i := 0; i < 12; i++ { // twelve unnamed 1:1 chats, one named chat and one unnamed group
+		jid := types.NewJID("11122233"+string(rune('0'+i%10))+string(rune('a'+i)), types.HiddenUserServer)
+		if _, err := m.msgs.UpsertChat(ctx, "u", jid.String(), "", false, int64(1000+i)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_, _ = m.msgs.UpsertChat(ctx, "u", types.NewJID("999", types.HiddenUserServer).String(), "Named", false, 5000)
+	_, _ = m.msgs.UpsertChat(ctx, "u", grp.String(), "", true, 6000)
+	res, err := m.DebugLookup(ctx, "u", "", "", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Chats) != 10 {
+		t.Fatalf("at most ten, got %d", len(res.Chats))
+	}
+	for i, c := range res.Chats {
+		if c.Name != "" || c.IsGroup {
+			t.Fatalf("only unnamed one-to-one chats: %+v", c)
+		}
+		if i > 0 && c.LastTS > res.Chats[i-1].LastTS {
+			t.Fatal("newest first")
+		}
+	}
+	if res.Chats[0].LastTS != 1011 || res.UnnamedChats != 12+0 {
+		t.Fatalf("newest first and counted without the group: first=%d unnamed=%d", res.Chats[0].LastTS, res.UnnamedChats)
+	}
+	b, _ := json.Marshal(res)
+	if strings.Contains(string(b), "@") || strings.Contains(string(b), "1112223") {
+		t.Fatalf("no address in the answer: %s", b)
 	}
 }

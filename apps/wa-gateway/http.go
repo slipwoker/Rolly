@@ -329,7 +329,7 @@ func (s *Server) debugLookup(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	res, err := s.m.DebugLookup(r.Context(), id, r.URL.Query().Get("q"), r.URL.Query().Get("phone"))
+	res, err := s.m.DebugLookup(r.Context(), id, r.URL.Query().Get("q"), r.URL.Query().Get("phone"), r.URL.Query().Get("unnamed") == "1")
 	if err != nil {
 		writeJSON(w, 500, map[string]string{"error": "internal error"})
 		return

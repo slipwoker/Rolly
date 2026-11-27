@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/hex"
+	"sort"
 	"strings"
 
 	"go.mau.fi/whatsmeow/types"
@@ -20,6 +21,9 @@ type DebugChat struct {
 	AddressKind string `json:"address_kind"` // lid | phone | group | other
 	LastTS      int64  `json:"last_ts"`
 	Messages    int    `json:"messages"`
+	// what WhatsApp knows about this chat's contact (needs the live connection); nil = nothing found or not connected
+	Contact    *DebugContact `json:"contact,omitempty"`
+	PhoneKnown bool          `json:"phone_known"` // for a LID chat: WhatsApp has told us which phone number it is
 }
 
 type DebugContact struct {
@@ -67,7 +71,7 @@ func (m *Manager) debugJIDs(ctx context.Context, userID, phone string) (pn types
 
 // DebugLookup finds chats by name (the same matching as the search) and/or by phone number, and says what WhatsApp knows
 // about the number. At most 10 chats.
-func (m *Manager) DebugLookup(ctx context.Context, userID, q, phone string) (*DebugResult, error) {
+func (m *Manager) DebugLookup(ctx context.Context, userID, q, phone string, listUnnamed bool) (*DebugResult, error) {
 	res := &DebugResult{Chats: []DebugChat{}}
 	m.mu.Lock()
 	l := m.live[userID]
@@ -111,6 +115,15 @@ func (m *Manager) DebugLookup(ctx context.Context, userID, q, phone string) (*De
 			}
 		}
 	}
+	if listUnnamed { // the most recent 1:1 chats that have no name stored
+		refs, err := m.msgs.unnamedRefs(ctx, userID, 10)
+		if err != nil {
+			return nil, err
+		}
+		for _, r := range refs {
+			want[r] = true
+		}
+	}
 	for ref := range want {
 		if len(res.Chats) >= 10 {
 			break
@@ -119,11 +132,63 @@ func (m *Manager) DebugLookup(ctx context.Context, userID, q, phone string) (*De
 		if err != nil {
 			return nil, err
 		}
-		if ok {
-			res.Chats = append(res.Chats, c)
+		if !ok {
+			continue
+		}
+		if jidStr, err := m.msgs.ChatJID(ctx, userID, ref); err == nil && l != nil {
+			c.Contact, c.PhoneKnown = m.debugContactFor(ctx, l, jidStr)
+		}
+		res.Chats = append(res.Chats, c)
+	}
+	sort.Slice(res.Chats, func(i, j int) bool { return res.Chats[i].LastTS > res.Chats[j].LastTS })
+	return res, nil
+}
+
+// debugContactFor asks WhatsApp's own contact store about the number behind a chat, through both of its addresses.
+func (m *Manager) debugContactFor(ctx context.Context, l *live, jidStr string) (*DebugContact, bool) {
+	if l.client.Store == nil || l.client.Store.Contacts == nil {
+		return nil, false
+	}
+	jid, err := types.ParseJID(jidStr)
+	if err != nil {
+		return nil, false
+	}
+	cands := []types.JID{jid}
+	phoneKnown := jid.Server == types.DefaultUserServer
+	if l.client.Store.LIDs != nil {
+		if jid.Server == types.HiddenUserServer {
+			if pn, err := l.client.Store.LIDs.GetPNForLID(ctx, jid); err == nil && !pn.IsEmpty() {
+				cands, phoneKnown = append(cands, pn), true
+			}
+		} else if jid.Server == types.DefaultUserServer {
+			if lid, err := l.client.Store.LIDs.GetLIDForPN(ctx, jid); err == nil && !lid.IsEmpty() {
+				cands = append(cands, lid)
+			}
 		}
 	}
-	return res, nil
+	for _, c := range cands {
+		if ci, err := l.client.Store.Contacts.GetContact(ctx, c); err == nil && ci.Found {
+			return &DebugContact{Address: addressKind(c.String()), Found: true, FullName: ci.FullName, FirstName: ci.FirstName, PushName: ci.PushName, BusinessName: ci.BusinessName}, phoneKnown
+		}
+	}
+	return nil, phoneKnown
+}
+
+func (s *MessageStore) unnamedRefs(ctx context.Context, userID string, limit int) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, s.q(`SELECT ref FROM wa_chats WHERE user_id = ? AND name = '' AND is_group = 0 ORDER BY last_ts DESC LIMIT ?`), userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var r string
+		if err := rows.Scan(&r); err != nil {
+			return nil, err
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
 }
 
 func (s *MessageStore) chatCounts(ctx context.Context, userID string) (total, unnamed int, err error) {

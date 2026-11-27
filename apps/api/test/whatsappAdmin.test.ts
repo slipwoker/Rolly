@@ -31,6 +31,13 @@ describe("the temporary owner-only lookup", () => {
     expect(r.json()).toEqual({ chats: [{ name: "Alex Dumsky", name_hex: "416c6578" }] });
     expect(seen).toEqual([["u1", { q: "אלכס", phone: "+972 50-643-0688" }]]);
   });
+  it("can list the unnamed chats", async () => {
+    const seen: unknown[] = [];
+    await build({ debugLookup: async (u, o) => { seen.push([u, o]); return { chats: [] }; } });
+    expect((await post({ user_id: "u1", unnamed: true })).statusCode).toBe(200);
+    expect(seen).toEqual([["u1", { q: undefined, phone: undefined, unnamed: true }]]);
+    expect((await post({ user_id: "u1", unnamed: false })).statusCode).toBe(400);
+  });
   it("needs a user and a name or a number, and refuses odd input", async () => {
     await build({ debugLookup: async () => ({}) });
     for (const bad of [{}, { user_id: "u1" }, { q: "alex" }, { user_id: "u/../x", q: "a" }, { user_id: "u1", phone: "abc" }, { user_id: "u1", q: "x".repeat(200) }]) {
