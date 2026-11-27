@@ -31,7 +31,26 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 # Without the probe (ROLLY_NAME_PROBE=0 for blue_serve.py) everything is as before.
 # job 20 (2026-11-27): smart end of turn in mode shadow (P1-D40): verdicts on what the user said so far are only measured
 # (pod metrics turn_end_*), nothing changes. Only the worker restarts. ROLLY_TURN_END=on applies them.
+# job 21 (2026-11-27): CUDA diagnosis at the start of the job (see below), then the usual restart of the voice server and the worker.
 # Back to the old voices: ROLLY_BLUE_VOICE=daniel ROLLY_BLUE_SPEED=1.2 ROLLY_TTS_EN_ENGINE=sherpa.
+# job 21 (2026-11-27): the worker and the voice server found no usable CUDA ("CUDA failure 999: unknown error", cudaSetDevice) while
+# vLLM still holds the GPU: diagnose (output in job.log, published on :8001) and try the usual fix (the unified-memory device node).
+echo "--- cuda diag $(date -u +%FT%TZ)"
+nvidia-smi --query-gpu=name,driver_version,memory.used,memory.total,compute_mode,persistence_mode --format=csv 2>&1 | head -3
+ls -l /dev/nvidia* 2>&1 | head -12
+cat /proc/driver/nvidia/version 2>&1 | head -2
+env | grep -E '^(NVIDIA|CUDA)[A-Z_]*=' | sed 's/=.*/=<set>/' | head
+python3 - <<'PYEOF' 2>&1 | head -5
+import ctypes
+try:
+    lib = ctypes.CDLL("libcuda.so.1"); print("cuInit ->", lib.cuInit(0))
+    n = ctypes.c_int(); print("cuDeviceGetCount ->", lib.cuDeviceGetCount(ctypes.byref(n)), n.value)
+except Exception as e:
+    print("libcuda:", e)
+PYEOF
+ps -eo pid,etimes,rss,cmd | grep -E 'vllm|blue_serve|uvicorn' | grep -v grep | cut -c1-160 | head -6
+if [ ! -e /dev/nvidia-uvm ] && command -v nvidia-modprobe >/dev/null 2>&1; then echo "creating /dev/nvidia-uvm"; nvidia-modprobe -u -c=0 2>&1 | head -3; fi
+echo "--- end cuda diag"
 pkill -f "zonos3-server" 2>/dev/null || true
 if bash infrastructure/blue_setup.sh; then
   ROLLY_TTS_HE_ENGINE=blue bash infrastructure/start_worker.sh
