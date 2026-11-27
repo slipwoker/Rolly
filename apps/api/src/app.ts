@@ -11,7 +11,7 @@ import { openAiLlm, type UtilityLlm } from "./memory/llm.ts";
 import { MemoryStore } from "./memory/store.ts";
 import { summarizeSession, type SummaryResult } from "./memory/summarizer.ts";
 import { handleCapture, handleLiveTurn, handleNamePronunciation, type NameReadings } from "./memory/live.ts";
-import { fallbackAgenda, planNext, type AgendaItem } from "./memory/plan.ts";
+import { fallbackAgenda, mergeDerived, planNext, type AgendaItem } from "./memory/plan.ts";
 import { scrubUser } from "./memory/scrub.ts";
 import { consolidate } from "./memory/consolidate.ts";
 import type { ServerDeps } from "./server.ts";
@@ -20,6 +20,11 @@ import { LINES, runConversation, type Step } from "./selftest/scenarios.ts";
 import { NOTE, core } from "./persona/core.ts";
 import { lookupMessage } from "./lookup/web.ts";
 import { runTool, type Connections } from "./integrations/tools.ts";
+import { readCalendar } from "./signals/calendar.ts";
+import { signalEnabled, signalSettings } from "./signals/consent.ts";
+import { readMail } from "./signals/mail.ts";
+import { readWhatsApp } from "./signals/whatsapp.ts";
+import { deriveFromLines } from "./signals/derive.ts";
 import { realHttp } from "./integrations/http.ts";
 import * as googleApi from "./integrations/google.ts";
 import { GoogleActions } from "./integrations/actions.ts";
@@ -131,12 +136,12 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       await store.markUsed(view.usedIds);
       sessionAgenda.set(sessionId, built.agenda);
       await audit.recordPrompt({ sessionId, userId, language: built.language, onboarding: built.onboarding, systemPrompt: built.system_prompt,
-        persona: core(built.language, { lookup, whatsapp, tools: toolCaps }), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })),
+        persona: core(built.language, { lookup, whatsapp, tools: toolCaps }), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind, source: a.source ?? null })),
         memoryIds: view.usedIds, sampling: config.llmSampling });
       const foreign = practiceLanguage(view);
       return {
         onboarding: built.onboarding, pacingScale: pacingScales.get(userId),
-        plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })), confirm: built.confirm,
+        plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind, source: a.source ?? null })), confirm: built.confirm,
         ctx: { session_id: sessionId, user_id: userId, language: built.language, system_prompt: built.system_prompt,
           opener_instruction: built.opener_instruction, proactive, journey: start.journey ?? {}, profile: built.profile,
           options: { llm: config.llmSampling, ...(foreign ? { speech: { foreign_language: foreign } } : {}) } },
@@ -216,12 +221,26 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     const tasks = await store.memories(userId, { kinds: ["action_item"], status: ["active"], limit: 30 });
     const had = sessionAgenda.get(sessionId) ?? [];
     sessionAgenda.delete(sessionId);
+    // the calendar, only with the user's standing consent for it; never allowed to break the look-ahead
+    const cal = await readCalendar({ consent: (u, src) => signalEnabled(db, u, src),
+      connections, google: googleCfg, http: realHttp }, userId, new Date(), config.timezone).catch(() => null);
     const plan = await planNext(llm, turns, {
+      calendar: cal?.lines,
       summary: summary.summary, language: summary.language, progress: summary.progress,
       goals: goals.map((g) => ({ id: g.id, content: g.content, state: [g.state_note, g.next_step ? `next: ${g.next_step}` : null].filter(Boolean).join(" ") || null })),
       tasks: tasks.map((t) => ({ id: t.id, content: t.content })), agenda: had,
       addressing: (await store.addressing(userId)).value,
     });
+    // mail and WhatsApp, each only with its own standing consent; one labelled item at most from each, never breaking the look-ahead
+    const consentOf = (u: string, src: "mail" | "whatsapp") => signalEnabled(db, u, src);
+    const lang = { calendar: cal?.lines, language: summary.language, addressing: (await store.addressing(userId)).value };
+    const mailRead = await readMail({ consent: consentOf, connections, google: googleCfg, http: realHttp }, userId, cal?.lines ?? []).catch(() => null);
+    const waRead = await readWhatsApp({ consent: consentOf, gateway }, userId, new Date()).catch(() => null);
+    const derived = (await Promise.all([
+      mailRead?.lines.length ? deriveFromLines(llm, "mail", mailRead.lines, lang) : null,
+      waRead?.lines.length ? deriveFromLines(llm, "whatsapp", waRead.lines, lang) : null,
+    ])).filter((x): x is NonNullable<typeof x> => !!x);
+    if (derived.length) plan.next_agenda = mergeDerived(plan.next_agenda, derived);
     // what opened this ride and was not taken up must not open the next one as well
     const openedSkipped = had[0] && plan.agenda_outcome.find((o) => o.index === 0)?.outcome === "skipped" ? had[0].topic : null;
     const res = await store.applyPlan(userId, sessionId, plan, turns, progressIds, openedSkipped);
@@ -230,6 +249,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     const cons = await consolidate(store, llm, userId).catch((e) => ({ digest: false, history: false, skipped: String(e).slice(0, 120) }));
     await store.addSessionStats(sessionId, {
       lookahead_ms: Date.now() - t0,
+      signals: { calendar_events_read: cal?.read ?? null, mail_read: mailRead?.read ?? null, whatsapp_chats_read: waRead?.read ?? null, items: derived.map((d) => d.source) }, // counts and labels, never the content
       plan: { method: plan.method, error: plan.error, ms: plan.ms, applied: res.applied, refused: res.refused, next_agenda: plan.next_agenda.length,
         agenda_outcome: plan.agenda_outcome.map((o) => ({ kind: had[o.index]?.kind ?? null, outcome: o.outcome })) },
       scrub: scrubbed, consolidate: cons,
@@ -304,6 +324,18 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
         { id: "music", provider: "spotify", status: config.spotify ? "connected" : "not_available", account: null },
       ];
     };
+    // standing consent to look at a connected source before a ride (P1-D42); off unless the user turns it on; turning it off removes what came from it
+    app.get("/v1/signals/consent", async (req, reply) => {
+      const id = user(req, reply); if (!id) return;
+      return signalSettings(db, id);
+    });
+    app.put("/v1/signals/consent", async (req, reply) => {
+      const id = user(req, reply); if (!id) return;
+      const b = parse(z.object({ source: z.enum(["calendar", "mail", "whatsapp"]), enabled: z.boolean() }), req.body, reply); if (!b) return;
+      await db.query(`INSERT INTO signal_consent(user_id, source, enabled) VALUES ($1,$2,$3) ON CONFLICT (user_id, source) DO UPDATE SET enabled=$3, updated_at=now()`, [id, b.source, b.enabled]);
+      if (!b.enabled) await store.dropAgendaSource(id, b.source);
+      return { ok: true };
+    });
     app.get("/v1/integrations", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
       return { services: await servicesFor(id) };
@@ -334,6 +366,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       const rt = await connections.googleRefresh(id);
       if (rt) await googleApi.revoke(realHttp, rt);
       await connections.dropGoogle(id);
+      for (const src of ["calendar", "mail"]) await store.dropAgendaSource(id, src); // what came from Google leaves the plan with the connection
       return { disconnected: true };
     });
 
@@ -451,6 +484,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       if (!gateway) return reply.code(404).send({ error: "whatsapp is not available" });
       await gateway.unlink(id).catch(() => {});
       wa?.forget(id);
+      await store.dropAgendaSource(id, "whatsapp"); // what came from the chats leaves the plan with the link
       return { state: "unlinked" };
     });
 

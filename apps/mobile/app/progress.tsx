@@ -88,7 +88,7 @@ export default function ProgressScreen() {
                     <Txt key={p.id} variant="caption" tone="faint">{date(p.created_at)} · {p.text}</Txt>
                   ))}
                 </View>
-              )) : <Txt variant="subhead" tone="dim">{t.nothingYet}</Txt>}
+              )) : <Txt variant="subhead" tone="dim">{t.goalsEmpty}</Txt>}
             </Section>
           </Animated.View>
 
