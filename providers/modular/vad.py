@@ -113,6 +113,9 @@ class Endpointer:
         self._pending_start: list[np.ndarray] = []
         self.last_prob = 0.0
         self.strict = False  # set by the pipeline after a false interruption
+        # Silence (ms) that ends THIS utterance instead of cfg.endpoint_silence_ms: set by the pipeline once it has read what the
+        # user said so far (turnend.py): longer when the sentence is clearly unfinished, immediate when it is clearly done.
+        self.endpoint_override_ms: Optional[float] = None
         # Loudness (dBFS) a sound needs to interrupt the agent; None = no check.  Set by the pipeline from the
         # user's own level.  Echo of the agent and other people's voices pass the speech detector easily
         # (measured: probability 0.99 at -46 dBFS) but arrive much quieter than the person at the microphone.
@@ -125,6 +128,19 @@ class Endpointer:
     @property
     def in_speech(self) -> bool:
         return self._in_speech
+
+    @property
+    def silence_ms(self) -> float:
+        """Silence since the user's last speech, in the current utterance."""
+        return self._silence_run if self._in_speech else 0.0
+
+    def set_endpoint_override(self, ms: Optional[float]) -> bool:
+        """Applies only while this utterance is waiting in its pause (after the eager point): a verdict that arrives after the user
+        spoke again, or after the utterance ended, belongs to something else."""
+        if ms is not None and not (self._in_speech and self._eager_fired):
+            return False
+        self.endpoint_override_ms = ms
+        return True
 
     def feed(self, pcm16: bytes, agent_audible: bool = False) -> list[VadEvent]:
         events: list[VadEvent] = []
@@ -168,6 +184,7 @@ class Endpointer:
                     self._energy_n = len(self._pending_start) * WINDOW
                     self._silence_run = 0.0
                     self._eager_fired = False
+                    self.endpoint_override_ms = None
                     self._utt = list(self._pre) + self._pending_start
                     self._pending_start = []
                     self._pre.clear()
@@ -187,6 +204,7 @@ class Endpointer:
         if p >= cfg.end_threshold:
             if self._eager_fired:
                 self._eager_fired = False
+                self.endpoint_override_ms = None
                 events.append(VadEvent("resume", self._stream_ms))
             self._silence_run = 0.0
             self._last_speech_ms = self._stream_ms
@@ -200,7 +218,9 @@ class Endpointer:
                 self._eager_fired = True
                 events.append(VadEvent("eager", self._last_speech_ms, self._utterance(), self._info()))
             too_long = len(self._utt) * WINDOW_MS / 1000 >= cfg.max_utterance_s
-            if self._silence_run >= cfg.endpoint_silence_ms or too_long:
+            limit = cfg.endpoint_silence_ms if self.endpoint_override_ms is None else self.endpoint_override_ms
+            if self._silence_run >= limit or too_long:
+                self.endpoint_override_ms = None
                 audio = self._utterance()
                 self._in_speech = False
                 self._speech_run = 0.0

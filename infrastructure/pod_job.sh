@@ -29,6 +29,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 # job 19 (2026-11-26): names (P1-D39): the voice server (restarted by blue_setup.sh, as in job 15) serves its Hebrew front end on
 # 127.0.0.1:1921; the worker pins a name that the front end reads differently by position, and takes the user's correction.
 # Without the probe (ROLLY_NAME_PROBE=0 for blue_serve.py) everything is as before.
+# job 20 (2026-11-27): smart end of turn in mode shadow (P1-D40): verdicts on what the user said so far are only measured
+# (pod metrics turn_end_*), nothing changes. Only the worker restarts. ROLLY_TURN_END=on applies them.
 # Back to the old voices: ROLLY_BLUE_VOICE=daniel ROLLY_BLUE_SPEED=1.2 ROLLY_TTS_EN_ENGINE=sherpa.
 pkill -f "zonos3-server" 2>/dev/null || true
 if bash infrastructure/blue_setup.sh; then
