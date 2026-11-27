@@ -104,7 +104,7 @@ export function buildContext(mem: MemoryView, opts: { language?: Lang | null; jo
   /** online lookups are connected (config and key): the persona then tells the model how to ask for one */
   lookup?: boolean;
   /** which tools beyond web search the same marker reaches (integrations/tools.ts) */
-  tools?: { calendar?: boolean; music?: boolean };
+  tools?: { calendar?: boolean; music?: boolean; play?: boolean };
   /** this user has WhatsApp linked (whatsapp/flow.ts) */
   whatsapp?: boolean }): BuiltContext {
   const p = mem.profile;

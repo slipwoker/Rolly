@@ -31,14 +31,16 @@ export const LOOKUP_MARKER = "<lookup/>";
 export interface Capabilities {
   /** online lookups are connected for this conversation */ lookup?: boolean;
   /** the same marker also reaches the user's calendar and mail (Google, read only) and music / podcast search (Spotify) */
-  tools?: { calendar?: boolean; music?: boolean };
+  tools?: { calendar?: boolean; music?: boolean; play?: boolean };
   /** this user has WhatsApp linked: the model can ask to read their messages, send one and disconnect (whatsapp/flow.ts; same marker) */
   whatsapp?: boolean }
 
 export function core(language: "he" | "en" | "auto", caps: Capabilities = {}): string {
   // With WhatsApp linked "send" leaves the list of things Rolly cannot do. It used to read "send anything else": the small
   // model kept only "you cannot send" (and the "reading only" of the mail line that follows) and said it could only read.
-  const cannot = caps.whatsapp ? "play music, make calls or remind at a set time" : "play music, make calls, send anything or remind at a set time";
+  // with music connected, "play it" is something Rolly CAN do (it opens the song in Spotify)
+  const music = caps.tools?.play ? "" : "play music, ";
+  const cannot = caps.whatsapp ? `${music}make calls or remind at a set time` : `${music}make calls, send anything or remind at a set time`;
   const mailNote = caps.lookup && caps.tools?.calendar ? " (unlike their mail, which is read only)" : "";
   // said AFTER the tools, last, so nothing about reading only comes after it
   const asks = caps.whatsapp
@@ -52,7 +54,9 @@ export function core(language: "he" | "en" | "auto", caps: Capabilities = {}): s
   const t = caps.lookup ? caps.tools : undefined;
   const extra = [
     t?.calendar ? "their calendar and their mail (reading only: you cannot send, accept, reply or change anything)" : "",
-    t?.music ? "music and podcasts (find a song, an artist or a show, or recommend something to listen to; you only name it, you cannot play it)" : "",
+    t?.music ? (t.play
+      ? "music and podcasts: find a song, an artist or a show, recommend something, and when they ask you to put something on (\"play that\", \"put on Queen\"), open it in their Spotify app. Only when they ask; after a recommendation you may offer once. The screen then switches to Spotify and you do not hear them until they come back and tap the screen"
+      : "music and podcasts (find a song, an artist or a show, or recommend something to listen to; you only name it, you cannot play it)") : "",
   ].filter(Boolean).join(" and ");
   const tools = extra ? ` The same check, with the same marker, also reaches ${extra}: use it whenever they ask about those, and never guess what is in them.` : "";
   return `You are Rolly. You ride along with the user while they drive, and the two of you talk like close friends. This is a spoken conversation: everything you write is said aloud.

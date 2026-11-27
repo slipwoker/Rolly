@@ -14,11 +14,15 @@ import { LOOKUP_FAILED_TAG, LOOKUP_TAG, lookupMessage, webLookup } from "../look
 import * as google from "./google.ts";
 import * as spotify from "./spotify.ts";
 import type { Http } from "./http.ts";
+import type { MediaItem } from "@rolly/contracts";
 
 export type ToolName = "web" | "calendar" | "email" | "music";
-export interface ToolPlan { tool: ToolName; query: string; kind: spotify.MusicKind; fromDay: number; days: number }
-export interface ToolArgs { userId: string; question: string; recent: { role: "user" | "agent"; text: string }[]; language: string; timeZone: string; now?: Date }
-export interface ToolOutcome { message: string; ok: boolean; reason?: string; tool: ToolName }
+export interface ToolPlan { tool: ToolName; action: "search" | "play"; query: string; kind: spotify.MusicKind; fromDay: number; days: number }
+export interface ToolArgs { /** what Rolly last showed as cards: "play this" means the first of them */ lastMedia?: MediaItem[]; userId: string; question: string; recent: { role: "user" | "agent"; text: string }[]; language: string; timeZone: string; now?: Date }
+export interface ToolOutcome { message: string; ok: boolean; reason?: string; tool: ToolName;
+  /** music: the results Rolly talks about, shown as cards in the chat */ media?: MediaItem[];
+  /** play it: open this Spotify link on the phone once Rolly has finished speaking */
+  open?: { url: string } }
 
 /** Where the user's Google refresh token lives (the database, sealed); dropped when Google says access was withdrawn. */
 export interface Connections { googleRefresh(userId: string): Promise<string | null>; dropGoogle(userId: string): Promise<void> }
@@ -32,11 +36,11 @@ Tools:
 - "music": find a song, artist, album, podcast or podcast episode, or recommend music or podcasts to listen to.
 - "web": anything else that needs current facts from the internet.
 
-JSON: {"tool": "calendar"|"email"|"music"|"web", "query": string, "kind": "track"|"artist"|"album"|"show"|"episode"|"any", "from_day": number, "days": number}
+JSON: {"tool": "calendar"|"email"|"music"|"web", "action": "search"|"play", "query": string, "kind": "track"|"artist"|"album"|"show"|"episode"|"any", "from_day": number, "days": number}
 - email: query is a Gmail search ("is:unread newer_than:2d", "from:dana", "subject:flight"); default "is:unread newer_than:3d".
-- music: query is what to search the catalogue for: the title/artist the user named, or for a recommendation a few well-chosen search terms (genre, mood, a similar artist, a podcast topic). kind "show" for podcasts, "episode" for a specific episode, "any" if unsure.
+- music: action "play" ONLY when the user asks to play / put on something ("תנגן", "תשים", "play"); asking about or for a recommendation is "search". For "play": query is what to play when they named it ("Bohemian Rhapsody Queen"), or "" when they mean what was just mentioned ("play that", "תנגן את זה"). For "search": query is what to search the catalogue for: the title/artist the user named, or for a recommendation a few well-chosen search terms (genre, mood, a similar artist, a podcast topic). kind "show" for podcasts, "episode" for a specific episode, "any" if unsure.
 - calendar: from_day = days from today (0 = today, 1 = tomorrow), days = how many days to cover (1-7).
-- Unused fields: query "", kind "any", from_day 0, days 1.
+- Unused fields: action "search", query "", kind "any", from_day 0, days 1.
 
 The conversation so far:
 {recent}
@@ -53,7 +57,8 @@ Request: {question}
 Data:
 {data}
 
-Reply with JSON only: {"answer": string}`;
+Reply with JSON only: {"answer": string, "picks": number[]}
+"picks": music only: the "i" of each result you mention in the answer (at most two), else [].`;
 
 const TASKS: Record<Exclude<ToolName, "web">, string> = {
   calendar: "Say what is coming up in the order it happens, with the time in 24-hour form (and the place if there is one). If many events, the first three and how many more.",
@@ -70,11 +75,11 @@ export function parsePlan(obj: Record<string, unknown>): ToolPlan {
   const tool = (["calendar", "email", "music", "web"] as const).find((t) => t === obj.tool) ?? "web";
   const kind = (["track", "artist", "album", "show", "episode", "any"] as const).find((k) => k === obj.kind) ?? "any";
   const n = (v: unknown, lo: number, hi: number, d: number) => (typeof v === "number" && Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v))) : d);
-  return { tool, kind, query: typeof obj.query === "string" ? obj.query.slice(0, 200) : "", fromDay: n(obj.from_day, 0, 30, 0), days: n(obj.days, 1, 7, 1) };
+  return { tool, action: obj.action === "play" && tool === "music" ? "play" : "search", kind, query: typeof obj.query === "string" ? obj.query.slice(0, 200) : "", fromDay: n(obj.from_day, 0, 30, 0), days: n(obj.days, 1, 7, 1) };
 }
 
 export async function planTool(llm: UtilityLlm | null, a: ToolArgs, canRoute = true): Promise<ToolPlan> {
-  const fallback: ToolPlan = { tool: "web", query: "", kind: "any", fromDay: 0, days: 1 };
+  const fallback: ToolPlan = { tool: "web", action: "search", query: "", kind: "any", fromDay: 0, days: 1 };
   if (!llm || !canRoute) return fallback;
   try {
     const r = await llm.json(fill(PLAN_PROMPT, { recent: recentText(a.recent), question: a.question.replace(/\s+/g, " ").slice(0, 400) }), { maxTokens: 200, purpose: "tool_plan" });
@@ -101,15 +106,38 @@ export function startOfDay(now: Date, timeZone: string, plusDays: number): Date 
   return new Date(now.getTime() - sinceMidnight + plusDays * 86_400_000);
 }
 
-async function compose(llm: UtilityLlm | null, a: ToolArgs, tool: Exclude<ToolName, "web">, data: unknown): Promise<string | null> {
+async function compose(llm: UtilityLlm | null, a: ToolArgs, tool: Exclude<ToolName, "web">, data: unknown): Promise<{ answer: string; picks: number[] } | null> {
   if (!llm) return null;
   const now = a.now ?? new Date();
   const when = new Intl.DateTimeFormat("en-GB", { timeZone: a.timeZone, weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }).format(now);
   const r = await llm.json(fill(COMPOSE_PROMPT, { language: lang(a.language), task: TASKS[tool], now: `${when}, ${a.timeZone}`,
     question: a.question.replace(/\s+/g, " ").slice(0, 400), data: JSON.stringify(data).slice(0, 6000) }), { maxTokens: 400, purpose: "tool" });
   const ans = typeof r.obj.answer === "string" ? spoken(r.obj.answer) : "";
-  return ans || null;
+  const picks = Array.isArray(r.obj.picks) ? (r.obj.picks as unknown[]).filter((n): n is number => Number.isInteger(n)) : [];
+  return ans ? { answer: ans, picks } : null;
 }
+
+const PLAY_NOTES = {
+  nothing: "There is nothing to play yet: ask them in a few words what they want to hear.",
+};
+
+/**
+ * "Play it": the song's link is opened in the Spotify app on the user's phone, after Rolly has said so (voice/session.ts).
+ * No Spotify account is connected and no player API is used, so it works for every user and every plan (Spotify limits its
+ * player API to a handful of allowlisted users). What to play: what they named, else what Rolly just showed as a card.
+ */
+async function playMusic(d: ToolDeps, a: ToolArgs, plan: ToolPlan): Promise<ToolOutcome> {
+  let item: MediaItem | undefined;
+  if (plan.query) {
+    const hit = (await spotify.search(d.http, d.spotify!, plan.query, plan.kind === "any" ? "track" : plan.kind)).find((h) => h.url && spotify.playTarget(h.url));
+    if (hit) item = { kind: hit.kind, title: hit.name, subtitle: hit.by, image: hit.image, url: hit.url!, provider: "spotify" };
+  } else item = a.lastMedia?.find((m) => spotify.playTarget(m.url));
+  if (!item) return note("music", PLAY_NOTES_NOTHING, "nothing");
+  return { tool: "music", ok: true, media: [item], open: { url: item.url },
+    message: `${LOOKUP_TAG} You are going to open "${item.title}"${item.subtitle ? ` (${item.subtitle})` : ""} in Spotify on their phone.
+Tell them in a few words, in your own words, that you are opening it. The screen switches to Spotify the moment you stop talking and you will not hear them until they come back and tap the screen. Do not ask anything.` };
+}
+const PLAY_NOTES_NOTHING = "There is nothing to play yet: ask them in a few words what they want to hear.";
 
 /** One tool call for one question. Never throws: every failure is an outcome the conversation can say. */
 export async function runTool(d: ToolDeps, a: ToolArgs): Promise<ToolOutcome> {
@@ -122,9 +150,15 @@ export async function runTool(d: ToolDeps, a: ToolArgs): Promise<ToolOutcome> {
     }
     if (plan.tool === "music") {
       if (!d.spotify) return note("music", NOT_CONNECTED.music, "unavailable");
+      if (plan.action === "play") return await playMusic(d, a, plan);
       const hits = await spotify.search(d.http, d.spotify, plan.query || a.question, plan.kind);
-      const ans = await compose(d.llm, a, "music", hits.map(({ url: _u, ...h }) => h));
-      return ans ? say("music", ans) : note("music", FAILED, "failed");
+      // the composer sees the results numbered, without links or pictures; the ones it names become cards
+      const c = await compose(d.llm, a, "music", hits.map(({ url: _u, image: _i, ...h }, i) => ({ i, ...h })));
+      if (!c) return note("music", FAILED, "failed");
+      const chosen = [...new Set(c.picks)].map((i) => hits[i]).filter((h): h is spotify.MusicHit => Boolean(h?.url)).slice(0, 2);
+      const media: MediaItem[] = (chosen.length ? chosen : hits.filter((h) => h.url).slice(0, 1))
+        .map((h) => ({ kind: h.kind, title: h.name, subtitle: h.by, image: h.image, url: h.url!, provider: "spotify" as const }));
+      return { ...say("music", c.answer), ...(media.length ? { media } : {}) };
     }
     // calendar / email: the user's own Google account
     if (!d.google) return note(plan.tool, NOT_CONNECTED[plan.tool], "unavailable");
@@ -139,8 +173,8 @@ export async function runTool(d: ToolDeps, a: ToolArgs): Promise<ToolOutcome> {
     const data = plan.tool === "calendar"
       ? await google.calendarEvents(d.http, token, startOfDay(a.now ?? new Date(), a.timeZone, plan.fromDay), plan.days, a.timeZone)
       : await google.mailSearch(d.http, token, plan.query || "is:unread newer_than:3d");
-    const ans = await compose(d.llm, a, plan.tool, data);
-    return ans ? say(plan.tool, ans) : note(plan.tool, FAILED, "failed");
+    const c = await compose(d.llm, a, plan.tool, data);
+    return c ? say(plan.tool, c.answer) : note(plan.tool, FAILED, "failed");
   } catch (e) {
     return note(plan.tool, FAILED, String(e).slice(0, 80));
   }

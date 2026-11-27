@@ -117,12 +117,12 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       const lookup = config.webLookup && Boolean(llm?.search);
       const whatsapp = wa ? await wa.linked(userId) : false;
       const built = buildContext(view, { language, journey: { ...start.journey, proactive }, timeZone: config.timezone, resume, lookup, whatsapp,
-        tools: { calendar: Boolean(googleCfg), music: Boolean(config.spotify) } });
+        tools: { calendar: Boolean(googleCfg), music: Boolean(config.spotify), play: Boolean(config.spotify) } });
       await store.startSession(sessionId, userId, built.language, built.onboarding, new Date());
       await store.markUsed(view.usedIds);
       sessionAgenda.set(sessionId, built.agenda);
       await audit.recordPrompt({ sessionId, userId, language: built.language, onboarding: built.onboarding, systemPrompt: built.system_prompt,
-        persona: core(built.language, { lookup, whatsapp, tools: { calendar: Boolean(googleCfg), music: Boolean(config.spotify) } }), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })),
+        persona: core(built.language, { lookup, whatsapp, tools: { calendar: Boolean(googleCfg), music: Boolean(config.spotify), play: Boolean(config.spotify) } }), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })),
         memoryIds: view.usedIds, sampling: config.llmSampling });
       const foreign = practiceLanguage(view);
       return {
@@ -157,8 +157,8 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
           .catch(() => ({ rows: [{ n: 0 }] }))).rows[0]?.n ?? 0;
         if (used >= config.lookupsPerDay) return refuse("limit");
         // web search, calendar, mail or music: a small planning call picks the tool (integrations/tools.ts)
-        const r = await runTool({ llm, http: realHttp, connections, google: googleCfg, spotify: config.spotify }, { userId: args.userId, question: args.question, recent: args.recent, language: args.language, timeZone: config.timezone });
-        return { message: r.message, ok: r.ok, ...(r.reason ? { reason: r.reason } : {}) };
+        const r = await runTool({ llm, http: realHttp, connections, google: googleCfg, spotify: config.spotify }, { userId: args.userId, lastMedia: args.lastMedia, question: args.question, recent: args.recent, language: args.language, timeZone: config.timezone });
+        return { message: r.message, ok: r.ok, ...(r.reason ? { reason: r.reason } : {}), ...(r.media ? { media: r.media } : {}), ...(r.open ? { open: r.open } : {}) };
       });
     },
     async finalize(args) {
@@ -287,6 +287,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       return [
         { id: "calendar", provider: "google", status: google, account: g.rows[0]?.account_label ?? null },
         { id: "email", provider: "google", status: google, account: g.rows[0]?.account_label ?? null },
+        // search, recommendations and "play it" (opens Spotify on the phone) need no account of the user's
         { id: "music", provider: "spotify", status: config.spotify ? "connected" : "not_available", account: null },
       ];
     };

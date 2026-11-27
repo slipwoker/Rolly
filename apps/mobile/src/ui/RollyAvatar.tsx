@@ -20,7 +20,7 @@ const EASE_IN_OUT = Easing.bezier(0.45, 0, 0.55, 1);
 const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
 
 const ENERGY: Record<VoiceState, number> = {
-  idle: 0.4, connecting: 0.15, reconnecting: 0.15, paused: 0.2, listening: 0.5,
+  idle: 0.4, connecting: 0.15, reconnecting: 0.15, paused: 0.2, music: 0.3, listening: 0.5,
   user_speaking: 0.7, agent_speaking: 1, ended: 0.35, error: 0.1,
 };
 

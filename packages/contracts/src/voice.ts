@@ -69,6 +69,8 @@ export type ClientMessage =
   | ClientPlayback
   | ClientAudioEvent
   | { type: "interrupt" }
+  /** the user tapped to talk again after Spotify was opened: listen again */
+  | { type: "client.resume" }
   | { type: "ping"; t: number }
   | { type: "session.end" };
 
@@ -83,6 +85,19 @@ export interface SessionCreated {
   onboarding: boolean;
 }
 
+/** Something Rolly found and talked about (a song, an album, an artist, a podcast), shown as a tappable card in the chat. */
+export interface MediaItem {
+  kind: "track" | "artist" | "album" | "show" | "episode";
+  title: string;
+  /** artist, publisher, ... */
+  subtitle: string | null;
+  /** cover art */
+  image: string | null;
+  /** opens in the Spotify app (or the web player when the app is not installed) */
+  url: string;
+  provider: "spotify";
+}
+
 export type ServerMessage =
   | SessionCreated
   | { type: "user.speech_started" }
@@ -93,6 +108,11 @@ export type ServerMessage =
   | { type: "agent.turn_started"; seq: number; proactive: boolean }
   | { type: "agent.text"; seq: number; delta: string }
   | { type: "agent.turn_done"; seq: number; text: string }
+  /** Open this Spotify link on the phone (Rolly was asked to play something). The phone releases the microphone and the audio
+   *  session first, then opens the link; the user taps the screen to talk again when they come back. */
+  | { type: "open.url"; url: string }
+  /** sent just before the reply that talks about these items: the phone shows them under that reply */
+  | { type: "agent.media"; items: MediaItem[] }
   | { type: "agent.interrupted"; seq: number; interrupt_detect_ms?: number | null }
   | { type: "turn.latency"; seq: number; server_reply_ms?: number | null; proactive?: boolean }
   | { type: "pong"; t: number; t_server: number }

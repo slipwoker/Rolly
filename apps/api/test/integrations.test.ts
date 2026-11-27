@@ -5,7 +5,7 @@ import type { Http } from "../src/integrations/http.ts";
 import { runTool, parsePlan, startOfDay, type ToolDeps } from "../src/integrations/tools.ts";
 import { TokenVault, signState, verifyState } from "../src/integrations/crypto.ts";
 import { authUrl, GOOGLE_SCOPES } from "../src/integrations/google.ts";
-import { resetSpotifyToken } from "../src/integrations/spotify.ts";
+import { resetSpotifyToken, playTarget } from "../src/integrations/spotify.ts";
 import { core } from "../src/persona/core.ts";
 
 const NOW = new Date("2026-11-26T10:38:00Z");
@@ -34,7 +34,7 @@ function fakeHttp(routes: Record<string, (url: string, init?: Parameters<Http>[1
 
 const deps = (o: Partial<ToolDeps> & { refresh?: string | null; dropped?: string[] } = {}): ToolDeps => ({
   llm: o.llm ?? llmFor({ tool: "web" }), http: o.http ?? fakeHttp({}),
-  connections: { async googleRefresh() { return o.refresh === undefined ? "rt" : o.refresh; }, async dropGoogle(u) { o.dropped?.push(u); } },
+  connections: o.connections ?? { async googleRefresh() { return o.refresh === undefined ? "rt" : o.refresh; }, async dropGoogle(u) { o.dropped?.push(u); } },
   google: o.google === undefined ? { clientId: "cid", clientSecret: "sec", redirectUri: "https://api/cb" } : o.google,
   spotify: o.spotify === undefined ? { clientId: "sid", clientSecret: "ssec", market: "IL" } : o.spotify,
 });
@@ -119,7 +119,9 @@ describe("music", () => {
   const spotify = () => fakeHttp({
     "https://accounts.spotify.com/api/token": () => Promise.resolve(ok({ access_token: "st", expires_in: 3600 })),
     "https://api.spotify.com/v1/search": () => Promise.resolve(ok({
-      shows: { items: [{ name: "Hidden Brain", publisher: "NPR", description: "Psychology", external_urls: { spotify: "https://open.spotify.com/show/1" } }, null] } })),
+      shows: { items: [
+        { name: "Hidden Brain", publisher: "NPR", description: "Psychology", external_urls: { spotify: "https://open.spotify.com/show/1" }, images: [{ url: "https://i.scdn.co/big" }, { url: "https://i.scdn.co/mid" }, { url: "https://i.scdn.co/small" }] },
+        { name: "Other Show", publisher: "X", external_urls: { spotify: "https://open.spotify.com/show/2" }, images: [] }, null] } })),
   });
 
   it("searches podcasts with the planned query and keeps links out of the composer's data", async () => {
@@ -134,9 +136,75 @@ describe("music", () => {
     expect(llm.prompts.at(-1)).not.toContain("open.spotify.com");
   });
 
+  it("returns the results it names as cards (cover, title, link), at most two, and never invented ones", async () => {
+    const llm = llmFor({ tool: "music", query: "psychology", kind: "show" }, "תנסה את Hidden Brain");
+    const orig = llm.json.bind(llm);
+    llm.json = async (p, o) => { const r = await orig(p, o); return o?.purpose === "tool" ? { ...r, obj: { ...r.obj, picks: [0, 0, 7] } } : r; };
+    const r = await runTool(deps({ llm, http: spotify() }), { ...base, question: "פודקאסט על פסיכולוגיה" });
+    expect(r.media).toEqual([{ kind: "show", title: "Hidden Brain", subtitle: "NPR", image: "https://i.scdn.co/mid", url: "https://open.spotify.com/show/1", provider: "spotify" }]);
+    expect(llm.prompts.at(-1)).toContain('"i":0');
+    expect(llm.prompts.at(-1)).not.toContain("i.scdn.co");
+  });
+
+  it("with no valid pick, shows the best match rather than nothing", async () => {
+    const r = await runTool(deps({ llm: llmFor({ tool: "music", kind: "show" }), http: spotify() }), { ...base, question: "Hidden Brain" });
+    expect(r.media?.map((m) => m.title)).toEqual(["Hidden Brain"]);
+  });
+
+  it("calendar and mail never produce cards", async () => {
+    const http = fakeHttp({ "https://oauth2.googleapis.com/token": () => Promise.resolve(ok({ access_token: "at" })), "https://www.googleapis.com/calendar": () => Promise.resolve(ok({ items: [] })) });
+    expect((await runTool(deps({ llm: llmFor({ tool: "calendar" }), http }), { ...base, question: "מה ביומן" })).media).toBeUndefined();
+  });
+
   it("reports when Spotify is not configured", async () => {
     const r = await runTool(deps({ llm: llmFor({ tool: "music" }), spotify: null }), { ...base, question: "שיר של קווין" });
     expect(r).toMatchObject({ ok: false, reason: "unavailable" });
+  });
+});
+
+describe("playing music: the song's link is opened in Spotify on the phone", () => {
+  beforeEach(() => resetSpotifyToken());
+  const track = { kind: "track" as const, title: "Bohemian Rhapsody", subtitle: "Queen", image: null, url: "https://open.spotify.com/track/abc123?si=x", provider: "spotify" as const };
+  const search = () => fakeHttp({
+    "https://accounts.spotify.com/api/token": () => Promise.resolve(ok({ access_token: "st", expires_in: 3600 })),
+    "https://api.spotify.com/v1/search": () => Promise.resolve(ok({ tracks: { items: [{ name: "Under Pressure", artists: [{ name: "Queen" }], album: { name: "Hot Space", images: [] }, external_urls: { spotify: "https://open.spotify.com/track/zzz9" } }] } })),
+  });
+  const play = (over: Partial<Parameters<typeof runTool>[1]> = {}, llm = llmFor({ tool: "music", action: "play" })) =>
+    runTool(deps({ llm, http: search() }), { ...base, question: "תנגן את זה", lastMedia: [track], ...over });
+
+  it("recognises Spotify links and nothing else", () => {
+    expect(playTarget(track.url)).toEqual({ kind: "track", uri: "spotify:track:abc123", context: false });
+    expect(playTarget("https://open.spotify.com/intl-he/album/XyZ1")).toEqual({ kind: "album", uri: "spotify:album:XyZ1", context: true });
+    expect(playTarget("https://evil.example/track/abc")).toBeNull();
+  });
+
+  it("'play that' opens what Rolly just showed, for any user: no account, no player API", async () => {
+    const r = await play();
+    expect(r).toMatchObject({ tool: "music", ok: true, open: { url: track.url } });
+    expect(r.media?.[0]).toMatchObject({ title: "Bohemian Rhapsody" });
+    expect(r.message).toContain(`"Bohemian Rhapsody" (Queen) in Spotify on their phone`);
+  });
+
+  it("opens what was named in the request, found by search", async () => {
+    const r = await play({ question: "תנגן under pressure", lastMedia: [] }, llmFor({ tool: "music", action: "play", query: "Queen Under Pressure", kind: "track" }));
+    expect(r.open?.url).toBe("https://open.spotify.com/track/zzz9");
+    expect(r.media?.[0]).toMatchObject({ title: "Under Pressure", subtitle: "Queen" });
+  });
+
+  it("with nothing shown and nothing named, asks what to play instead of opening something", async () => {
+    const r = await play({ lastMedia: [] });
+    expect(r).toMatchObject({ ok: false, reason: "nothing" });
+    expect(r.open).toBeUndefined();
+  });
+
+  it("never opens a link that is not a Spotify one", async () => {
+    const r = await play({ lastMedia: [{ ...track, url: "https://evil.example/track/abc123" }] });
+    expect(r.open).toBeUndefined();
+  });
+
+  it("a recommendation request does not open anything", async () => {
+    const r = await play({ question: "תמליץ לי על משהו של קווין", lastMedia: [] }, llmFor({ tool: "music", action: "search", query: "queen", kind: "track" }));
+    expect(r.open).toBeUndefined();
   });
 });
 
@@ -154,6 +222,7 @@ describe("sealing and OAuth state", () => {
     expect(verifyState(st, "k", NOW.getTime() + 60_000)).toBe("user-1");
     expect(verifyState(st, "k", NOW.getTime() + 11 * 60_000)).toBeNull();
     expect(verifyState(st, "other", NOW.getTime())).toBeNull();
+    expect(verifyState(st, "k", NOW.getTime(), "spotify")).toBeNull(); // a Google state does not open the Spotify callback
     expect(verifyState(st.replace(/.$/, "x"), "k", NOW.getTime())).toBeNull();
   });
   it("asks Google for read-only access, offline", () => {

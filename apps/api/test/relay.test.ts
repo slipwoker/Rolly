@@ -10,10 +10,10 @@ import { startFakePod, tone, type FakePod } from "./fakePod.ts";
 
 let pod: FakePod, app: FastifyInstance, port: number;
 const finalized: { turns: SessionTurn[]; stats: Record<string, unknown>; endReason: string }[] = [];
-const lookups: { userId: string; question: string }[] = [];
+const lookups: { userId: string; question: string; lastMedia: unknown[] }[] = [];
 
 beforeAll(async () => {
-  pod = await startFakePod({ script: ["שלום", "מה נשמע", "רגע", "שקט", "עוד חמש דקות אני מגיע", "תרשום לי משהו", "סתם", "כלום", "בסדר"], token: "test-key",
+  pod = await startFakePod({ script: ["שלום", "מה נשמע", "רגע", "שקט", "עוד חמש דקות אני מגיע", "תרשום לי משהו", "סתם", "כלום", "בסדר", "תנגן את זה", "תנגן משהו"], token: "test-key",
     // a "model" that falls back on bot-speak, for the style guard
     replyText: (t, ctx) => String(ctx.user_id).startsWith("u-lookup") ? "בודק, שנייה. <lookup/>"
       : ({ "סתם": "הבנתי אותך.", "כלום": "צודק, נכון.", "בסדר": "בלי טעינה בבית זה לא שווה." } as Record<string, string>)[t] });
@@ -33,9 +33,15 @@ beforeAll(async () => {
       return turn.text.includes("תרשום") ? { text: "NOTE-FROM-HOOK", turns: 1 } : undefined;
     },
     // "u-lookup": the search answers in 100 ms; "u-lookup-fail": it does not work; other users have no lookups at all
-    async lookup({ userId, question }) {
-      lookups.push({ userId, question });
+    async lookup({ userId, question, lastMedia }) {
+      lookups.push({ userId, question, lastMedia });
       await new Promise((r) => setTimeout(r, 100));
+      // "u-lookup-music": the answer is "opening a song in Spotify"
+      if (userId.startsWith("u-lookup-music")) {
+        return { message: "[lookup_result - not said by the user] Opening Bohemian Rhapsody.", ok: true,
+          media: [{ kind: "track" as const, title: "Bohemian Rhapsody", subtitle: "Queen", image: null, url: "https://open.spotify.com/track/1", provider: "spotify" as const }],
+          open: { url: "https://open.spotify.com/track/1" } };
+      }
       return userId === "u-lookup-fail" ? { message: "[lookup_failed - not said by the user] did not work", ok: false, reason: "failed" }
         : { message: "[lookup_result - not said by the user] What you found: 23 to 30 degrees.", ok: true };
     },
@@ -272,4 +278,28 @@ describe("relay phone <-> rolly-api <-> pod", () => {
     const res = await fetch(`http://127.0.0.1:${port}/healthz`);
     expect(((await res.json()) as { active_sessions: number }).active_sessions).toBe(0);
   }, 30_000);
+
+  it("music: Spotify is opened on the phone only after Rolly has finished speaking, listening is off until the user taps", async () => {
+    const phone = new Phone();
+    await phone.connect(`ws://127.0.0.1:${port}/v1/voice?dev_user=u-lookup-music`);
+    phone.send({ type: "session.start", language: "he" });
+    await phone.waitReply(0, 5000);
+    const end = await phone.say(speech(600));
+    await phone.waitReply(end - 1, 5000);
+    await phone.waitFor(() => [...phone.turns.values()].some((t) => t.done && t.text.startsWith("Said: [lookup_result")), 8000, "the answer turn");
+    await phone.waitFor(() => phone.events.some((e) => e.msg.type === "open.url"), 8000, "open.url");
+    // the card came first, the link only after the reply had been played out
+    const types = phone.events.map((e) => e.msg.type);
+    expect(types.indexOf("agent.media")).toBeLessThan(types.indexOf("open.url"));
+    expect(phone.events.find((e) => e.msg.type === "open.url")!.msg).toMatchObject({ url: "https://open.spotify.com/track/1" });
+    const heard = pod.audioBytes;
+    await new Promise((r) => setTimeout(r, 700)); // the test phone keeps streaming silence; none of it may reach the model
+    expect(pod.audioBytes).toBe(heard);
+    phone.send({ type: "client.resume" });
+    await new Promise((r) => setTimeout(r, 400));
+    expect(pod.audioBytes).toBeGreaterThan(heard); // listening again
+    phone.send({ type: "session.end" });
+    await phone.waitFor(() => phone.events.some((e) => e.msg.type === "session.closed"), 5000, "closed");
+    expect((finalized.at(-1)!.stats.notes as { kind: string }[]).map((n) => n.kind)).toEqual(expect.arrayContaining(["music_opened", "music_back"]));
+  }, 40_000);
 });

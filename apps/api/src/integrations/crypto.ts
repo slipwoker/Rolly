@@ -100,15 +100,15 @@ export async function readSealedToken(db: SealedRows, vault: TokenVault, userId:
 }
 
 /** `state` for the OAuth redirect: binds the callback to the user who started it, valid for 10 minutes. */
-export function signState(userId: string, secret: string, now = Date.now()): string {
-  const p = Buffer.from(JSON.stringify({ u: userId, e: Math.floor(now / 1000) + 600 })).toString("base64url");
+export function signState(userId: string, secret: string, now = Date.now(), purpose = "google"): string {
+  const p = Buffer.from(JSON.stringify({ u: userId, e: Math.floor(now / 1000) + 600, p: purpose })).toString("base64url");
   return `${p}.${createHmac("sha256", secret).update("oauth-state." + p).digest("base64url")}`;
 }
 
-export function verifyState(state: string | undefined, secret: string, now = Date.now()): string | null {
+export function verifyState(state: string | undefined, secret: string, now = Date.now(), purpose = "google"): string | null {
   const [p, sig] = (state ?? "").split(".");
   if (!p || !sig) return null;
   const want = createHmac("sha256", secret).update("oauth-state." + p).digest(), got = Buffer.from(sig, "base64url");
   if (got.length !== want.length || !timingSafeEqual(got, want)) return null;
-  try { const j = JSON.parse(Buffer.from(p, "base64url").toString()) as { u: string; e: number }; return j.e * 1000 > now ? j.u : null; } catch { return null; }
+  try { const j = JSON.parse(Buffer.from(p, "base64url").toString()) as { u: string; e: number; p?: string }; return j.e * 1000 > now && j.p === purpose ? j.u : null; } catch { return null; }
 }
