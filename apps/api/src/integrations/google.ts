@@ -1,16 +1,22 @@
 /**
- * Google: the user's calendar and mail, READ ONLY (scopes calendar.readonly + gmail.readonly + the account's email).
+ * Google: the user's calendar and mail. Reading (gmail.readonly, and events through calendar.events), and, only after the
+ * user's spoken yes to a draft that was read back (integrations/actions.ts): sending an email (gmail.send) and adding an
+ * event to the calendar (calendar.events). Nothing is deleted, and existing events and mail threads are never changed.
  * OAuth 2.0 authorization-code flow with offline access: the phone opens the consent page in the browser, Google
- * redirects to /v1/integrations/google/callback on the API, which stores the refresh token sealed. Nothing is ever sent
- * or changed in the account.
+ * redirects to /v1/integrations/google/callback on the API, which stores the refresh token sealed.
  */
 import { form, type Http } from "./http.ts";
 
-export const GOOGLE_SCOPES = [
-  "https://www.googleapis.com/auth/calendar.readonly",
-  "https://www.googleapis.com/auth/gmail.readonly",
-  "https://www.googleapis.com/auth/userinfo.email",
-];
+export const SCOPE_CALENDAR_EVENTS = "https://www.googleapis.com/auth/calendar.events";
+export const SCOPE_GMAIL_READ = "https://www.googleapis.com/auth/gmail.readonly";
+export const SCOPE_GMAIL_SEND = "https://www.googleapis.com/auth/gmail.send";
+export const GOOGLE_SCOPES = [SCOPE_CALENDAR_EVENTS, SCOPE_GMAIL_READ, SCOPE_GMAIL_SEND, "https://www.googleapis.com/auth/userinfo.email"];
+
+/** What a stored connection may do. Connections made before writing existed only have the read-only calendar scope. */
+export function grants(scopes: string): { read: boolean; sendMail: boolean; writeCalendar: boolean } {
+  const has = (x: string) => scopes.split(/\s+/).includes(x);
+  return { read: has(SCOPE_GMAIL_READ) || has("https://www.googleapis.com/auth/calendar.readonly") || has(SCOPE_CALENDAR_EVENTS), sendMail: has(SCOPE_GMAIL_SEND), writeCalendar: has(SCOPE_CALENDAR_EVENTS) };
+}
 
 export interface GoogleConfig { clientId: string; clientSecret: string; redirectUri: string }
 

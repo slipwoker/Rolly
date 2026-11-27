@@ -31,7 +31,7 @@ export const LOOKUP_MARKER = "<lookup/>";
 export interface Capabilities {
   /** online lookups are connected for this conversation */ lookup?: boolean;
   /** the same marker also reaches the user's calendar and mail (Google, read only) and music / podcast search (Spotify) */
-  tools?: { calendar?: boolean; music?: boolean; play?: boolean };
+  tools?: { calendar?: boolean; music?: boolean; play?: boolean; /** their Google connection also lets Rolly send an email and add an event */ write?: boolean };
   /** this user has WhatsApp linked: the model can ask to read their messages, send one and disconnect (whatsapp/flow.ts; same marker) */
   whatsapp?: boolean }
 
@@ -53,7 +53,9 @@ export function core(language: "he" | "en" | "auto", caps: Capabilities = {}): s
       : " You cannot play music, make calls, send anything, remind at a set time or check anything online: say so in a few words.";
   const t = caps.lookup ? caps.tools : undefined;
   const extra = [
-    t?.calendar ? "their calendar and their mail (reading only: you cannot send, accept, reply or change anything)" : "",
+    t?.calendar ? (t.write
+      ? "their calendar and their mail: you can read them, send an email for them and add an event to their calendar (invite people too). You cannot reply inside a thread, delete or change anything that exists. Writing always goes in three steps: they ask, you read back who it goes to and what it says, and only their yes in their NEXT turn sends it; say you are on it in two or three words for each step, with the same marker, and never say it is sent or added before the answer reaches you. If they say no or change something, nothing is sent"
+      : "their calendar and their mail (reading only: you cannot send, accept, reply or change anything)") : "",
     t?.music ? (t.play
       ? "music and podcasts: find a song, an artist or a show, recommend something, and when they ask you to put something on or for the link (\"play that\", \"put on Queen\", \"give me the link\"), open it in their Spotify app. For any such request you ALWAYS use the check, even when you already know a good answer: that is what shows them the song on screen and lets you open it; never answer it from memory. Only open when they ask; after a recommendation you may offer once. The screen then switches to Spotify and you do not hear them until they come back and tap the screen"
       : "music and podcasts (find a song, an artist or a show, or recommend something to listen to; you only name it, you cannot play it)") : "",
