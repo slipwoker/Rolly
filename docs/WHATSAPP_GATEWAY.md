@@ -189,3 +189,10 @@ It is a heuristic: a skeleton under three letters matches only a whole name, a p
 and its UTF-8 bytes (hidden characters), whether it is a group, the kind of address the chat is keyed by (`lid`/`phone`/`group`), the number of messages, and the names WhatsApp
 knows for the number; never message text, a phone number or a chat address. **Remove** `whatsapp/adminRoutes.ts`, its line in `app.ts`, `debugLookup` in `gateway.ts` and
 `apps/wa-gateway/debug.go` once the question is answered.
+
+**Names of chats that are not saved contacts (2026-11-27).** Found in live use: of 317 chats, 40 had no name; the newest, with 1,037 messages, was "Instinct", a WhatsApp Business account the owner has not saved.
+WhatsApp's contact store had nothing for it (no saved name, no push name, no business name), but WhatsApp itself shows the business's **verified name**, which arrives on the message
+(`Info.VerifiedName`, and `verifiedBizName` on a history-sync web message). `ingest.go` now names a one-to-one chat, in this order: a saved contact name (looked up on every message, so a contact saved later
+replaces a fallback), the history-sync name, the verified business name, the person's own push name (only from the other side: our own push name is ours). Groups are never named after a sender.
+Existing unnamed chats get their name with their **next message**; nothing is stored about a past message's sender, so there is no backfill. Names that are only masked numbers (`+972∙∙∙∙∙∙∙40`) are still not
+real names. Tests: `fallbackname_test.go`.
