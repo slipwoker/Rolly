@@ -31,6 +31,7 @@ type live struct {
 	client *whatsmeow.Client
 
 	mu       sync.Mutex
+	replaced bool   // another connection took this device over (the new gateway instance during a deploy): this client is finished
 	qr       string // current QR payload while pairing by QR
 	code     string // pairing code while pairing by code
 	deadline time.Time
@@ -160,6 +161,12 @@ func (m *Manager) onEvent(l *live, e any) {
 		}
 		l.mu.Unlock()
 	case *events.Disconnected:
+		l.mu.Lock()
+		replaced := l.replaced
+		l.mu.Unlock()
+		if replaced {
+			return // the socket closing after "replaced" is not the account going offline: the other connection is the live one
+		}
 		if a, err := m.accounts.Get(ctx, l.userID); err == nil && a.State == StateConnected {
 			set(StateReconnecting, "")
 		}
@@ -169,7 +176,18 @@ func (m *Manager) onEvent(l *live, e any) {
 	case *events.TemporaryBan:
 		set(StateBanned, v.String())
 	case *events.StreamReplaced:
-		set(StateConflict, "another connection replaced this one")
+		// During a deploy the new instance connects before the old one stops, so the OLD instance is told it was replaced.
+		// The state belongs to the new instance (it writes "connected"); writing "conflict" here, or "reconnecting" when the
+		// socket closes next, overwrote it (seen on 2026-11-26 21:03). Two instances fighting for good shows up in the logs.
+		l.mu.Lock()
+		l.replaced = true
+		l.mu.Unlock()
+		m.log.Warnf("%s: this connection was replaced by another one", l.userID)
+		m.mu.Lock()
+		if m.live[l.userID] == l {
+			delete(m.live, l.userID)
+		}
+		m.mu.Unlock()
 	case *events.ClientOutdated:
 		set(StateClientOutdated, "WhatsApp rejected this client version")
 	case *events.ConnectFailure:

@@ -135,7 +135,6 @@ func TestEventsMapToStates(t *testing.T) {
 		{&events.Connected{}, StateConnected},
 		{&events.Disconnected{}, StateReconnecting},
 		{&events.TemporaryBan{Code: 1, Expire: time.Hour}, StateBanned},
-		{&events.StreamReplaced{}, StateConflict},
 		{&events.ClientOutdated{}, StateClientOutdated},
 		{&events.ConnectFailure{Reason: events.ConnectFailureUnknownLogout}, StateBanned},
 	}
@@ -154,4 +153,29 @@ func TestUnlinkWithNothingLinkedIsFine(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = http.StatusOK
+}
+
+// A deploy starts the new instance before the old one stops: the old one is told "replaced" and its socket closes.
+// Neither may overwrite what the new instance wrote (seen on the real service on 2026-11-26).
+func TestReplacedOldInstanceDoesNotOverwriteTheNewOnesState(t *testing.T) {
+	m := testManager(t, 5)
+	ctx := context.Background()
+	_ = m.accounts.Upsert(ctx, "u", "972500000000:1@s.whatsapp.net", StateConnected, "")
+	l := &live{userID: "u"}
+	m.live["u"] = l
+	m.onEvent(l, &events.StreamReplaced{})
+	m.onEvent(l, &events.Disconnected{})
+	a, err := m.accounts.Get(ctx, "u")
+	if err != nil || a.State != StateConnected {
+		t.Fatalf("state must stay connected, got %+v (%v)", a, err)
+	}
+	if _, still := m.live["u"]; still {
+		t.Fatal("the replaced client must be dropped")
+	}
+	// and a client that was NOT replaced still reports a real disconnect
+	l2 := &live{userID: "u"}
+	m.onEvent(l2, &events.Disconnected{})
+	if a, _ := m.accounts.Get(ctx, "u"); a.State != StateReconnecting {
+		t.Fatalf("a real disconnect must still show reconnecting, got %q", a.State)
+	}
 }
