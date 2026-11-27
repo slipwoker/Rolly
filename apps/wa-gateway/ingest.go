@@ -106,6 +106,26 @@ func extract(m *waE2E.Message) (kind, text string, media []byte, ok bool) {
 	return "", "", nil, false // reactions, protocol messages, key distribution, ...
 }
 
+// fallbackName is the name WhatsApp itself shows for someone who is not a saved contact: the verified name of a business account
+// ("Instinct"), else the name the person chose for themselves (shown with a "~" in WhatsApp). One-to-one chats only, and only from
+// the other side: our own push name is ours. Found in live use: a business chat with 1,037 messages had no name at all and could not be asked for.
+func fallbackName(evt *events.Message) string {
+	if evt.Info.IsFromMe {
+		return ""
+	}
+	if vn := evt.Info.VerifiedName; vn != nil && vn.Details != nil {
+		if n := strings.TrimSpace(vn.Details.GetVerifiedName()); n != "" {
+			return n
+		}
+	}
+	if evt.SourceWebMsg != nil { // history sync carries it on the web message
+		if n := strings.TrimSpace(evt.SourceWebMsg.GetVerifiedBizName()); n != "" {
+			return n
+		}
+	}
+	return strings.TrimSpace(evt.Info.PushName)
+}
+
 // Message stores one message. chatName is a hint from history sync (empty for live messages).
 func (g *Ingester) Message(ctx context.Context, userID string, dir directory, evt *events.Message, chatName string) error {
 	if evt == nil || evt.Message == nil {
@@ -125,11 +145,17 @@ func (g *Ingester) Message(ctx context.Context, userID string, dir directory, ev
 
 	name := chatName
 	if name == "" {
-		if known, found := g.msgs.ChatName(ctx, userID, ChatRef(userID, chat.String())); !found || known == "" {
-			if isGroup {
+		known, found := g.msgs.ChatName(ctx, userID, ChatRef(userID, chat.String()))
+		switch {
+		case isGroup:
+			if !found || known == "" {
 				name = dir.GroupName(ctx, chat)
-			} else {
-				name = dir.ContactName(ctx, chat)
+			}
+		default:
+			// a saved or known name is looked up every time, so a contact saved later replaces a fallback name
+			name = dir.ContactName(ctx, chat)
+			if name == "" && (!found || known == "") {
+				name = fallbackName(evt)
 			}
 		}
 	}
