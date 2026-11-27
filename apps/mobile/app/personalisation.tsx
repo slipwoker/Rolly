@@ -30,12 +30,17 @@ export default function Personalisation() {
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [wa, setWa] = useState<{ available: boolean; state: string } | null>(null);
-  const [calSignal, setCalSignal] = useState(false); // standing consent: ROLLY may look at the calendar before a ride (off unless the user turns it on)
+  // standing consent, per source: ROLLY may look at it before a ride (off unless the user turns it on)
+  const [sig, setSig] = useState<{ calendar: boolean; mail: boolean; whatsapp: boolean }>({ calendar: false, mail: false, whatsapp: false });
+  const setConsent = (source: "calendar" | "mail" | "whatsapp", enabled: boolean) => act(() => api("/v1/signals/consent", { method: "PUT", body: { source, enabled } }));
+  const consentButton = (source: "calendar" | "mail" | "whatsapp") => sig[source]
+    ? <SmallButton label={t.turnOff} onPress={() => setConsent(source, false)} />
+    : <SmallButton label={t.turnOn} primary onPress={() => setConsent(source, true)} />;
   const load = useCallback(() => {
     api<Me>("/v1/me").then(setMe).catch(() => {});
     api<{ memories: Memory[] }>("/v1/memories").then((r) => setMems(r.memories)).catch(() => {});
     api<{ available: boolean; state: string }>("/v1/whatsapp").then(setWa).catch(() => setWa(null)); // the row only shows when the server has WhatsApp
-    api<{ calendar: boolean }>("/v1/signals/consent").then((r) => setCalSignal(r.calendar)).catch(() => setCalSignal(false));
+    api<{ calendar: boolean; mail: boolean; whatsapp: boolean }>("/v1/signals/consent").then(setSig).catch(() => setSig({ calendar: false, mail: false, whatsapp: false }));
   }, []);
   useFocusEffect(load);
   // coming back from the browser after the Google consent page
@@ -152,15 +157,18 @@ export default function Personalisation() {
                           : <Badge label={t.soon} />} />
                     ) : null,
                     google?.status === "connected" ? (
-                      <ServiceRow key="gs" brand="google" title={t.signalsCalendar} sub={t.signalsCalendarWhy}
-                        action={calSignal
-                          ? <SmallButton label={t.turnOff} onPress={() => act(() => api("/v1/signals/consent", { method: "PUT", body: { source: "calendar", enabled: false } }))} />
-                          : <SmallButton label={t.turnOn} primary onPress={() => act(() => api("/v1/signals/consent", { method: "PUT", body: { source: "calendar", enabled: true } }))} />} />
+                      <ServiceRow key="gs" brand="google" title={t.signalsCalendar} sub={t.signalsCalendarWhy} action={consentButton("calendar")} />
+                    ) : null,
+                    google?.status === "connected" ? (
+                      <ServiceRow key="gm" brand="google" title={t.signalsMail} sub={t.signalsMailWhy} action={consentButton("mail")} />
                     ) : null,
                     wa?.available ? (
                       <ServiceRow key="w" brand="whatsapp" title={t.waService}
                         sub={t[stateView(wa.state).text]} warn={stateView(wa.state).warn}
                         action={<SmallButton label={t.open} primary={wa.state !== "connected"} onPress={() => router.push("/whatsapp")} />} />
+                    ) : null,
+                    wa?.available && wa.state === "connected" ? (
+                      <ServiceRow key="ws" brand="whatsapp" title={t.signalsWhatsapp} sub={t.signalsWhatsappWhy} action={consentButton("whatsapp")} />
                     ) : null,
                     spotify ? (
                       <ServiceRow key="s" brand="spotify" title={t.musicService} sub={t.musicWhy}

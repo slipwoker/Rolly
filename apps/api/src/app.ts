@@ -11,7 +11,7 @@ import { openAiLlm, type UtilityLlm } from "./memory/llm.ts";
 import { MemoryStore } from "./memory/store.ts";
 import { summarizeSession, type SummaryResult } from "./memory/summarizer.ts";
 import { handleCapture, handleLiveTurn, handleNamePronunciation, type NameReadings } from "./memory/live.ts";
-import { fallbackAgenda, planNext, type AgendaItem } from "./memory/plan.ts";
+import { fallbackAgenda, mergeDerived, planNext, type AgendaItem } from "./memory/plan.ts";
 import { scrubUser } from "./memory/scrub.ts";
 import { consolidate } from "./memory/consolidate.ts";
 import type { ServerDeps } from "./server.ts";
@@ -21,6 +21,9 @@ import { NOTE, core } from "./persona/core.ts";
 import { lookupMessage } from "./lookup/web.ts";
 import { runTool, type Connections } from "./integrations/tools.ts";
 import { readCalendar } from "./signals/calendar.ts";
+import { readMail } from "./signals/mail.ts";
+import { readWhatsApp } from "./signals/whatsapp.ts";
+import { deriveFromLines } from "./signals/derive.ts";
 import { realHttp } from "./integrations/http.ts";
 import * as googleApi from "./integrations/google.ts";
 import { TokenVault, readSealedToken, resealLegacyTokens, signState, verifyState } from "./integrations/crypto.ts";
@@ -216,6 +219,16 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       tasks: tasks.map((t) => ({ id: t.id, content: t.content })), agenda: had,
       addressing: (await store.addressing(userId)).value,
     });
+    // mail and WhatsApp, each only with its own standing consent; one labelled item at most from each, never breaking the look-ahead
+    const consentOf = async (u: string, src: string) => (await db.query("SELECT enabled FROM signal_consent WHERE user_id=$1 AND source=$2", [u, src])).rows[0]?.enabled === true;
+    const lang = { calendar: cal?.lines, language: summary.language, addressing: (await store.addressing(userId)).value };
+    const mailRead = await readMail({ consent: consentOf, connections, google: googleCfg, http: realHttp }, userId, cal?.lines ?? []).catch(() => null);
+    const waRead = await readWhatsApp({ consent: consentOf, gateway }, userId, new Date()).catch(() => null);
+    const derived = (await Promise.all([
+      mailRead?.lines.length ? deriveFromLines(llm, "mail", mailRead.lines, lang) : null,
+      waRead?.lines.length ? deriveFromLines(llm, "whatsapp", waRead.lines, lang) : null,
+    ])).filter((x): x is NonNullable<typeof x> => !!x);
+    if (derived.length) plan.next_agenda = mergeDerived(plan.next_agenda, derived);
     // what opened this ride and was not taken up must not open the next one as well
     const openedSkipped = had[0] && plan.agenda_outcome.find((o) => o.index === 0)?.outcome === "skipped" ? had[0].topic : null;
     const res = await store.applyPlan(userId, sessionId, plan, turns, progressIds, openedSkipped);
@@ -224,7 +237,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     const cons = await consolidate(store, llm, userId).catch((e) => ({ digest: false, history: false, skipped: String(e).slice(0, 120) }));
     await store.addSessionStats(sessionId, {
       lookahead_ms: Date.now() - t0,
-      signals: { calendar_events_read: cal?.read ?? null }, // a count, never the content
+      signals: { calendar_events_read: cal?.read ?? null, mail_read: mailRead?.read ?? null, whatsapp_chats_read: waRead?.read ?? null, items: derived.map((d) => d.source) }, // counts and labels, never the content
       plan: { method: plan.method, error: plan.error, ms: plan.ms, applied: res.applied, refused: res.refused, next_agenda: plan.next_agenda.length,
         agenda_outcome: plan.agenda_outcome.map((o) => ({ kind: had[o.index]?.kind ?? null, outcome: o.outcome })) },
       scrub: scrubbed, consolidate: cons,
@@ -301,11 +314,12 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     app.get("/v1/signals/consent", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
       const r = await db.query<{ source: string; enabled: boolean }>("SELECT source, enabled FROM signal_consent WHERE user_id=$1", [id]);
-      return { calendar: r.rows.find((x) => x.source === "calendar")?.enabled === true };
+      const on = (src: string) => r.rows.find((x) => x.source === src)?.enabled === true;
+      return { calendar: on("calendar"), mail: on("mail"), whatsapp: on("whatsapp") };
     });
     app.put("/v1/signals/consent", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
-      const b = parse(z.object({ source: z.enum(["calendar"]), enabled: z.boolean() }), req.body, reply); if (!b) return;
+      const b = parse(z.object({ source: z.enum(["calendar", "mail", "whatsapp"]), enabled: z.boolean() }), req.body, reply); if (!b) return;
       await db.query(`INSERT INTO signal_consent(user_id, source, enabled) VALUES ($1,$2,$3) ON CONFLICT (user_id, source) DO UPDATE SET enabled=$3, updated_at=now()`, [id, b.source, b.enabled]);
       if (!b.enabled) await store.dropAgendaSource(id, b.source);
       return { ok: true };
@@ -340,7 +354,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       const rt = await connections.googleRefresh(id);
       if (rt) await googleApi.revoke(realHttp, rt);
       await connections.dropGoogle(id);
-      await store.dropAgendaSource(id, "calendar"); // what came from the calendar leaves the plan with the connection
+      for (const src of ["calendar", "mail"]) await store.dropAgendaSource(id, src); // what came from Google leaves the plan with the connection
       return { disconnected: true };
     });
 
@@ -458,6 +472,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       if (!gateway) return reply.code(404).send({ error: "whatsapp is not available" });
       await gateway.unlink(id).catch(() => {});
       wa?.forget(id);
+      await store.dropAgendaSource(id, "whatsapp"); // what came from the chats leaves the plan with the link
       return { state: "unlinked" };
     });
 

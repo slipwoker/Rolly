@@ -12,12 +12,15 @@ import type { UtilityLlm } from "./llm.ts";
 import { formatTranscript, writeAbout } from "./summarizer.ts";
 
 export type GoalStatus = "active" | "paused" | "achieved" | "dropped";
+/** where an item comes from besides the conversation; Rolly says so when it raises the item */
+export type AgendaSource = "calendar" | "mail" | "whatsapp";
+export const AGENDA_SOURCES: AgendaSource[] = ["calendar", "mail", "whatsapp"];
 export type AgendaKind = "follow_up" | "goal_step" | "action_check" | "fresh" | "direction";
 
 /** `take`: Rolly's own opinion or angle on the topic, written by the stronger model so the small one has something real to say */
 export interface AgendaItem { topic: string; why: string; kind: AgendaKind; ref_id: string | null; take?: string;
   /** where the item comes from when it is not only the conversation: Rolly says so when it raises it */
-  source?: "calendar";
+  source?: AgendaSource;
   /** the item is dropped after this day (the day of the event it is about) */
   expires_at?: string }
 /** `opened_with`: the topic that opened the ride this plan was made after, when the user did not take it up */
@@ -105,13 +108,13 @@ export function normalizeAgendaItems(v: unknown, validRefs?: Set<string>): Agend
       topic: topic.slice(0, 200), why: str(o.why).slice(0, 240), ...(str(o.take) ? { take: str(o.take).slice(0, 220) } : {}),
       kind: KINDS.includes(o.kind as AgendaKind) ? (o.kind as AgendaKind) : "fresh",
       ref_id: ref && (!validRefs || validRefs.has(ref)) ? ref : null,
-      ...(o.source === "calendar" ? { source: "calendar" as const } : {}),
+      ...(AGENDA_SOURCES.includes(o.source as AgendaSource) ? { source: o.source as AgendaSource } : {}),
       ...(/^\d{4}-\d{2}-\d{2}$/.test(exp) ? { expires_at: exp } : {}),
     });
   }
-  // at most one "did you do it?" and one "where do you want to take this?" per ride
+  // at most one "did you do it?" per ride, and two "where do you want to take this?" (one from the conversation, one from a source)
   let checks = 0, directions = 0;
-  return out.filter((i) => (i.kind !== "action_check" || ++checks <= 1) && (i.kind !== "direction" || ++directions <= 1)).slice(0, 3);
+  return out.filter((i) => (i.kind !== "action_check" || ++checks <= 1) && (i.kind !== "direction" || ++directions <= 2)).slice(0, 3);
 }
 
 export function normalizePlan(obj: Record<string, unknown>, ids: { goals: Set<string>; tasks: Set<string> }): PlanResult {
@@ -150,6 +153,11 @@ export function labelCalendarItems(items: AgendaItem[], lines: string[]): Agenda
     });
 }
 
+/** Items read from mail or WhatsApp go first (they are the point of looking), then the plan's own, three in all. */
+export function mergeDerived(own: AgendaItem[], derived: AgendaItem[]): AgendaItem[] {
+  return normalizeAgendaItems([...derived, ...own]);
+}
+
 export const emptyPlan = (): PlanResult => ({ method: "none", goal_updates: [], completed_action_items: [], agenda_outcome: [], next_agenda: [] });
 
 export async function planNext(llm: UtilityLlm | null, turns: SessionTurn[], ctx: {
@@ -176,7 +184,9 @@ export async function planNext(llm: UtilityLlm | null, turns: SessionTurn[], ctx
     const r = await llm.json(prompt, { maxTokens: 1400, purpose: "plan" });
     const plan = normalizePlan(r.obj, { goals: new Set(ctx.goals.map((g) => g.id)), tasks: new Set(ctx.tasks.map((t) => t.id)) });
     // a source can only be claimed when the calendar was actually read
-    plan.next_agenda = ctx.calendar?.length ? labelCalendarItems(plan.next_agenda, ctx.calendar) : plan.next_agenda.map(({ source: _s, ...rest }) => rest);
+    // the model may only claim the calendar, and only when it was read; mail and WhatsApp items are made and labelled by code (signals/derive.ts)
+    const own = plan.next_agenda.map((i) => (i.source === "calendar" && ctx.calendar?.length ? i : (({ source: _s, ...rest }) => rest)(i)));
+    plan.next_agenda = ctx.calendar?.length ? labelCalendarItems(own, ctx.calendar) : own;
     return { ...plan, ms: r.ms };
   } catch (e) {
     return { ...emptyPlan(), error: String(e).slice(0, 300) };

@@ -10,9 +10,9 @@ const turn = (idx: number, role: "user" | "agent", text: string, attribution: "p
 const item = (patch: Partial<Item>): Item => ({ content: "להגיע מוכן לפגישה עם המשקיע", confidence: 0.4, first_person: false, turn: 3, quote: "כן בדיוק", confirmed: true, ...patch });
 
 describe("a direction becomes a goal only through the user's own yes", () => {
-  it("keeps at most one direction item per plan", () => {
-    const items = normalizeAgendaItems([{ topic: "a", kind: "direction" }, { topic: "b", kind: "direction" }, { topic: "c", kind: "fresh" }]);
-    expect(items.map((i) => [i.topic, i.kind])).toEqual([["a", "direction"], ["c", "fresh"]]);
+  it("keeps at most two direction items per plan (one from the conversation, one from a source)", () => {
+    const items = normalizeAgendaItems([{ topic: "a", kind: "direction" }, { topic: "b", kind: "direction" }, { topic: "x", kind: "direction" }, { topic: "c", kind: "fresh" }]);
+    expect(items.map((i) => [i.topic, i.kind])).toEqual([["a", "direction"], ["b", "direction"], ["c", "fresh"]]);
   });
 
   it("the direction item is only an observation; the say-it-back note comes after they engage, once", () => {

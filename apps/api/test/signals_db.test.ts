@@ -20,7 +20,8 @@ describe("signal consent", () => {
     expect((await db.query("SELECT enabled FROM signal_consent WHERE user_id=$1", [uid])).rows).toEqual([]);
     await db.query("INSERT INTO signal_consent(user_id, source, enabled) VALUES ($1,'calendar',true)", [uid]);
     expect((await db.query("SELECT enabled FROM signal_consent WHERE user_id=$1 AND source='calendar'", [uid])).rows[0]!.enabled).toBe(true);
-    await expect(db.query("INSERT INTO signal_consent(user_id, source, enabled) VALUES ($1,'whatsapp',true)", [uid])).rejects.toThrow(); // not yet: it gets its own consent screen
+    for (const src of ["mail", "whatsapp"]) await db.query("INSERT INTO signal_consent(user_id, source, enabled) VALUES ($1,$2,false)", [uid, src]); // each source has its own row
+    await expect(db.query("INSERT INTO signal_consent(user_id, source, enabled) VALUES ($1,'sms',true)", [uid])).rejects.toThrow(); // an unknown source is refused
     await store.deleteAccount(uid);
     expect((await db.query("SELECT 1 FROM signal_consent WHERE user_id=$1", [uid])).rows).toEqual([]);
   });

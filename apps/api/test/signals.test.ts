@@ -8,7 +8,7 @@ const stored = (items: any[]) => ({ created_at: now.toISOString(), session_id: n
 
 describe("calendar signals (P1-D41)", () => {
   it("keeps source and a valid expiry on a plan item, and drops a malformed date", () => {
-    const [a, b] = normalizeAgendaItems([{ topic: "הפגישה", kind: "direction", source: "calendar", expires_at: "2026-12-04T10:00:00Z" }, { topic: "x", kind: "fresh", source: "whatsapp", expires_at: "tomorrow" }]);
+    const [a, b] = normalizeAgendaItems([{ topic: "הפגישה", kind: "direction", source: "calendar", expires_at: "2026-12-04T10:00:00Z" }, { topic: "x", kind: "fresh", source: "sms", expires_at: "tomorrow" }]);
     expect(a).toMatchObject({ source: "calendar", expires_at: "2026-12-04" });
     expect(b!.source).toBeUndefined();
     expect(b!.expires_at).toBeUndefined();
@@ -25,6 +25,14 @@ describe("calendar signals (P1-D41)", () => {
     const base = { summary: "s", language: "he", progress: [], goals: [], tasks: [], agenda: [] };
     expect((await planNext(llm, turns, base)).next_agenda[0]!.source).toBeUndefined();
     expect((await planNext(llm, turns, { ...base, calendar: ["2026-12-04 10:00 Investor"] })).next_agenda[0]!.source).toBe("calendar");
+  });
+
+  it("the model cannot claim mail or WhatsApp as a source: those items are made, and labelled, by code", async () => {
+    const llm = { name: "fake", json: async () => ({ ms: 1, obj: { next_agenda: [{ topic: "משהו", kind: "direction", source: "whatsapp" }, { topic: "אחר", kind: "fresh", source: "mail" }] } }) } as any;
+    const turns = [{ idx: 0, role: "user", text: "היי", attribution: "primary", startedAt: 0 }] as any;
+    const p = await planNext(llm, turns, { summary: "s", language: "he", progress: [], goals: [], tasks: [], agenda: [], calendar: ["2026-12-04 10:00 משהו אחר"] });
+    expect(p.next_agenda.map((i) => i.source ?? null)).not.toContain("whatsapp");
+    expect(p.next_agenda.map((i) => i.source ?? null)).not.toContain("mail");
   });
 
   it("an item about an event always says so, a calendar 'task' is dropped, and the item expires with the event", () => {

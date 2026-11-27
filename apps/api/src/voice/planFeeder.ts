@@ -14,7 +14,7 @@
  *  - halfway through the ride the pending item is sent unconditionally (pacing).
  * Each item is shown once.
  */
-export interface PlanItem { topic: string; take?: string | null; kind?: string; source?: "calendar" | null }
+export interface PlanItem { topic: string; take?: string | null; kind?: string; source?: "calendar" | "mail" | "whatsapp" | null }
 export interface FeederNote { text: string; turns: number; maxUserWords?: number; minStreak?: number }
 
 /** a user turn of at most this many words means "the conversation has run dry" */
@@ -46,7 +46,12 @@ export class PlanFeeder {
   private text(item: PlanItem): string {
     const take = item.take ? ` Your own take on it: ${item.take}` : "";
     // said openly: where it comes from, so it never feels like a guess about their life
-    const from = item.source === "calendar" ? " You know this from their calendar: say so in a few words (the event and the day only, nothing else from it)." : "";
+    const FROM: Record<string, string> = {
+      calendar: " You know this from their calendar: say so in a few words (the event and the day only, nothing else from it).",
+      mail: " You know this from their mail: say so in a few words (what it is about only; never quote it or name who wrote).",
+      whatsapp: " You know this from their WhatsApp: say so in a few words (what it is about only; never quote a message or name who wrote it).",
+    };
+    const from = item.source ? FROM[item.source] ?? "" : "";
     const how = item.kind === "action_check" ? "Ask about it once, lightly; if it is not done, do not push."
       : item.kind === "direction" ? "Say it as one short statement about what you noticed, then stop."
       : "Say it in your own words, as one short statement.";
