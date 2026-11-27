@@ -13,7 +13,10 @@ projects:
             region: frankfurt
             branch: main
             buildCommand: npm ci
-            startCommand: npm start -w @rolly/api
+            # node runs directly (and `exec`s): under `npm start` the SIGTERM of a deploy stops npm, which takes the container
+            # down at once and never reaches node, so conversations were cut (P1-D45). The server drains on SIGTERM.
+            startCommand: cd apps/api && exec node --import tsx src/main.ts
+            maxShutdownDelaySeconds: 300   # time to let running conversations finish (ROLLY_DRAIN_MAX_S, 240 s, is shorter)
             healthCheckPath: /healthz
             autoDeploy: true
             buildFilter:   # only the API and what it imports restart it (a deploy drops live conversations)

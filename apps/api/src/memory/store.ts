@@ -465,6 +465,48 @@ export class MemoryStore {
     await this.db.query("INSERT INTO sessions(id, user_id, started_at, language, onboarding) VALUES ($1,$2,$3,$4,$5)", [id, userId, startedAt, language, onboarding]);
   }
 
+  // ------------------------------------------------------------ a conversation that survives being cut off (P1-D45)
+  /** A turn, written as it happens. A turn marked `forget_request` is written without its words, here and in finishSession. */
+  async recordTurn(sessionId: string, t: SessionTurn): Promise<void> {
+    if (t.text.startsWith("[")) return; // our own marked messages are never part of the transcript
+    await this.db.query(
+      `INSERT INTO turns(session_id, idx, role, text, language, attribution, meta, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+       ON CONFLICT (session_id, idx) DO UPDATE SET text=EXCLUDED.text, language=EXCLUDED.language, attribution=EXCLUDED.attribution, meta=EXCLUDED.meta`,
+      [sessionId, t.idx, t.role, t.meta?.forget_request ? REMOVED : t.text, t.language ?? null, t.attribution, JSON.stringify(t.meta ?? {}), new Date(t.startedAt)]);
+  }
+
+  /** "Still here": a running conversation calls this every 30 s. */
+  async heartbeat(sessionId: string): Promise<void> {
+    await this.db.query("UPDATE sessions SET heartbeat_at=now() WHERE id=$1 AND ended_at IS NULL", [sessionId]);
+  }
+
+  /** Conversations that never ended and have been silent for `idleS` seconds (started within the last day). */
+  async orphanSessions(idleS: number): Promise<string[]> {
+    const r = await this.db.query<{ id: string }>(
+      `SELECT id FROM sessions WHERE ended_at IS NULL AND started_at > now() - interval '1 day'
+         AND coalesce(heartbeat_at, started_at) < now() - make_interval(secs => $1) ORDER BY started_at LIMIT 20`, [idleS]);
+    return r.rows.map((x) => x.id);
+  }
+
+  /** Take one orphan for finishing: only one instance gets it (the heartbeat is moved forward in the same statement). */
+  async claimOrphan(sessionId: string, idleS: number): Promise<{ user_id: string; language: string | null; started_at: Date } | null> {
+    const r = await this.db.query<{ user_id: string; language: string | null; started_at: Date }>(
+      `UPDATE sessions SET heartbeat_at=now() WHERE id=$1 AND ended_at IS NULL AND coalesce(heartbeat_at, started_at) < now() - make_interval(secs => $2)
+       RETURNING user_id, language, started_at`, [sessionId, idleS]);
+    return r.rows[0] ?? null;
+  }
+
+  async sessionTurns(sessionId: string): Promise<SessionTurn[]> {
+    const r = await this.db.query<{ idx: number; role: "user" | "agent"; text: string; language: string | null; attribution: "primary" | "uncertain"; meta: Record<string, unknown>; created_at: Date }>(
+      "SELECT idx, role, text, language, attribution, meta, created_at FROM turns WHERE session_id=$1 ORDER BY idx", [sessionId]);
+    return r.rows.map((t) => ({ idx: t.idx, role: t.role, text: t.text, language: t.language, attribution: t.attribution, meta: t.meta ?? {}, startedAt: new Date(t.created_at).getTime() }));
+  }
+
+  /** An orphan with nothing said: just close it, so it is not looked at again. */
+  async closeEmptySession(sessionId: string, endReason: string): Promise<void> {
+    await this.db.query("UPDATE sessions SET ended_at=now(), end_reason=$2 WHERE id=$1 AND ended_at IS NULL", [sessionId, endReason]);
+  }
+
   /** Learn addressing from the session's user turns (primary turns only change the preference). Returns the new record. */
   async learnAddressing(userId: string, sessionId: string, turns: SessionTurn[],
     /** phrases the summariser picked as the user speaking about themselves in a gendered form */
@@ -513,7 +555,8 @@ export class MemoryStore {
       [sessionId, record ? JSON.stringify(record) : null, JSON.stringify(args.stats), args.endReason, JSON.stringify(args.describe), userTurns]);
     for (const t of turns) {
       await this.db.query(
-        "INSERT INTO turns(session_id, idx, role, text, language, attribution, meta, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT DO NOTHING",
+        "INSERT INTO turns(session_id, idx, role, text, language, attribution, meta, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)"
+        + " ON CONFLICT (session_id, idx) DO UPDATE SET text=EXCLUDED.text, language=EXCLUDED.language, attribution=EXCLUDED.attribution, meta=EXCLUDED.meta", // the final state wins over what was written while it ran (e.g. a forget request)
         [sessionId, t.idx, t.role, t.meta?.forget_request ? REMOVED : t.text, t.language ?? null, t.attribution, JSON.stringify(t.meta ?? {}), new Date(t.startedAt)]);
     }
   }
