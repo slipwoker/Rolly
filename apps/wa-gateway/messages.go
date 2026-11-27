@@ -144,14 +144,11 @@ func (s *MessageStore) AddMessage(ctx context.Context, userID, chatRef string, m
 	return err
 }
 
-// Chats lists chats, newest first. q matches the name (case-insensitive, substring).
+// Chats lists chats, newest first. q matches the name: first as plain text (case, direction marks and punctuation ignored), then,
+// only if that finds nothing, by consonant skeleton across Hebrew and Latin letters (translit.go), so "אלכס דומסקי" finds "Alex Dumsky".
 func (s *MessageStore) Chats(ctx context.Context, userID, q string, groups *bool, limit int) ([]Chat, error) {
 	query := `SELECT ref, name, is_group, last_ts FROM wa_chats WHERE user_id = ?`
 	args := []any{userID}
-	if q = strings.TrimSpace(q); q != "" {
-		query += ` AND lower(name) LIKE ? ESCAPE '\'`
-		args = append(args, "%"+likeEscape(strings.ToLower(q))+"%")
-	}
 	if groups != nil {
 		g := 0
 		if *groups {
@@ -160,8 +157,43 @@ func (s *MessageStore) Chats(ctx context.Context, userID, q string, groups *bool
 		query += ` AND is_group = ?`
 		args = append(args, g)
 	}
-	query += ` ORDER BY last_ts DESC LIMIT ?`
-	args = append(args, limit)
+	q = strings.TrimSpace(q)
+	if q == "" { // no name: just the most recent chats
+		query += ` ORDER BY last_ts DESC LIMIT ?`
+		args = append(args, limit)
+		return s.scanChats(ctx, query, args)
+	}
+	if fold(q) == "" {
+		return []Chat{}, nil // nothing searchable in it (for example only punctuation): never "everything"
+	}
+	query += ` ORDER BY last_ts DESC LIMIT 5000` // an address book fits; matching happens in Go
+	all, err := s.scanChats(ctx, query, args)
+	if err != nil {
+		return nil, err
+	}
+	var plain, fuzzy []Chat
+	for _, c := range all {
+		switch nameMatches(c.Name, q) {
+		case 1:
+			plain = append(plain, c)
+		case 2:
+			fuzzy = append(fuzzy, c)
+		}
+	}
+	out := plain
+	if len(out) == 0 {
+		out = fuzzy // the loose match is only a fallback: a plain match is never mixed with guesses
+	}
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	if out == nil {
+		out = []Chat{}
+	}
+	return out, nil
+}
+
+func (s *MessageStore) scanChats(ctx context.Context, query string, args []any) ([]Chat, error) {
 	rows, err := s.db.QueryContext(ctx, s.q(query), args...)
 	if err != nil {
 		return nil, err
@@ -298,15 +330,17 @@ func (s *MessageStore) SendStats(ctx context.Context, userID string, since time.
 }
 
 // Totals are counts for monitoring.
-func (s *MessageStore) Totals(ctx context.Context, since time.Time) (messages, chats int, oldest int64, sends int, err error) {
+func (s *MessageStore) Totals(ctx context.Context, since time.Time) (messages, chats, unnamed int, oldest int64, sends int, err error) {
 	var o sql.NullInt64
 	if err = s.db.QueryRowContext(ctx, `SELECT COUNT(*), MIN(ts) FROM wa_messages`).Scan(&messages, &o); err != nil {
 		return
 	}
 	oldest = o.Int64
-	if err = s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM wa_chats`).Scan(&chats); err != nil {
+	if err = s.db.QueryRowContext(ctx, `SELECT COUNT(*), COUNT(CASE WHEN name = '' AND is_group = 0 THEN 1 END) FROM wa_chats`).Scan(&chats, &unnamed); err != nil {
 		return
 	}
 	err = s.db.QueryRowContext(ctx, s.q(`SELECT COUNT(*) FROM wa_sends WHERE ts >= ?`), since.UnixMilli()).Scan(&sends)
 	return
 }
+
+func isNoRows(err error) bool { return errors.Is(err, sql.ErrNoRows) }

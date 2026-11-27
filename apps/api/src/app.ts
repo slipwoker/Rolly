@@ -26,6 +26,7 @@ import { TokenVault, readSealedToken, resealLegacyTokens, signState, verifyState
 import { GatewayError, httpGateway } from "./whatsapp/gateway.ts";
 import { WhatsAppFlow } from "./whatsapp/flow.ts";
 import { whatsappLinkRoutes } from "./whatsapp/webLink.ts";
+import { whatsappAdminRoutes } from "./whatsapp/adminRoutes.ts";
 import { elasticMailer } from "./email/elastic.ts";
 import { AuditRecorder } from "./audit/recorder.ts";
 import { loadPricing } from "./audit/pricing.ts";
@@ -452,6 +453,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       if (!gateway) return { available: false };
       return gateway.stats().then((s) => ({ available: true, ...s })).catch(() => reply.code(502).send({ available: true, error: "gateway unreachable" }));
     });
+    await whatsappAdminRoutes(app, { gateway, admin }); // TEMPORARY owner-only diagnostics, see whatsapp/adminRoutes.ts
     app.get("/v1/admin/users", async (req, reply) => {
       if (!admin(req, reply)) return;
       return { users: (await db.query(`SELECT u.id, u.display_label, u.created_at, count(d.id)::int AS devices,

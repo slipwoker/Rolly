@@ -18,7 +18,7 @@ class FakeGateway implements Gateway {
   async link(userId: string, mode: string, _phone: string | undefined, consent: boolean) { this.calls.push(`link:${userId}:${mode}:${consent}`); if (this.linkError) throw this.linkError; return {}; }
   async chats() { return []; } async messages() { return { chat: { ref: "", name: "" }, messages: [] }; }
   async draft(): Promise<never> { throw new Error("no"); } async confirm(): Promise<never> { throw new Error("no"); }
-  async cancel() {} async unlink() {} async stats() { return {}; }
+  async cancel() {} async unlink() {} async stats() { return {}; } async debugLookup() { return {}; }
 }
 class FakeMailer implements Mailer { sent: Mail[] = []; fail = false; async send(m: Mail) { if (this.fail) throw new MailError(500); this.sent.push(m); } }
 
