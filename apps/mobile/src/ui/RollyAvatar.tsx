@@ -1,14 +1,14 @@
 /**
  * ROLLY's avatar: a little white driver peeking over a steering wheel. It steers gently, bobs over the road, blinks,
  * and gets livelier while ROLLY talks (no mouth, by design: the eyes carry the face). The backdrop follows the local
- * clock: a sunny sky with drifting clouds by day, a violet night with a moon and twinkling stars after 19:00.
+ * sun: a sunny sky with drifting clouds by day, a violet night with a moon and twinkling stars after sunset (daypart.ts).
  * There is no frame: the sky is a soft glow that fades out towards the edges, so it melts into whatever screen it
  * sits on (`framed` clips it to a crisp circle instead, for tiny chat avatars where a fuzzy edge would read as blur).
  * Everything is drawn in a 1024×1024 space and scaled to `size`. Animation runs on the UI thread (Reanimated);
  * `still` (or the OS "reduce motion" setting) renders a static frame.
  */
 import { useEffect, useId, useState, type ComponentProps, type ReactNode } from "react";
-import { StyleSheet, View } from "react-native";
+import { AppState, StyleSheet, View } from "react-native";
 import Animated, {
   Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withTiming,
 } from "react-native-reanimated";
@@ -62,14 +62,16 @@ function SoftEdge({ id }: { id: string }) {
   );
 }
 
-/** Follows the clock and re-renders right when day turns to night (and back). */
+/** Follows the real sun (daypart.ts): flips at sunset and sunrise, and re-checks whenever the app comes back. */
 export function useNight(): boolean {
   const [night, setNight] = useState(() => isNight());
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
-    const arm = () => { timer = setTimeout(() => { setNight(isNight()); arm(); }, msUntilSwitch() + 1000); };
+    const arm = () => { clearTimeout(timer); timer = setTimeout(() => { setNight(isNight()); arm(); }, msUntilSwitch() + 1000); };
     arm();
-    return () => clearTimeout(timer);
+    // timers sleep while the app is in the background: catch up on return
+    const sub = AppState.addEventListener("change", (s) => { if (s === "active") { setNight(isNight()); arm(); } });
+    return () => { clearTimeout(timer); sub.remove(); };
   }, []);
   return night;
 }

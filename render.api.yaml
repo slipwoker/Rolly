@@ -51,6 +51,10 @@ projects:
                 sync: false
               - key: ROLLY_ADMIN_TOKEN
                 sync: false
+              # seals stored Google refresh tokens (P1-D40); only here, never in the database. Required: the service
+              # refuses to start without it. Set it in the dashboard before deploying: docs/SECURITY.md
+              - key: ROLLY_INTEGRATIONS_KEY
+                sync: false
               - key: ROLLY_ENROLLMENT_KEY
                 sync: false
               - key: ROLLY_PUBLIC_URL

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { UtilityLlm } from "../src/memory/llm.ts";
 import type { Http } from "../src/integrations/http.ts";
 import { runTool, parsePlan, startOfDay, type ToolDeps } from "../src/integrations/tools.ts";
-import { seal, unseal, signState, verifyState } from "../src/integrations/crypto.ts";
+import { TokenVault, signState, verifyState } from "../src/integrations/crypto.ts";
 import { authUrl, GOOGLE_SCOPES } from "../src/integrations/google.ts";
 import { resetSpotifyToken, playTarget } from "../src/integrations/spotify.ts";
 import { core } from "../src/persona/core.ts";
@@ -209,12 +209,13 @@ describe("playing music: the song's link is opened in Spotify on the phone", () 
 });
 
 describe("sealing and OAuth state", () => {
-  it("seals a token so only the same secret opens it", () => {
-    const s = seal("1//refresh", "secret-a");
+  it("seals a token so only the same key opens it", () => {
+    const a = new TokenVault("k".repeat(32), null), b = new TokenVault("j".repeat(32), null);
+    const s = a.seal("1//refresh");
     expect(s).not.toContain("refresh");
-    expect(unseal(s, "secret-a")).toBe("1//refresh");
-    expect(unseal(s, "secret-b")).toBeNull();
-    expect(unseal("garbage", "secret-a")).toBeNull();
+    expect(a.unseal(s)).toBe("1//refresh");
+    expect(b.unseal(s)).toBeNull();
+    expect(a.unseal("garbage")).toBeNull();
   });
   it("binds the callback to the user who started it, for ten minutes", () => {
     const st = signState("user-1", "k", NOW.getTime());

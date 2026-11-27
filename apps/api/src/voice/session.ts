@@ -73,7 +73,9 @@ export interface SessionHooks {
    */
   /** the opening line of a conversation, as said: the next conversation of this user can start differently even if this one has not been saved yet */
   rememberOpener?(userId: string, text: string): void;
-  lookup?(args: { userId: string; sessionId: string; question: string; lastMedia: MediaItem[]; recent: { role: "user" | "agent"; text: string }[]; language: string }): Promise<{ message: string; ok: boolean; reason?: string; media?: MediaItem[]; open?: { url: string } }>;
+  lookup?(args: { userId: string; sessionId: string; question: string; lastMedia: MediaItem[]; recent: { role: "user" | "agent"; text: string }[]; language: string;
+    /** the last user turn's attribution and how many user turns there are (WhatsApp: nothing is read or sent for another voice, a yes must be a later turn) */
+    attribution?: "primary" | "uncertain"; userTurns?: number }): Promise<{ message: string; ok: boolean; reason?: string; media?: MediaItem[]; open?: { url: string } }>;
   /** called at the end; returns the summary that is sent to the phone */
   finalize(args: { userId: string; sessionId: string; turns: SessionTurn[]; stats: Record<string, unknown>; endReason: string;
     describe: Record<string, unknown>; language: string; startedAt: Date;
@@ -314,7 +316,7 @@ export class VoiceSession {
     const at_s = Math.round((t0 - this.startedAt.getTime()) / 1000);
     const recent = this.turns.slice(-6).map((t) => ({ role: t.role, text: t.text }));
     const guard = new Promise<{ message: string; ok: boolean; reason?: string; media?: MediaItem[]; open?: { url: string } }>((r) => setTimeout(() => r({ message: LOOKUP_TIMEOUT_MESSAGE, ok: false, reason: "timeout" }), 18_000));
-    Promise.race([this.hooks.lookup({ userId: this.userId, sessionId: this.sessionId, question, lastMedia: this.lastMedia, recent, language: this.language }), guard])
+    Promise.race([this.hooks.lookup({ userId: this.userId, sessionId: this.sessionId, question, lastMedia: this.lastMedia, recent, language: this.language, attribution: users.at(-1)?.attribution, userTurns: users.length }), guard])
       .catch((e) => ({ message: LOOKUP_TIMEOUT_MESSAGE, ok: false, reason: String(e).slice(0, 80) }))
       .then((r: { message: string; ok: boolean; reason?: string; media?: MediaItem[]; open?: { url: string } }) => {
         const rec = { at_s, ok: r.ok, ...(r.reason ? { reason: r.reason } : {}), search_ms: Date.now() - t0, delivered_after_ms: null as number | null };

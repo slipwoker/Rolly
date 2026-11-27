@@ -4,6 +4,10 @@
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 WS="${ROLLY_WORKSPACE:-/workspace}"; LOGS="$WS/logs"; mkdir -p "$LOGS"
+# never an open worker (decision P1-D40); checked before the running one is stopped, so a job without the key changes nothing
+if [ -z "${ROLLY_GPU_API_KEY:-}" ]; then
+  echo "ROLLY_GPU_API_KEY is required: the worker refuses every request without it; the running worker was left as it is"; exit 1
+fi
 export HF_HOME="${HF_HOME:-$WS/hf}"
 export ROLLY_STT_DEVICE=cuda ROLLY_STT_COMPUTE=float16 ROLLY_STT_WORKERS="${ROLLY_STT_WORKERS:-4}"
 export ROLLY_TTS_PROVIDER=cpu ROLLY_TTS_INSTANCES="${ROLLY_TTS_INSTANCES:-4}" ROLLY_TTS_THREADS=2
@@ -19,7 +23,10 @@ export ROLLY_TTS_HE_ENGINE="${ROLLY_TTS_HE_ENGINE:-blue}" ROLLY_VOICE_DIR="$WS/v
 export ROLLY_PRON_URL="${ROLLY_PRON_URL:-http://127.0.0.1:1921}" ROLLY_PRON_CACHE="${ROLLY_PRON_CACHE:-$WS/pron_cache.json}"
 export ROLLY_ZONOS_VOICE="${ROLLY_ZONOS_VOICE:-$WS/voices/he_voice.codes.npy}"
 pkill -f "uvicorn backend.gpu_worker" 2>/dev/null || true; sleep 1
-nohup .venv/bin/uvicorn backend.gpu_worker:app --host 0.0.0.0 --port 8000 > "$LOGS/worker.log" 2>&1 &
+# ">>": the log is rotated in place by log_retention.sh (7 days kept), which runs alongside the worker
+nohup .venv/bin/uvicorn backend.gpu_worker:app --host 0.0.0.0 --port 8000 >> "$LOGS/worker.log" 2>&1 &
+pkill -f "infrastructure/log_retention.sh" 2>/dev/null || true
+nohup bash infrastructure/log_retention.sh >/dev/null 2>&1 &
 for i in $(seq 1 120); do curl -fs http://127.0.0.1:8000/healthz 2>/dev/null | grep -q '"ready":true' && break; sleep 3; done
 curl -fs http://127.0.0.1:8000/healthz | grep -q '"ready":true' || { echo "GPU worker not ready - see $LOGS/worker.log"; tail -30 "$LOGS/worker.log"; exit 1; }
 echo "GPU worker is up on port 8000"

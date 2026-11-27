@@ -47,7 +47,7 @@ function Bar({ i, t, lv, color, height }: { i: number; t: SharedValue<number>; l
   const st = useAnimatedStyle(() => {
     const phase = t.get() * Math.PI * 2;
     const wave = Math.abs(Math.sin(phase * (1 + (i % 3) * 0.5) + i * 0.9)) * (0.55 + 0.45 * Math.abs(Math.sin(i * 1.7)));
-    return { transform: [{ scaleY: 0.15 + 0.85 * wave * lv.get() }] };
+    return { transform: [{ scaleY: 0.3 + 0.7 * wave * lv.get() }] };  // never flatter than a short rounded bar
   });
   return <Animated.View style={[{ width: 3, height, borderRadius: 2, backgroundColor: color }, st]} />;
 }

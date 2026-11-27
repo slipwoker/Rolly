@@ -139,6 +139,10 @@ export function secretOk(given: string | undefined, expected: string | null): bo
 export class RateLimiter {
   private hits = new Map<string, number[]>();
   constructor(private readonly max: number, private readonly windowMs: number) {}
+  /** true when `key` has used up its hits in the current window (records nothing) */
+  limited(key: string, now = Date.now()): boolean {
+    return (this.hits.get(key) ?? []).filter((t) => now - t < this.windowMs).length >= this.max;
+  }
   allow(key: string, now = Date.now()): boolean {
     const h = (this.hits.get(key) ?? []).filter((t) => now - t < this.windowMs);
     if (h.length >= this.max) { this.hits.set(key, h); return false; }
@@ -152,4 +156,27 @@ export function adminOk(header: string | undefined, adminToken: string | null): 
   if (!adminToken || !header) return false;
   const a = Buffer.from(header), b = Buffer.from(`Bearer ${adminToken}`);
   return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/**
+ * The admin bearer token with a limit on FAILED attempts (P1-D40): at most `perIp` failures per client address and
+ * `total` failures overall per window. Once either is reached, every admin request is refused (even with the right
+ * token) until the window moves on. The overall cap matters because the client address comes from X-Forwarded-For
+ * (trustProxy), which a client can vary. Successful requests are not counted (the backoffice makes many).
+ */
+export class AdminGate {
+  private readonly byIp: RateLimiter;
+  private readonly all: RateLimiter;
+  constructor(private readonly adminToken: string | null, o: { perIp?: number; total?: number; windowMs?: number } = {}) {
+    const w = o.windowMs ?? 15 * 60_000;
+    this.byIp = new RateLimiter(o.perIp ?? 10, w);
+    this.all = new RateLimiter(o.total ?? 100, w);
+  }
+  check(header: string | undefined, ip: string, now = Date.now()): "ok" | "unauthorized" | "limited" {
+    if (this.byIp.limited(ip, now) || this.all.limited("*", now)) return "limited";
+    if (adminOk(header, this.adminToken)) return "ok";
+    this.byIp.allow(ip, now);
+    this.all.allow("*", now);
+    return "unauthorized";
+  }
 }

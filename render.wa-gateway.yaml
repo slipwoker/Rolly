@@ -1,0 +1,64 @@
+# Render Blueprint for rolly-wa-gateway (docs/WHATSAPP_GATEWAY.md). NOT adopted and NOT synced by anything yet: the live
+# Blueprint is render.api.yaml. To deploy, the owner creates a new Blueprint from THIS file (or merges it into
+# render.api.yaml) in the existing "Rolly" project, then fills the sync:false values in the dashboard. Nothing here runs by itself.
+#
+# - a PRIVATE service: reachable only from other services in the same Render workspace and region; rolly-api calls it with
+#   ROLLY_WA_GATEWAY_URL=http://rolly-wa-gateway:10000 and the shared bearer token.
+# - exactly ONE instance: a linked WhatsApp device cannot be connected twice (numInstances stays 1, never autoscale).
+# - its own database, so the messages of this feature live (and can be dropped) apart from rolly-api's.
+# - deploys follow `main`, but ONLY when something under apps/wa-gateway changes (buildFilter, like rolly-api's): a push that
+#   touches the site, the app or the voice service must not restart this service. Every deploy drops the WhatsApp
+#   connections for a few seconds (the accounts reconnect staggered) and, for a moment, runs the old and the new instance
+#   together: the old one is told "replaced" and must not touch the account state (fixed in PR #38; check that after a deploy
+#   GET /v1/admin/whatsapp on rolly-api still shows the account as connected).
+projects:
+  - name: Rolly
+    environments:
+      - name: Production
+        services:
+          - type: pserv
+            name: rolly-wa-gateway
+            runtime: docker
+            plan: starter
+            region: frankfurt
+            numInstances: 1
+            branch: main
+            dockerfilePath: ./apps/wa-gateway/Dockerfile
+            dockerContext: ./apps/wa-gateway
+            autoDeploy: true
+            buildFilter:   # only the gateway's own code restarts it
+              paths:
+                - "apps/wa-gateway/**"
+              ignoredPaths:
+                - "**/*.md"
+                - "apps/wa-gateway/**/*_test.go"
+            envVars:
+              - key: DATABASE_URL
+                fromDatabase:
+                  name: rolly-wa-db
+                  property: connectionString
+              - key: WA_RETENTION_DAYS
+                value: "30"
+              - key: WA_SEND_PER_DAY
+                value: "40"
+              - key: WA_SEND_MIN_GAP_S
+                value: "4"
+              - key: WA_STT_URL
+                value: https://gn48mxl9lsf1nv-8000.proxy.runpod.net/v1/audio/transcriptions
+              - key: WA_STT_LANGUAGE
+                value: he
+              - key: WA_GATEWAY_TOKEN     # also set as ROLLY_WA_GATEWAY_TOKEN on rolly-api (same value, 32+ random characters)
+                sync: false
+              - key: WA_DATA_KEY          # 32 random bytes, base64 (openssl rand -base64 32): seals message content; losing it makes stored messages unreadable
+                sync: false
+              - key: WA_STT_TOKEN         # the GPU worker's bearer token (the same value as ROLLY_GPU_API_KEY)
+                sync: false
+        databases:
+          - name: rolly-wa-db
+            plan: basic-256mb
+            region: frankfurt
+            postgresMajorVersion: "17"
+            diskSizeGB: 1
+            databaseName: rolly_wa_db
+            user: rolly_wa_db_user
+            ipAllowList: []   # no access from outside Render

@@ -1,0 +1,50 @@
+# ROLLY
+
+> Rolly is a voice companion for your drives: it starts the conversation, remembers what you agreed and picks up where you left off. Hands-free. Coming soon to iPhone and Android.
+
+ROLLY (in Hebrew: רולי) is a voice-first companion app for car rides, in Hebrew and English. It is in its last round of testing and is coming soon to iPhone and Android. Website and waitlist: https://heyrolly.ai/en/ (English), https://heyrolly.ai/ (Hebrew).
+
+## Key facts
+
+- **What is Rolly?** Rolly is a voice companion app for your drives. It starts the conversation, remembers what you agreed last time and picks up where you left off. You talk hands-free, and it notes tasks, ideas and decisions as you go.
+- **Which languages does Rolly speak?** Hebrew and English. Talk in whichever feels natural.
+- **When is Rolly coming out, and on which phones?** Rolly is coming to iPhone and Android and is in its last round of testing. Join the waitlist and get one email when the app is ready.
+- **Do I need to touch my phone while driving?** No. Connect to your car's Bluetooth and tap once. From there it's all voice, even with your phone locked in your pocket. You can also interrupt Rolly mid-sentence, and it stops and listens.
+- **What does Rolly remember, and can I delete it?** What you agreed, what matters to you and what's still open. You can see everything it remembers at any time, and fix or delete it.
+- **How does Rolly fit the conversation to my drive?** Rolly knows how much time you have and shapes the conversation to fit: on a short ride, a quick status and one decision; on a long one, a big goal broken into steps. Whatever doesn't fit waits for next time.
+
+## How it works
+
+1. **Start the car.** Connect to your car's Bluetooth and tap once. From there it's all voice, even with your phone locked in your pocket.
+2. **Rolly goes first.** No need to think of what to ask. It knows how much time you have and what's still open from yesterday, and starts there.
+3. **Arrive with a plan.** Tasks, ideas and decisions get noted as you talk. Next ride, you pick up exactly where you left off.
+
+## What it does
+
+- **Remembers:** What you agreed, what matters to you and what's still open.
+- **Goes first:** Opens with what matters today, not “How can I help?”
+- **Interruptible:** Start talking mid-sentence? It stops and listens.
+- **English or Hebrew:** Talk in whichever feels natural.
+- **Paced to your ride:** 10 minutes or 40, the conversation fits the time you have.
+- **Fully transparent:** See everything it remembers, and fix or delete it.
+
+## Pages
+
+- [ROLLY, in English](https://heyrolly.ai/en/): ROLLY · A ride buddy who remembers
+- [ROLLY, in Hebrew](https://heyrolly.ai/): ROLLY · חבר לנסיעה שזוכר הכל
+- [Privacy policy](https://heyrolly.ai/en/privacy/): What Rolly collects on the website and in the app, why, who it is shared with, how long it is kept, and how to see, correct and delete it.
+- [Terms of use](https://heyrolly.ai/en/terms/): The terms for using the Rolly website and app: driving safety, responsibility for AI-generated content, connected services and privacy.
+- [Accessibility statement](https://heyrolly.ai/en/accessibility/): How accessible the Rolly website is, the adjustments we made, known limitations and how to reach our accessibility coordinator.
+
+ROLLY is operated by Zappy Technologies Ltd., 4 HaShlosha St., Nitzanei Oz, Israel. Contact: ido@zappy5.com; privacy: privacy@zappy5.com.
+
+## בעברית
+
+> רולי הוא שותף קולי לנסיעות: פותח את השיחה, זוכר מה סיכמתם וממשיך מאיפה שעצרתם. בעברית, בלי ידיים. בקרוב ל־iPhone ול־Android.
+
+- **מה זה רולי?** רולי הוא אפליקציה של שותף קולי לנסיעות ברכב. הוא פותח את השיחה, זוכר מה סיכמתם בפעם הקודמת וממשיך מאיפה שעצרתם. מדברים איתו בלי ידיים, והוא רושם משימות, רעיונות והחלטות תוך כדי שיחה.
+- **באילו שפות אפשר לדבר עם רולי?** עברית ואנגלית. מדברים בשפה שנוחה לכם.
+- **מתי רולי יוצא, ועל אילו טלפונים?** רולי יגיע ל־iPhone ול־Android, והוא בסבב הבדיקות האחרון. מצטרפים לרשימת ההמתנה ומקבלים מייל אחד כשהאפליקציה מוכנה.
+- **צריך לגעת בטלפון בזמן הנהיגה?** לא. מתחברים לבלוטות׳ של הרכב ולוחצים פעם אחת. מכאן הכל בקול, גם כשהטלפון נעול בכיס. אפשר גם לקטוע את רולי באמצע משפט, והוא עוצר ומקשיב.
+- **מה רולי זוכר, ואפשר למחוק?** רולי זוכר מה סיכמתם, מה חשוב לכם ומה עוד פתוח. בכל רגע אפשר לראות את כל מה שהוא זוכר, לתקן או למחוק.
+- **איך רולי מתאים את השיחה לאורך הנסיעה?** רולי יודע כמה זמן יש לכם ומתאים את השיחה: בנסיעה קצרה, סטטוס מהיר והחלטה אחת; בנסיעה ארוכה, לוקחים מטרה גדולה ומפרקים אותה לשלבים. מה שלא נכנס נשמר לפעם הבאה.
