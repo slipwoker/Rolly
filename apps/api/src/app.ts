@@ -22,6 +22,7 @@ import { lookupMessage } from "./lookup/web.ts";
 import { runTool, type Connections } from "./integrations/tools.ts";
 import { realHttp } from "./integrations/http.ts";
 import * as googleApi from "./integrations/google.ts";
+import { GoogleActions } from "./integrations/actions.ts";
 import { TokenVault, readSealedToken, resealLegacyTokens, signState, verifyState } from "./integrations/crypto.ts";
 import { GatewayError, httpGateway } from "./whatsapp/gateway.ts";
 import { WhatsAppFlow } from "./whatsapp/flow.ts";
@@ -97,7 +98,12 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       return readSealedToken(db, vault, userId, "google");
     },
     async dropGoogle(userId) { await db.query("DELETE FROM integrations WHERE user_id=$1 AND provider='google'", [userId]); },
+    async googleScopes(userId) {
+      return (await db.query<{ scopes: string }>("SELECT scopes FROM integrations WHERE user_id=$1 AND provider='google'", [userId]).catch(() => ({ rows: [] as { scopes: string }[] }))).rows[0]?.scopes ?? null;
+    },
   };
+  // sending email and adding events: draft, read back, a later spoken yes (integrations/actions.ts)
+  const actions = googleCfg ? new GoogleActions({ http: realHttp, cfg: googleCfg, connections, timeZone: config.timezone }) : null;
   const hooks: SessionHooks = {
     rememberOpener(userId, text) { recentOpeners.set(userId, text); },
     async prepare(userId, sessionId, start) {
@@ -115,14 +121,17 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       const { language, chosen } = resolveLanguage(start, view.profile.preferredLanguage);
       if (chosen === "he" || chosen === "en") await store.updateProfile(userId, { preferred_language: chosen });
       const lookup = config.webLookup && Boolean(llm?.search);
+      // what this user's Google connection allows: reading only (connected before writing existed) or also sending and adding events
+      const gg = googleCfg ? googleApi.grants((await connections.googleScopes?.(userId)) ?? "") : null;
+      const toolCaps = { calendar: Boolean(googleCfg), music: Boolean(config.spotify), play: Boolean(config.spotify), write: Boolean(gg?.sendMail && gg?.writeCalendar) };
       const whatsapp = wa ? await wa.linked(userId) : false;
       const built = buildContext(view, { language, journey: { ...start.journey, proactive }, timeZone: config.timezone, resume, lookup, whatsapp,
-        tools: { calendar: Boolean(googleCfg), music: Boolean(config.spotify), play: Boolean(config.spotify) } });
+        tools: toolCaps });
       await store.startSession(sessionId, userId, built.language, built.onboarding, new Date());
       await store.markUsed(view.usedIds);
       sessionAgenda.set(sessionId, built.agenda);
       await audit.recordPrompt({ sessionId, userId, language: built.language, onboarding: built.onboarding, systemPrompt: built.system_prompt,
-        persona: core(built.language, { lookup, whatsapp, tools: { calendar: Boolean(googleCfg), music: Boolean(config.spotify), play: Boolean(config.spotify) } }), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })),
+        persona: core(built.language, { lookup, whatsapp, tools: toolCaps }), opener: built.opener_instruction, plan: built.agenda.map((a) => ({ topic: a.topic, take: a.take ?? null, kind: a.kind })),
         memoryIds: view.usedIds, sampling: config.llmSampling });
       const foreign = practiceLanguage(view);
       return {
@@ -149,7 +158,8 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     async lookup(args) {
       return audit.run({ userId: args.userId, sessionId: args.sessionId }, async () => {
         // WhatsApp first: the same marker is used for it, so the user's words decide (whatsapp/flow.ts); null = a web question
-        const viaWhatsApp = wa ? await wa.handle(args).catch(() => null) : null;
+        // (not while an email or event draft waits for its yes: that "yes" is for the draft)
+        const viaWhatsApp = wa && !actions?.waiting(args.sessionId) ? await wa.handle(args).catch(() => null) : null;
         if (viaWhatsApp) return viaWhatsApp;
         const refuse = (reason: "unavailable" | "limit") => ({ message: lookupMessage({ ok: false, reason, ms: 0 }), ok: false, reason });
         if (!config.webLookup || !llm?.search) return refuse("unavailable");
@@ -157,12 +167,13 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
           .catch(() => ({ rows: [{ n: 0 }] }))).rows[0]?.n ?? 0;
         if (used >= config.lookupsPerDay) return refuse("limit");
         // web search, calendar, mail or music: a small planning call picks the tool (integrations/tools.ts)
-        const r = await runTool({ llm, http: realHttp, connections, google: googleCfg, spotify: config.spotify }, { userId: args.userId, lastMedia: args.lastMedia, question: args.question, recent: args.recent, language: args.language, timeZone: config.timezone });
+        const r = await runTool({ llm, http: realHttp, connections, google: googleCfg, spotify: config.spotify, actions }, { userId: args.userId, sessionId: args.sessionId, attribution: args.attribution, userTurns: args.userTurns, lastMedia: args.lastMedia, question: args.question, recent: args.recent, language: args.language, timeZone: config.timezone });
         return { message: r.message, ok: r.ok, ...(r.reason ? { reason: r.reason } : {}), ...(r.media ? { media: r.media } : {}), ...(r.open ? { open: r.open } : {}) };
       });
     },
     async finalize(args) {
       wa?.endSession(args.sessionId, args.userId);
+      actions?.endSession(args.sessionId);
       const p = audit.run({ userId: args.userId, sessionId: args.sessionId }, () => finalizeSession(args));
       finalizing.set(args.sessionId, p);
       try { return await p; } finally { setTimeout(() => finalizing.delete(args.sessionId), 60_000); }
@@ -282,8 +293,10 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     // ---------------------------------------------------------- connected services
     /** what the app shows under "connected services": calendar + email share one Google connection; music needs no sign-in */
     const servicesFor = async (userId: string) => {
-      const g = await db.query<{ account_label: string | null }>("SELECT account_label FROM integrations WHERE user_id=$1 AND provider='google'", [userId]).catch(() => ({ rows: [] as { account_label: string | null }[] }));
-      const google = !googleCfg ? "not_available" : g.rows[0] ? "connected" : "not_connected";
+      const g = await db.query<{ account_label: string | null; scopes: string }>("SELECT account_label, scopes FROM integrations WHERE user_id=$1 AND provider='google'", [userId]).catch(() => ({ rows: [] as { account_label: string | null; scopes: string }[] }));
+      const gr = g.rows[0] ? googleApi.grants(g.rows[0].scopes) : null;
+      // "needs_update": connected before writing existed, so it can read but not send or add events until the user taps once more
+      const google = !googleCfg ? "not_available" : !g.rows[0] ? "not_connected" : gr?.sendMail && gr.writeCalendar ? "connected" : "needs_update";
       return [
         { id: "calendar", provider: "google", status: google, account: g.rows[0]?.account_label ?? null },
         { id: "email", provider: "google", status: google, account: g.rows[0]?.account_label ?? null },

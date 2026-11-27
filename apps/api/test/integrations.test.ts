@@ -172,6 +172,16 @@ describe("music", () => {
     expect((await runTool(deps({ llm: llmFor({ tool: "calendar" }), http }), { ...base, question: "מה ביומן" })).media).toBeUndefined();
   });
 
+  it("keeps Spotify's own reason when a search is refused, so the audit says why", async () => {
+    const http = fakeHttp({
+      "https://accounts.spotify.com/api/token": () => Promise.resolve(ok({ access_token: "st", expires_in: 3600 })),
+      "https://api.spotify.com/v1/search": () => Promise.resolve({ ok: false, status: 403, json: { error: { status: 403, message: "Active premium subscription required for the owner of the app." } } }),
+    });
+    const r = await runTool(deps({ llm: llmFor({ tool: "music", query: "queen" }), http }), { ...base, question: "שיר של קווין" });
+    expect(r).toMatchObject({ ok: false });
+    expect(r.reason).toContain("premium subscription required for the owner");
+  });
+
   it("reports when Spotify is not configured", async () => {
     const r = await runTool(deps({ llm: llmFor({ tool: "music" }), spotify: null }), { ...base, question: "שיר של קווין" });
     expect(r).toMatchObject({ ok: false, reason: "unavailable" });
@@ -241,11 +251,13 @@ describe("sealing and OAuth state", () => {
     expect(verifyState(st, "k", NOW.getTime(), "spotify")).toBeNull(); // a Google state does not open the Spotify callback
     expect(verifyState(st.replace(/.$/, "x"), "k", NOW.getTime())).toBeNull();
   });
-  it("asks Google for read-only access, offline", () => {
+  it("asks Google for offline access with the narrowest scopes that read mail, send mail and add events", () => {
     const u = new URL(authUrl({ clientId: "cid", clientSecret: "s", redirectUri: "https://api/cb" }, "st"));
     expect(u.searchParams.get("access_type")).toBe("offline");
-    expect(GOOGLE_SCOPES.filter((s) => /calendar|gmail/.test(s)).every((s) => s.endsWith(".readonly"))).toBe(true);
-    expect(u.searchParams.get("scope")).toContain("gmail.readonly");
+    // no full-access scopes: not gmail.modify / mail.google.com (delete, change), not the whole calendar scope
+    expect(GOOGLE_SCOPES.filter((s) => /calendar|gmail/.test(s)).sort()).toEqual([
+      "https://www.googleapis.com/auth/calendar.events", "https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.send"]);
+    expect(u.searchParams.get("scope")).toContain("gmail.send");
   });
 });
 
