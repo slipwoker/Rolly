@@ -3,7 +3,7 @@
 # deployment branch (the pod has no shell access), without restarting vLLM.  Output: $WS/logs/job.log.
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
-# a one-off measurement (marker file present): run it and leave the voice worker alone, so no call is cut (run 3: prompts dir)
+# a one-off measurement (marker file present): run it and leave the voice worker alone, so no call is cut (run 4: dir2 variant)
 if [ -f infrastructure/style_eval.run ]; then bash infrastructure/style_eval_job.sh; exit 0; fi
 # job 10: Hebrew voice = BlueV3 (built-in voice "daniel", speed 1.2), chosen by the product owner from listening samples.
 # Jobs 8-9 found the cause of the 3-9 s per sentence: the Hebrew text front end ran on the host's CPU (2.5 s alone).

@@ -37,7 +37,7 @@ export class PlanFeeder {
   private text(item: PlanItem): string {
     const take = item.take ? ` Your own take on it: ${item.take}` : "";
     const how = item.kind === "action_check" ? "Ask about it once, lightly; if it is not done, do not push."
-      : item.kind === "direction" ? "Raise it as something you noticed, in your own words, then one natural question about where they want to take it. If they tell you what they are after, say it back in one short sentence and ask whether to keep it as a goal of theirs. Only ask that once."
+      : item.kind === "direction" ? "Say it as one short statement about what you noticed, then stop. Only if they then tell you what they are after: say it back in one short sentence and ask whether to keep it as a goal of theirs, once."
       : "Say it in your own words, as one short statement.";
     return `Bring up this now: ${item.topic.replace(/[.]+$/, "")}.${take} ${how}`;
   }

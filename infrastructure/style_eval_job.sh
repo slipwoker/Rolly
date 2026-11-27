@@ -17,5 +17,5 @@ cp -r infrastructure/style_eval/. "$D/"
 cd "$D"
 [ -d node_modules/tsx ] && [ -d node_modules/undici ] || { npm init -y >/dev/null 2>&1; npm install --silent tsx undici || { echo "npm install failed"; exit 1; }; }
 for i in $(seq 1 120); do curl -fs -H "Authorization: Bearer ${ROLLY_GPU_API_KEY:-x}" http://127.0.0.1:8081/v1/models >/dev/null && break; sleep 5; done
-ROLLY_LLM_URL=http://127.0.0.1:8081/v1 ROLLY_LLM_KEY="${ROLLY_GPU_API_KEY:-x}" node_modules/.bin/tsx style-eval.ts --variants base,dir --reps 2 --out "$PUB/result.json"
+ROLLY_LLM_URL=http://127.0.0.1:8081/v1 ROLLY_LLM_KEY="${ROLLY_GPU_API_KEY:-x}" node_modules/.bin/tsx style-eval.ts --variants base,dir2 --reps 3 --out "$PUB/result.json"
 echo "style eval finished $(date -u +%FT%TZ) exit $?"
