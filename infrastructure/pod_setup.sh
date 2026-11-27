@@ -16,6 +16,16 @@ export HF_HOME="${HF_HOME:-$WS/hf}" PIP_DISABLE_PIP_VERSION_CHECK=1
 # Research pick, FP8 so that it fits next to Whisper on a 48 GB card.  Fallback: ROLLY_VLLM_MODEL=google/gemma-4-12B-it
 LLM_MODEL="${ROLLY_VLLM_MODEL:-RedHatAI/gemma-4-26B-A4B-it-FP8-dynamic}"
 step() { echo; echo "=== $* ==="; }
+# The GPU backend of rolly-api must never run open (decision P1-D40): no key, no start.
+if [ "${ROLLY_POD_MODE:-app}" = "worker" ] && [ -z "${ROLLY_GPU_API_KEY:-}" ]; then
+  echo "ROLLY_GPU_API_KEY is required in worker mode (set it in the pod's environment and restart the pod)"; exit 1
+fi
+# vLLM listens on localhost only: the worker on this pod is its only client.  ROLLY_VLLM_HOST=0.0.0.0 exposes it through
+# the pod's port 8081 (e.g. for apps/api/scripts/style-eval.ts), and then only with its bearer key.
+VLLM_HOST="${ROLLY_VLLM_HOST:-127.0.0.1}"
+if [ "$VLLM_HOST" != "127.0.0.1" ] && [ -z "${ROLLY_GPU_API_KEY:-}" ]; then
+  echo "ROLLY_GPU_API_KEY is required to expose vLLM on $VLLM_HOST"; exit 1
+fi
 
 step "GPU"; nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || { echo "no GPU visible"; exit 1; }
 
@@ -42,11 +52,18 @@ PYTHON="$ROOT/.venv/bin/python" bash infrastructure/download_models.sh --no-llm
 
 step "vLLM (separate environment; first install takes several minutes)"
 "$WS/vllm-venv/bin/python" -c "import vllm" 2>/dev/null || { rm -rf "$WS/vllm-venv"; uv venv -q --python 3.12 "$WS/vllm-venv" && uv pip install -q --python "$WS/vllm-venv/bin/python" vllm; }
-# With ROLLY_GPU_API_KEY set, vLLM requires that bearer token (it is then safe to expose through the pod's HTTPS proxy)
+# With ROLLY_GPU_API_KEY set, vLLM requires that bearer token.  Prompts carry the users' memory, so requests are not
+# logged (--disable-log-requests: the default of recent vLLM versions, said explicitly because older ones logged every
+# prompt at INFO; VLLM_LOGGING_LEVEL=INFO keeps the DEBUG prompt dump off).  ">>": log_retention.sh rotates the file.
 if ! curl -fs http://127.0.0.1:8081/health >/dev/null 2>&1; then
-  echo "starting vLLM with $LLM_MODEL (downloads ~27 GB on first start) - log: $LOGS/vllm.log"
-  nohup "$WS/vllm-venv/bin/vllm" serve "$LLM_MODEL" --served-model-name local --host 0.0.0.0 --port 8081 --max-model-len 16384 \
-    --gpu-memory-utilization "${ROLLY_VLLM_MEM:-0.70}" --enable-prefix-caching ${ROLLY_GPU_API_KEY:+--api-key "$ROLLY_GPU_API_KEY"} > "$LOGS/vllm.log" 2>&1 &
+  echo "starting vLLM with $LLM_MODEL on $VLLM_HOST:8081 (downloads ~27 GB on first start) - log: $LOGS/vllm.log"
+  # compile caches on the volume: the container disk is erased when the pod stops, and recompiling took most of a restart
+  # (torch.compile + Triton kernels, several minutes); with these on /workspace a restart reuses them
+  mkdir -p "$WS/cache/vllm" "$WS/cache/triton" "$WS/cache/inductor"
+  VLLM_CACHE_ROOT="$WS/cache/vllm" TRITON_CACHE_DIR="$WS/cache/triton" TORCHINDUCTOR_CACHE_DIR="$WS/cache/inductor" \
+  VLLM_LOGGING_LEVEL=INFO nohup "$WS/vllm-venv/bin/vllm" serve "$LLM_MODEL" --served-model-name local --host "$VLLM_HOST" --port 8081 --max-model-len 16384 \
+    --gpu-memory-utilization "${ROLLY_VLLM_MEM:-0.70}" --enable-prefix-caching --disable-log-requests \
+    ${ROLLY_GPU_API_KEY:+--api-key "$ROLLY_GPU_API_KEY"} >> "$LOGS/vllm.log" 2>&1 &
 fi
 for i in $(seq 1 240); do curl -fs http://127.0.0.1:8081/health >/dev/null 2>&1 && break
   pgrep -f "vllm serve" >/dev/null || { echo "vLLM exited - see $LOGS/vllm.log (try: ROLLY_VLLM_MODEL=google/gemma-4-12B-it bash infrastructure/pod_setup.sh)"; tail -20 "$LOGS/vllm.log"; exit 1; }
@@ -58,7 +75,7 @@ if [ "${ROLLY_POD_MODE:-app}" = "worker" ]; then
   # GPU backend for an application hosted elsewhere: speech recognition + voices on port 8000, vLLM on port 8081
   step "GPU worker (speech recognition and voices)"
   bash infrastructure/start_worker.sh || exit 1
-  step "ready"; echo "GPU worker on port 8000, vLLM on port 8081 (both require the bearer token when ROLLY_GPU_API_KEY is set)"
+  step "ready"; echo "GPU worker on port 8000 (bearer token), vLLM on $VLLM_HOST:8081 (bearer token)"
   exit 0
 fi
 

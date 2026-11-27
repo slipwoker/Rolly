@@ -98,8 +98,14 @@ still bills for its volume.
 
 ## 7. Pod as a GPU backend for the hosted app
 
-Set `ROLLY_POD_MODE=worker` and `ROLLY_GPU_API_KEY=<long random token>` on the pod and expose ports `8000/http` and `8081/http`.
-`pod_setup.sh` then starts vLLM on port 8081 and `backend.gpu_worker` on port 8000, both requiring the token. The worker runs
+Set `ROLLY_POD_MODE=worker` and `ROLLY_GPU_API_KEY=<long random token>` on the pod and expose port `8000/http`. The key is
+required: without it `pod_setup.sh` and `start_worker.sh` refuse to start, and the worker refuses every request but `/healthz` (P1-D40).
+`pod_setup.sh` then starts vLLM on `127.0.0.1:8081` (only the worker uses it; requests are not logged) and `backend.gpu_worker` on
+port 8000, both requiring the token. To reach vLLM from outside (e.g. `apps/api/scripts/style-eval.ts` through
+`<pod>-8081.proxy.runpod.net`), also set `ROLLY_VLLM_HOST=0.0.0.0` and expose `8081/http`. Logs in `/workspace/logs` are rotated
+daily and kept 7 days (`infrastructure/log_retention.sh`, docs/SECURITY.md). vLLM's compile caches (torch.compile, Triton,
+Inductor) are kept in `/workspace/cache`, because the container disk is erased when the pod stops; without them every restart
+recompiles the model for several minutes. The worker runs
 the benchmarked `modular-selfhosted` pipeline for each conversation behind `WS /v1/session` (the app relays audio to it) and
 also offers `/v1/audio/transcriptions`, `/v1/audio/speech` and `/healthz`. First start takes about 12 minutes (27 GB model
 download); a restart on the same volume takes a few minutes.
