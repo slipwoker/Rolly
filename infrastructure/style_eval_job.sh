@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-off measurement run on the pod: how human Rolly sounds on the pod's own conversation model (vLLM on 127.0.0.1:8081),
-# for two persona variants (infrastructure/style_eval/data).  Does not touch the voice worker.  Started by pod_job.sh
+# for two persona variants (infrastructure/style_eval/prompts).  Does not touch the voice worker.  Started by pod_job.sh
 # when infrastructure/style_eval.run exists.  Output: $WS/public/style_eval/{out.txt,result.json} (synthetic conversations only).
 set -uo pipefail
 cd "$(dirname "$0")/.."

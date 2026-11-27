@@ -16,7 +16,7 @@ import { countBotSpeak, markStyle, styleGuardNote, type StyleCounts } from "./st
 import { PlanFeeder, type FeederNote, type PlanItem } from "./planFeeder.ts";
 
 const ROOT = import.meta.dirname;
-const DIR = resolve(ROOT, "data"); // bundled for the pod: infrastructure/style_eval_job.sh
+const DIR = resolve(ROOT, "prompts"); // bundled for the pod: infrastructure/style_eval_job.sh
 const URL_ = (process.env.ROLLY_LLM_URL ?? "https://gn48mxl9lsf1nv-8081.proxy.runpod.net/v1").replace(/\/+$/, "");
 const KEY = process.env.ROLLY_LLM_KEY ?? "proxy-injected";
 const args = Object.fromEntries(process.argv.slice(2).reduce<[string, string][]>((acc, a, i, arr) => {
