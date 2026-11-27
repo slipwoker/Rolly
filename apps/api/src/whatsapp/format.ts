@@ -78,3 +78,5 @@ export const failedMessage = () => `${WA_TAG} The WhatsApp request did not work 
 
 export const disconnectAsk = () => `${WA_TAG} They want to disconnect WhatsApp from you: the link is removed and everything you kept from their messages is deleted. Nothing has been done yet. Ask them to confirm in a few words. If they say yes, say you are doing it and append the exact marker <lookup/> again; if no, do the same.`;
 export const disconnected = () => `${WA_TAG} WhatsApp is disconnected and what you kept from it was deleted. Say so in a few words. You cannot read or send WhatsApp messages from now on, until they link it again in the app.`;
+
+export const howItWorks = () => `${WA_TAG} WhatsApp is connected, so YES: you can read their messages and you can send a WhatsApp message for them (you read it back first and send it only after their yes). Tell them so in one short sentence and ask who they want to write to, or whose messages to read. Never say you cannot send.`;

@@ -61,6 +61,7 @@ export class WhatsAppFlow {
     const p = this.pending.get(a.sessionId) ?? null;
     const intent = await interpret(this.llm, { question: a.question, recent: a.recent, language: a.language, pending: p ? { chatName: p.chatName, text: p.kind === "disconnect" ? "(disconnect WhatsApp and delete what is kept)" : p.text } : null });
     if (intent.kind === "other") return null;
+    if (intent.kind === "how") return { message: F.howItWorks(), ok: true }; // says nothing private, so no voice check
     if (a.attribution === "uncertain") return { message: F.notYourVoiceMessage(), ok: false, reason: "not_user_voice" };
     try {
       switch (intent.kind) {
