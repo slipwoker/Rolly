@@ -11,6 +11,7 @@ import { api, forgetDevice } from "../src/api";
 import { fill, inputAlign, isRTL, t } from "../src/i18n";
 import { stateView } from "../src/whatsapp";
 import { Backdrop, Card, CircleButton, IconTile, PressScale, TopBar, Txt, type IconName } from "../src/ui/components";
+import { BrandIcon, type Brand } from "../src/ui/BrandIcon";
 import { radius, spacing, type, useTheme } from "../src/ui/theme";
 
 interface Me {
@@ -141,7 +142,7 @@ export default function Personalisation() {
                 <View>
                   {[
                     google ? (
-                      <ServiceRow key="g" icon="calendar" title={t.googleService}
+                      <ServiceRow key="g" brand="google" title={t.googleService}
                         sub={google.status === "connected" ? (google.account ?? t.connected) : t.googleWhy}
                         action={google.status === "connected"
                           ? <SmallButton label={t.disconnect} onPress={() => confirmDanger(t.disconnect, () => act(() => api("/v1/integrations/google", { method: "DELETE" })))} />
@@ -149,12 +150,12 @@ export default function Personalisation() {
                           : <Badge label={t.soon} />} />
                     ) : null,
                     wa?.available ? (
-                      <ServiceRow key="w" icon="message-circle" title={t.waService}
+                      <ServiceRow key="w" brand="whatsapp" title={t.waService}
                         sub={t[stateView(wa.state).text]} warn={stateView(wa.state).warn}
                         action={<SmallButton label={t.open} primary={wa.state !== "connected"} onPress={() => router.push("/whatsapp")} />} />
                     ) : null,
                     spotify ? (
-                      <ServiceRow key="s" icon="music" title={t.musicService} sub={t.musicWhy}
+                      <ServiceRow key="s" brand="spotify" title={t.musicService} sub={t.musicWhy}
                         action={<Badge label={spotify.status === "connected" ? t.connected : t.soon} />} />
                     ) : null,
                   ].filter(Boolean).map((row, i) => (
@@ -224,13 +225,13 @@ function Segmented<V extends string>({ value, options, onChange }: { value: V | 
   );
 }
 
-/** One connected service: icon, name, one or two lines of status, and a single compact action at the end. */
-function ServiceRow({ icon, title, sub, action, warn }: { icon: IconName; title: string; sub: string; action: ReactNode; warn?: boolean }) {
+/** One connected service: its logo, name, one or two lines of status, and a single compact action at the end. */
+function ServiceRow({ brand, title, sub, action, warn }: { brand: Brand; title: string; sub: string; action: ReactNode; warn?: boolean }) {
   return (
     <View style={s.serviceRow}>
-      <IconTile icon={icon} tone="soft" />
+      <BrandIcon brand={brand} />
       <View style={{ flex: 1, gap: 2 }}>
-        <Txt variant="bodyStrong" numberOfLines={1}>{title}</Txt>
+        <Txt variant="bodyStrong" numberOfLines={2}>{title}</Txt>
         <Txt variant="caption" tone={warn ? "danger" : "dim"} numberOfLines={2}>{sub}</Txt>
       </View>
       {action}
