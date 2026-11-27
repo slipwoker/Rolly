@@ -3,6 +3,7 @@
  * Idle: a short greeting under the avatar. Live: the line being said right now; the notes button flips to a chat-style
  * transcript. The session lives in VoiceProvider, so it keeps running while Progress/Personalisation are open.
  */
+import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect } from "expo-router";
@@ -129,10 +130,22 @@ export default function Home() {
 
         {showChat ? (
           <View style={s.chatBar}>
-            <View style={[cardStyle(c), s.pill]}>
-              <Waveform level={v.state === "user_speaking" ? 1 : v.state === "agent_speaking" ? 0.7 : v.state === "listening" ? 0.25 : 0} color={c.text} height={20} />
-              <Txt variant="caption" tone="dim" numberOfLines={1} style={{ flex: 1 }}>{label}</Txt>
-            </View>
+            {v.active ? (
+              <View style={[cardStyle(c), s.pill]}>
+                <Waveform level={v.state === "user_speaking" ? 1 : v.state === "agent_speaking" ? 0.7 : v.state === "listening" ? 0.3 : 0.15} color={c.text} height={22} />
+                <Txt variant="caption" tone="dim" numberOfLines={1} style={{ flex: 1 }}>{label}</Txt>
+              </View>
+            ) : (
+              /* no live conversation: say how it ended and how to start a new one (no flat waveform) */
+              <View style={{ flex: 1 }}><PressScale accessibilityRole="button" accessibilityLabel={t.start} onPress={toggle} scaleTo={0.98} style={[cardStyle(c), s.pillBody]}>
+                <Feather name={v.state === "error" ? "alert-circle" : v.state === "ended" ? "check-circle" : "mic"} size={20}
+                  color={v.state === "error" ? c.danger : v.state === "ended" ? c.ok : c.dim} />
+                <View style={{ flex: 1 }}>
+                  <Txt variant="label" numberOfLines={1}>{label}</Txt>
+                  <Txt variant="micro" tone="faint" numberOfLines={1}>{t.startHint}</Txt>
+                </View>
+              </PressScale></View>
+            )}
             <CircleButton icon={v.active ? "square" : "mic"} label={v.active ? t.stop : t.start} size={52} variant="ink" onPress={toggle} />
           </View>
         ) : (
@@ -221,4 +234,5 @@ const s = StyleSheet.create({
   userBubble: { alignSelf: "flex-end", maxWidth: "80%", borderTopEndRadius: 6 },
   chatBar: { flexDirection: "row", alignItems: "center", gap: spacing.md, paddingHorizontal: spacing.xl, paddingTop: spacing.sm, paddingBottom: spacing.sm },
   pill: { flex: 1, height: 52, borderRadius: radius.full, flexDirection: "row", alignItems: "center", gap: spacing.md, paddingHorizontal: spacing.xl },
+  pillBody: { height: 52, borderRadius: radius.full, flexDirection: "row", alignItems: "center", gap: spacing.md, paddingHorizontal: spacing.xl },
 });
