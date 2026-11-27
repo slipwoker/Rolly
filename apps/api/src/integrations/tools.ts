@@ -180,6 +180,6 @@ export async function runTool(d: ToolDeps, a: ToolArgs): Promise<ToolOutcome> {
     const c = await compose(d.llm, a, plan.tool, data);
     return c ? say(plan.tool, c.answer) : note(plan.tool, FAILED, "failed");
   } catch (e) {
-    return note(plan.tool, FAILED, String(e).slice(0, 80));
+    return note(plan.tool, FAILED, String(e).slice(0, 200));
   }
 }

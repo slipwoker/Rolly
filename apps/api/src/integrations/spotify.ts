@@ -9,6 +9,13 @@ export interface SpotifyConfig { clientId: string; clientSecret: string; market:
 export type MusicKind = "track" | "artist" | "album" | "show" | "episode" | "any";
 export interface MusicHit { kind: "track" | "artist" | "album" | "show" | "episode"; name: string; by: string | null; detail: string | null; url: string | null; image: string | null }
 
+/** Spotify says why in the body ({"error":{"message":...}} or {"error":"...","error_description":...}); the audit shows it */
+const why = (j: unknown) => {
+  const e = (j as { error?: unknown; error_description?: string } | null);
+  const m = typeof e?.error === "string" ? `${e.error}${e.error_description ? `: ${e.error_description}` : ""}` : (e?.error as { message?: string } | undefined)?.message;
+  return m ? `: ${m}`.slice(0, 160) : "";
+};
+
 let cached: { token: string; exp: number; key: string } | null = null;
 
 async function token(http: Http, c: SpotifyConfig): Promise<string> {
@@ -17,7 +24,7 @@ async function token(http: Http, c: SpotifyConfig): Promise<string> {
     headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: "Basic " + Buffer.from(`${c.clientId}:${c.clientSecret}`).toString("base64") },
     body: form({ grant_type: "client_credentials" }) });
   const j = r.json as { access_token?: string; expires_in?: number } | null;
-  if (!r.ok || !j?.access_token) throw new Error(`spotify token HTTP ${r.status}`);
+  if (!r.ok || !j?.access_token) throw new Error(`spotify token HTTP ${r.status}${why(r.json)}`);
   cached = { token: j.access_token, exp: Date.now() + (j.expires_in ?? 3600) * 1000, key: c.clientId };
   return j.access_token;
 }
@@ -34,7 +41,7 @@ const image = (i: Item) => {
 export async function search(http: Http, c: SpotifyConfig, q: string, kind: MusicKind): Promise<MusicHit[]> {
   const types = kind === "any" ? "track,artist,show,episode" : kind;
   const r = await http("https://api.spotify.com/v1/search?" + form({ q: q.slice(0, 200), type: types, limit: kind === "any" ? "3" : "5", market: c.market }), { headers: { Authorization: `Bearer ${await token(http, c)}` } });
-  if (!r.ok) throw new Error(`spotify search HTTP ${r.status}`);
+  if (!r.ok) throw new Error(`spotify search HTTP ${r.status}${why(r.json)}`);
   const j = (r.json ?? {}) as Record<string, { items?: (Item | null)[] } | undefined>;
   const hits: MusicHit[] = [];
   const names = (a: unknown) => (Array.isArray(a) ? (a as Item[]).map((x) => x.name).filter(Boolean).slice(0, 2).join(", ") : null) || null;

@@ -172,6 +172,16 @@ describe("music", () => {
     expect((await runTool(deps({ llm: llmFor({ tool: "calendar" }), http }), { ...base, question: "מה ביומן" })).media).toBeUndefined();
   });
 
+  it("keeps Spotify's own reason when a search is refused, so the audit says why", async () => {
+    const http = fakeHttp({
+      "https://accounts.spotify.com/api/token": () => Promise.resolve(ok({ access_token: "st", expires_in: 3600 })),
+      "https://api.spotify.com/v1/search": () => Promise.resolve({ ok: false, status: 403, json: { error: { status: 403, message: "Active premium subscription required for the owner of the app." } } }),
+    });
+    const r = await runTool(deps({ llm: llmFor({ tool: "music", query: "queen" }), http }), { ...base, question: "שיר של קווין" });
+    expect(r).toMatchObject({ ok: false });
+    expect(r.reason).toContain("premium subscription required for the owner");
+  });
+
   it("reports when Spotify is not configured", async () => {
     const r = await runTool(deps({ llm: llmFor({ tool: "music" }), spotify: null }), { ...base, question: "שיר של קווין" });
     expect(r).toMatchObject({ ok: false, reason: "unavailable" });
