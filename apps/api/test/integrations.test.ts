@@ -45,6 +45,22 @@ describe("planning", () => {
     expect(parsePlan({ tool: "rm -rf" })).toMatchObject({ tool: "web", kind: "any", days: 1 });
     expect(parsePlan({ tool: "music", kind: "show", query: "x".repeat(500) }).query).toHaveLength(200);
   });
+  it("the planner sees the conversation and the cards, so 'give me the link' means the song just talked about", async () => {
+    const llm = llmFor({ tool: "music", action: "play", query: "Three Little Birds Bob Marley", kind: "track" });
+    const r = await runTool(deps({ llm, http: fakeHttp({
+      "https://accounts.spotify.com/api/token": () => Promise.resolve(ok({ access_token: "st", expires_in: 3600 })),
+      "https://api.spotify.com/v1/search": () => Promise.resolve(ok({ tracks: { items: [{ name: "Three Little Birds", artists: [{ name: "Bob Marley & The Wailers" }], album: { images: [] }, external_urls: { spotify: "https://open.spotify.com/track/tlb" } }] } })),
+    }) }), { ...base, question: "תן לי קישור", lastMedia: [], recent: [{ role: "user", text: "תמליץ לי על שיר של בוב מרלי" }, { role: "agent", text: "\"Three Little Birds\" הוא קלאסיקה." }] });
+    expect(r.open?.url).toBe("https://open.spotify.com/track/tlb");
+    const prompt = llm.prompts[0]!;
+    expect(prompt).toContain("Three Little Birds\" הוא קלאסיקה");
+    expect(prompt).toContain("Shown to the user as cards just now: (nothing)");
+    expect(prompt).toContain("תן לי קישור");
+    const shown = llmFor({ tool: "music", action: "play" });
+    await runTool(deps({ llm: shown }), { ...base, question: "תנגן את זה", lastMedia: [{ kind: "track", title: "Under Pressure", subtitle: "Queen", image: null, url: "https://open.spotify.com/track/zzz9", provider: "spotify" }] });
+    expect(shown.prompts[0]).toContain("Shown to the user as cards just now: Under Pressure (Queen)");
+  });
+
   it("with neither Google nor Spotify configured, goes to the web without an extra planning call", async () => {
     const llm = llmFor({ tool: "calendar" });
     const r = await runTool(deps({ llm, google: null, spotify: null }), { ...base, question: "מה מזג האוויר" });
@@ -239,6 +255,7 @@ describe("persona", () => {
     const p = core("he", { lookup: true, tools: { calendar: true, music: true } });
     expect(p).toContain("their calendar and their mail (reading only");
     expect(p).toContain("music and podcasts");
+    expect(core("he", { lookup: true, tools: { music: true, play: true } })).toContain("you ALWAYS use the check");
     expect(core("he", { lookup: false, tools: { calendar: true } })).not.toContain("calendar");
   });
 });

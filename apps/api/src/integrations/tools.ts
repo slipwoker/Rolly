@@ -38,12 +38,16 @@ Tools:
 
 JSON: {"tool": "calendar"|"email"|"music"|"web", "action": "search"|"play", "query": string, "kind": "track"|"artist"|"album"|"show"|"episode"|"any", "from_day": number, "days": number}
 - email: query is a Gmail search ("is:unread newer_than:2d", "from:dana", "subject:flight"); default "is:unread newer_than:3d".
-- music: action "play" ONLY when the user asks to play / put on something ("תנגן", "תשים", "play"); asking about or for a recommendation is "search". For "play": query is what to play when they named it ("Bohemian Rhapsody Queen"), or "" when they mean what was just mentioned ("play that", "תנגן את זה"). For "search": query is what to search the catalogue for: the title/artist the user named, or for a recommendation a few well-chosen search terms (genre, mood, a similar artist, a podcast topic). kind "show" for podcasts, "episode" for a specific episode, "any" if unsure.
+- music: anything about a song, artist, album, podcast or Spotify is "music", never "web".
+  action "play": the user wants it played or opened: "play", "put on", "open it", "send/give me the link" ("תנגן", "תשים", "תפתח", "תן לי קישור", "פתחת?"). action "search": they ask about something or for a recommendation.
+  For "play": query = the song or show to play, from the conversation: what they named, else what the companion just named or recommended ("Three Little Birds Bob Marley"). Leave query "" only when "shown as cards" below lists it and they mean that. For "search": query = what to search the catalogue for: the title/artist the user named, or for a recommendation a few well-chosen search terms (genre, mood, a similar artist, a podcast topic). kind "show" for podcasts, "episode" for a specific episode, "track" for a song, "any" if unsure.
 - calendar: from_day = days from today (0 = today, 1 = tomorrow), days = how many days to cover (1-7).
 - Unused fields: action "search", query "", kind "any", from_day 0, days 1.
 
 The conversation so far:
 {recent}
+
+Shown to the user as cards just now: {shown}
 
 Request: {question}
 `;
@@ -82,7 +86,7 @@ export async function planTool(llm: UtilityLlm | null, a: ToolArgs, canRoute = t
   const fallback: ToolPlan = { tool: "web", action: "search", query: "", kind: "any", fromDay: 0, days: 1 };
   if (!llm || !canRoute) return fallback;
   try {
-    const r = await llm.json(fill(PLAN_PROMPT, { recent: recentText(a.recent), question: a.question.replace(/\s+/g, " ").slice(0, 400) }), { maxTokens: 200, purpose: "tool_plan" });
+    const r = await llm.json(fill(PLAN_PROMPT, { recent: recentText(a.recent), shown: a.lastMedia?.map((m) => `${m.title}${m.subtitle ? ` (${m.subtitle})` : ""}`).join("; ") || "(nothing)", question: a.question.replace(/\s+/g, " ").slice(0, 400) }), { maxTokens: 200, purpose: "tool_plan" });
     return parsePlan(r.obj);
   } catch { return fallback; }
 }
