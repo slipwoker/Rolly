@@ -9,7 +9,8 @@ exec > "$PUB/out.txt" 2>&1
 echo "style eval started $(date -u +%FT%TZ)"
 NODE="$WS/node"
 if [ ! -x "$NODE/bin/node" ]; then
-  curl -fsSL https://nodejs.org/dist/v22.12.0/node-v22.12.0-linux-x64.tar.gz | tar -xz -C "$WS" && rm -rf "$NODE" && mv "$WS/node-v22.12.0-linux-x64" "$NODE" || { echo "node install failed"; exit 1; }
+  rm -rf "$WS/node-v22.12.0-linux-x64" "$NODE"
+  curl -fsSL https://nodejs.org/dist/v22.12.0/node-v22.12.0-linux-x64.tar.gz | tar -xz --no-same-owner -C "$WS" && mv "$WS/node-v22.12.0-linux-x64" "$NODE" || { echo "node install failed"; exit 1; }
 fi
 export PATH="$NODE/bin:$PATH"
 cp -r infrastructure/style_eval/. "$D/"
