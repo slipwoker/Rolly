@@ -470,6 +470,7 @@ type Stats struct {
 	Live          int           `json:"live_connections"`
 	Messages      int           `json:"messages"`
 	Chats         int           `json:"chats"`
+	UnnamedChats  int           `json:"unnamed_chats"` // 1:1 chats with no name stored: they cannot be found by name
 	OldestMessage int64         `json:"oldest_message_ts,omitempty"`
 	Sends24h      int           `json:"sends_24h"`
 	STT           bool          `json:"transcription_configured"`
@@ -488,6 +489,6 @@ func (m *Manager) Stats(ctx context.Context) (*Stats, error) {
 		}
 	}
 	m.mu.Unlock()
-	s.Messages, s.Chats, s.OldestMessage, s.Sends24h, err = m.msgs.Totals(ctx, m.now().Add(-24*time.Hour))
+	s.Messages, s.Chats, s.UnnamedChats, s.OldestMessage, s.Sends24h, err = m.msgs.Totals(ctx, m.now().Add(-24*time.Hour))
 	return s, err
 }

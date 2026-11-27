@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -164,10 +165,14 @@ func (s *Server) chats(w http.ResponseWriter, r *http.Request) {
 		f := false
 		groups = &f
 	}
-	list, err := s.m.msgs.Chats(r.Context(), id, r.URL.Query().Get("q"), groups, intParam(r, "limit", 20, 1, 100))
+	q := r.URL.Query().Get("q")
+	list, err := s.m.msgs.Chats(r.Context(), id, q, groups, intParam(r, "limit", 20, 1, 100))
 	if err != nil {
 		writeJSON(w, 500, map[string]string{"error": "internal error"})
 		return
+	}
+	if strings.TrimSpace(q) != "" && len(list) == 0 {
+		log.Printf("chat search found nothing (query of %d characters)", len([]rune(q))) // never the name itself
 	}
 	writeJSON(w, 200, map[string]any{"chats": list})
 }

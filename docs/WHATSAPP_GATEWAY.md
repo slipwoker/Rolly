@@ -175,3 +175,11 @@ The gateway first had `autoDeploy: false`; it now follows `main` through a `buil
 to apply that). A deploy runs the old and the new instance together for a moment; the old one gets "replaced stream". Before PR #38 it wrote `conflict` and then
 `reconnecting` over the new instance's `connected`; now it writes nothing. That fix was first exercised by a deploy whose OLD instance still had the old code, so
 the first real proof is the NEXT deploy: check `GET /v1/admin/whatsapp` (admin) afterwards.
+
+### Finding a contact by a name said in Hebrew (2026-11-27)
+Found in live use: "Alex Dumsky" is saved in English; the Hebrew speech recogniser writes "אלכס דומסקי", and the search was a plain substring on the stored name, so it found nothing
+(the agent then guessed "maybe it is saved under another name"). `apps/wa-gateway/translit.go`: names are compared (1) as plain text with case, direction marks (WhatsApp names carry them),
+punctuation and spacing ignored, and (2) only if that finds nothing, by a **consonant skeleton** shared by Hebrew and Latin spellings (אלכס דומסקי = Alex Dumsky, דוד = David, רביד = Ravid).
+It is a heuristic: a skeleton under three letters matches only a whole name, a plain match is never mixed with guesses, several matches make the agent ask which, and nothing is sent on a guess
+(the chat's name is read back before every send). `GET /v1/stats` now has `unnamed_chats` (1:1 chats with no stored name, which no search can find) and a search that finds nothing is logged without the name.
+**Not verified on the real address book**: whether "Alex Dumsky" is stored under that name on the gateway is unknown; if it is one of the unnamed chats, this does not help.
