@@ -17,7 +17,7 @@ import { radius, spacing, type, useTheme } from "../src/ui/theme";
 interface Me {
   preferred_name: string | null; preferred_language: "he" | "en" | null;
   addressing: { value: "masculine" | "feminine" | "plural" | null; status: "unknown" | "inferred" | "confirmed"; evidence_count: number };
-  connected_services: { id: string; provider: "google" | "spotify"; status: "connected" | "not_connected" | "not_available"; account: string | null }[];
+  connected_services: { id: string; provider: "google" | "spotify"; status: "connected" | "needs_update" | "not_connected" | "not_available"; account: string | null }[];
 }
 interface Memory { id: string; kind: string; content: string; status: "active" | "candidate"; quote: string | null }
 
@@ -143,9 +143,10 @@ export default function Personalisation() {
                   {[
                     google ? (
                       <ServiceRow key="g" brand="google" title={t.googleService}
-                        sub={google.status === "connected" ? (google.account ?? t.connected) : t.googleWhy}
+                        sub={google.status === "connected" ? (google.account ?? t.connected) : google.status === "needs_update" ? t.googleUpdateWhy : t.googleWhy}
                         action={google.status === "connected"
                           ? <SmallButton label={t.disconnect} onPress={() => confirmDanger(t.disconnect, () => act(() => api("/v1/integrations/google", { method: "DELETE" })))} />
+                          : google.status === "needs_update" ? <SmallButton label={t.updatePerms} primary onPress={connectGoogle} />
                           : google.status === "not_connected" ? <SmallButton label={t.connect} primary onPress={connectGoogle} />
                           : <Badge label={t.soon} />} />
                     ) : null,
