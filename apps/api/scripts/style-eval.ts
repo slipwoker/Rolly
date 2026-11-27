@@ -58,6 +58,10 @@ export const SCRIPTS: Script[] = [
   { id: "easy_start_long", memory: "returning", user: [
     "אני בעיקר חושב על הפגישה עם המשקיע בשבוע הבא, יש לי עוד המון להכין.", "ברור, אבל אני לא בטוח מה להראות להם קודם.",
     "אוקיי.", "סבבה." ] },
+  // the user engages with the plan's direction item and agrees when Rolly says it back (Rolly's own wording is not scripted: read the transcripts)
+  { id: "direction_engage", memory: "returning", user: [
+    "סבבה, ואתה?", "אוקיי.", "אני צריך להתכונן לפגישה עם משקיע, ואני לא יודע מאיפה להתחיל.", "בעיקר הסיפור. אני לא בטוח שהוא חד מספיק.",
+    "כן, בדיוק, זה מה שאני צריך לסגור עד השבוע הבא.", "יאללה, תודה." ] },
   { id: "first_conversation", memory: "first", user: [
     "היי.", "דני.", "סתם נוסע לעבודה.", "אני עובד על סטארט-אפ.", "אפליקציה קולית לנהגים.", "מעניין, אבל קשה.",
     "לגייס כסף זה הכי קשה.", "טוב, הגעתי, ביי." ] },
