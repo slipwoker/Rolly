@@ -47,9 +47,11 @@ describe("time helpers", () => {
     expect(addMinutesLocal("2026-11-28T23:30", 60)).toBe("2026-11-29T00:30");
   });
   it("tells what a stored connection may do", () => {
-    expect(grants("https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/gmail.readonly")).toEqual({ read: true, sendMail: false, writeCalendar: false });
-    expect(grants(ALL)).toEqual({ read: true, sendMail: true, writeCalendar: true });
-    expect(grants("")).toEqual({ read: false, sendMail: false, writeCalendar: false });
+    expect(grants("https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/gmail.readonly")).toEqual({ read: true, mailRead: true, calendarRead: true, sendMail: false, writeCalendar: false });
+    expect(grants(ALL)).toEqual({ read: true, mailRead: true, calendarRead: true, sendMail: true, writeCalendar: true });
+    expect(grants("")).toEqual({ read: false, mailRead: false, calendarRead: false, sendMail: false, writeCalendar: false });
+    // the user left the calendar box unticked on Google's screen
+    expect(grants([SCOPE_GMAIL_READ, SCOPE_GMAIL_SEND].join(" "))).toMatchObject({ mailRead: true, calendarRead: false, writeCalendar: false });
   });
 });
 
@@ -231,6 +233,26 @@ describe("adding an event", () => {
   it("needs the calendar permission, not only the mail one", async () => {
     const a = actions(google().http, { scopes: [SCOPE_GMAIL_READ, SCOPE_GMAIL_SEND].join(" ") });
     expect(await a.draftEvent(who(1), ev)).toMatchObject({ reason: "needs_update" });
+  });
+});
+
+describe("reading when a permission was left unticked", () => {
+  const withScopes = (scopes: string | null) => ({ async googleRefresh() { return "rt"; }, async dropGoogle() {}, async googleScopes() { return scopes; } });
+  const planner = (plan: Record<string, unknown>): UtilityLlm => ({ name: "f", async json() { return { obj: plan, ms: 1 }; } });
+  const base = { userId: "u", sessionId: "s", language: "he", timeZone: TZ, now: NOW, recent: [] as { role: "user" | "agent"; text: string }[] };
+  it("says which permission is missing and what to do, instead of failing with a 403", async () => {
+    const g = google();
+    const r = await runTool({ llm: planner({ tool: "calendar" }), http: g.http, connections: withScopes([SCOPE_GMAIL_READ, SCOPE_GMAIL_SEND].join(" ")), google: { clientId: "c", clientSecret: "s", redirectUri: "r" }, spotify: null }, { ...base, question: "מה יש לי ביומן" });
+    expect(r).toMatchObject({ ok: false, reason: "needs_update" });
+    expect(r.message).toContain("update permissions and tick all the boxes");
+    expect(g.calls.some((c) => c.url.includes("/calendar/"))).toBe(false);
+    const m = await runTool({ llm: planner({ tool: "email" }), http: g.http, connections: withScopes(SCOPE_CALENDAR_EVENTS), google: { clientId: "c", clientSecret: "s", redirectUri: "r" }, spotify: null }, { ...base, question: "יש מיילים?" });
+    expect(m).toMatchObject({ ok: false, reason: "needs_update" });
+  });
+  it("keeps Google's own reason when it refuses, so the audit says why", async () => {
+    const g = google({ "https://www.googleapis.com/calendar/v3/calendars/primary/events": () => Promise.resolve({ ok: false, status: 403, json: { error: { code: 403, message: "Google Calendar API has not been used in project 123 before or it is disabled.", errors: [{ reason: "accessNotConfigured" }] } } }) });
+    const r = await runTool({ llm: planner({ tool: "calendar" }), http: g.http, connections: withScopes(ALL), google: { clientId: "c", clientSecret: "s", redirectUri: "r" }, spotify: null }, { ...base, question: "מה יש לי ביומן" });
+    expect(r.reason).toContain("accessNotConfigured");
   });
 });
 
