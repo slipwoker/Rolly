@@ -16,7 +16,9 @@ projects:
             # node runs directly (and `exec`s): under `npm start` the SIGTERM of a deploy stops npm, which takes the container
             # down at once and never reaches node, so conversations were cut (P1-D45). The server drains on SIGTERM.
             startCommand: cd apps/api && exec node --import tsx src/main.ts
-            maxShutdownDelaySeconds: 300   # time to let running conversations finish (ROLLY_DRAIN_MAX_S, 240 s, is shorter)
+            # Raising the time a deploy waits for running conversations (default 30 s) is possible only here or through the API: there is
+            # no dashboard field. A service that does not sync from this file keeps 30 s and the server's own default of 20 s.
+            maxShutdownDelaySeconds: 300
             healthCheckPath: /healthz
             autoDeploy: true
             buildFilter:   # only the API and what it imports restart it (a deploy drops live conversations)
@@ -34,6 +36,8 @@ projects:
                 value: production
               - key: NODE_VERSION
                 value: "22"
+              - key: ROLLY_DRAIN_MAX_S   # shorter than maxShutdownDelaySeconds above
+                value: "240"
               - key: ROLLY_GPU_WORKER_URL
                 value: https://c9yxo4cxgae2u8-8000.proxy.runpod.net/v1
               - key: ROLLY_UTILITY_LLM_MODEL

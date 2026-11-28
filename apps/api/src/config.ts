@@ -23,7 +23,12 @@ export interface Config {
   transcriptRetentionDays: number;
   candidateTtlDays: number;
   maxSessionMinutes: number;
-  /** on shutdown, how long running conversations may keep going before the rest are handed over (must be shorter than Render's Maximum Shutdown Delay) */
+  /**
+   * On shutdown, how long running conversations may keep going before the rest are handed over. Must be shorter than the
+   * shutdown delay Render allows after SIGTERM: 30 s unless `maxShutdownDelaySeconds` was raised through the API or the
+   * blueprint (a dashboard field does not exist), so the default is 20 s. Render also waits 60 s after moving traffic to the
+   * new instance before it sends SIGTERM, and that time is on top of this.
+   */
   drainMaxS: number;
   /** the model may look things up online during a conversation (needs the utility LLM key); ROLLY_WEB_LOOKUP=0 turns it off */
   webLookup: boolean;
@@ -113,7 +118,7 @@ export function loadConfig(env = process.env): Config {
     transcriptRetentionDays: Number(env.ROLLY_TRANSCRIPT_RETENTION_DAYS ?? 30),
     candidateTtlDays: Number(env.ROLLY_CANDIDATE_TTL_DAYS ?? 14),
     maxSessionMinutes: Number(env.ROLLY_MAX_SESSION_MINUTES ?? 90),
-    drainMaxS: Number(env.ROLLY_DRAIN_MAX_S ?? 240),
+    drainMaxS: Number(env.ROLLY_DRAIN_MAX_S ?? 20),
     webLookup: (env.ROLLY_WEB_LOOKUP ?? "1") !== "0" && Boolean(env.OPENAI_API_KEY),
     lookupsPerDay: Number(env.ROLLY_LOOKUPS_PER_DAY ?? 30),
     email: env.ROLLY_EMAIL_API_KEY && env.ROLLY_EMAIL_FROM ? { apiKey: env.ROLLY_EMAIL_API_KEY, from: env.ROLLY_EMAIL_FROM } : null,
