@@ -529,29 +529,42 @@ def test_the_conversation_pins_a_name_only_when_it_is_unstable_and_the_users_cor
     assert session({"name": None}) == {}
 
 
-# ---- a false interruption must not make the same sentence be said twice (2026-11-28, the opener)
-from providers.modular.text import chunks_left  # noqa: E402
+# ---- a false interruption must not make the same sentence be said twice (2026-11-28: the opener, and a tool answer when a push notification buzzed)
+from providers.modular.text import chunks_left, tail_from  # noqa: E402
+
+SENTENCE = "בוקר טוב מאור, איך מתחיל לך היום?"
 
 
 def test_cut_chunk_nearly_all_heard_is_not_said_again():
-    every = ["בוקר טוב מאור, איך מתחיל לך היום?"]
-    synth = [(every[0], 2.4)]
-    assert chunks_left(every, synth, 2.0) == []          # 83% heard
-    assert chunks_left(every, synth, 1.9) == []          # 79% heard
-    assert chunks_left(every, synth, 1.3) == every       # 54%, 1.1 s left: said again
-    assert chunks_left(every, synth, 0.2) == every       # hardly heard
+    synth = [(SENTENCE, 2.4)]
+    assert chunks_left([SENTENCE], synth, 2.0) == []   # 83% heard
+    assert chunks_left([SENTENCE], synth, 1.9) == []   # 79% heard
+
+
+def test_cut_chunk_half_heard_is_said_from_where_it_was_cut_not_from_the_start():
+    left = chunks_left([SENTENCE], [(SENTENCE, 2.4)], 1.3)  # 54% heard
+    assert left == ["מאור, איך מתחיל לך היום?"]              # one word of overlap, nothing of "בוקר טוב"
+    assert chunks_left([SENTENCE], [(SENTENCE, 2.4)], 0.2) == [SENTENCE]  # hardly anything heard: the whole sentence
+
+
+def test_tail_from_keeps_short_texts_whole_and_never_returns_nothing():
+    assert tail_from("כן בסדר גמור", 0.6) == "כן בסדר גמור"
+    long = "יש לך פגישה עם Pipper-ai ו-Zappy ביום שני ב-10:00 בתל אביב."
+    for f in (0.3, 0.5, 0.74):
+        t = tail_from(long, f)
+        assert t and long.endswith(t)
+    assert len(tail_from(long, 0.7)) < len(tail_from(long, 0.35))
 
 
 def test_short_cut_chunk_heard_half_with_little_left_counts_as_said():
-    every = ["כן."]
-    assert chunks_left(every, [("כן.", 0.6)], 0.35) == []   # 58% heard, 0.25 s left
-    assert chunks_left(every, [("כן.", 0.6)], 0.1) == every  # barely started
+    assert chunks_left(["כן."], [("כן.", 0.6)], 0.35) == []        # 58% heard, 0.25 s left
+    assert chunks_left(["כן."], [("כן.", 0.6)], 0.1) == ["כן."]    # barely started
 
 
 def test_later_chunks_are_still_said_and_played_ones_are_not():
     every = ["אחד.", "שניים.", "שלושה."]
     synth = [("אחד.", 1.0), ("שניים.", 1.0)]               # the third chunk's audio was not made yet
-    assert chunks_left(every, synth, 1.2) == ["שניים.", "שלושה."]
+    assert chunks_left(every, synth, 0.1) == every
     assert chunks_left(every, synth, 1.9) == ["שלושה."]    # the second was nearly all heard
     assert chunks_left(every, synth, 5.0) == ["שלושה."]    # all that exists was played; the rest was never made
     assert chunks_left(every, [], 0.5) == every
