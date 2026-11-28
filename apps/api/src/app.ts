@@ -37,6 +37,7 @@ import { elasticMailer } from "./email/elastic.ts";
 import { AuditRecorder } from "./audit/recorder.ts";
 import { loadPricing } from "./audit/pricing.ts";
 import { auditRoutes } from "./audit/routes.ts";
+import { createPodStatus } from "./voice/podStatus.ts";
 
 export async function createApp(config: Config, overrides: { llm?: UtilityLlm | null } = {}): Promise<ServerDeps & { store: MemoryStore; auth: Auth; audit: AuditRecorder }> {
   const db = createPool(config.databaseUrl!);
@@ -270,6 +271,7 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
     await auditRoutes(app, { db, audit, llm, timeZone: config.timezone, retentionDays: config.transcriptRetentionDays,
       isAdmin: (req) => isAdmin(req) === "ok" });
     await waitlistRoutes(app, { db, timeZone: config.timezone, isAdmin: (req) => isAdmin(req) === "ok" });
+    const podStatus = createPodStatus({ workerUrl: config.gpuWorkerUrl });
     const user = (req: FastifyRequest, reply: FastifyReply): string | null => {
       const h = req.headers.authorization;
       const id = auth.verifyAccess(h?.startsWith("Bearer ") ? h.slice(7) : undefined);
@@ -312,6 +314,12 @@ export async function createApp(config: Config, overrides: { llm?: UtilityLlm | 
       if (!r) return reply.code(401).send({ error: "invalid refresh token" });
       return r;
     });
+    // can the voice pipeline take a conversation now? The app asks before it lets the user start one.
+    app.get("/v1/voice/status", async (req, reply) => {
+      const id = user(req, reply); if (!id) return;
+      return podStatus();
+    });
+
     app.post("/v1/voice/ticket", async (req, reply) => {
       const id = user(req, reply); if (!id) return;
       return auth.createTicket(id);
