@@ -7,8 +7,8 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useRef, useState } from "react";
-import { Linking, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type ScrollViewInstance } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type ScrollViewInstance } from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../src/api";
@@ -20,6 +20,7 @@ import { radius, spacing, useTheme } from "../src/ui/theme";
 import { MicButton, Waveform } from "../src/ui/VoiceParts";
 import type { VoiceState } from "../src/voice/controller";
 import { useVoiceSession } from "../src/voice/VoiceProvider";
+import { usePipeline, type PipelineState } from "../src/voice/usePipeline";
 import { isNight } from "../src/ui/daypart";
 
 const LIVE: VoiceState[] = ["listening", "user_speaking", "agent_speaking"];
@@ -38,6 +39,15 @@ export default function Home() {
   useUiLang();
   const c = useTheme();
   const v = useVoiceSession();
+  const pipe = usePipeline(v.active);
+  // the moment Rolly is ready after waiting, say so with a light tap (the dimmed mic lights up at the same time)
+  const wasBlocked = useRef(false);
+  useEffect(() => {
+    if (wasBlocked.current && pipe.state === "ready") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    wasBlocked.current = pipe.blocked;
+  }, [pipe.state, pipe.blocked]);
+  // a conversation that the pipeline refused: re-check, so the screen shows why and waits for it
+  useEffect(() => { if (v.state === "error" && /pipeline/i.test(v.detail ?? "")) void pipe.check(); }, [v.state, v.detail, pipe.check]);
   const { width, height } = useWindowDimensions();
   const compact = height < 740; // iPhone SE / mini: smaller idle avatar, one-line recap
   const [chat, setChat] = useState(false);
@@ -61,6 +71,8 @@ export default function Home() {
   const showChat = chat && v.captions.length > 0;
 
   const toggle = () => {
+    // nothing to start yet: say so (the status line explains) and look again now
+    if (!v.active && pipe.blocked) { void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); void pipe.check(); return; }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     // while music plays, the big button means "talk": it pauses the music and listens again (the small x ends the conversation)
     if (v.state === "music") void v.resumeFromMusic();
@@ -92,7 +104,9 @@ export default function Home() {
               <Animated.View entering={FadeIn.duration(400)} style={[s.idle, compact ? { gap: spacing.md } : null]}>
                 <View style={{ gap: spacing.xs }}>
                   <Txt variant="display" style={s.center}>{greeting(name)}</Txt>
-                  <Txt variant="subhead" tone="dim" style={s.center}>{recap.last || recap.next ? t.startHint : t.intro}</Txt>
+                  {pipe.blocked
+                    ? <PipelineLine state={pipe.state} />
+                    : <Txt variant="subhead" tone="dim" style={s.center}>{recap.last || recap.next ? t.startHint : t.intro}</Txt>}
                 </View>
                 {recap.last || recap.next ? (
                   <PressScale accessibilityRole="button" onPress={() => router.push("/progress")} scaleTo={0.98} style={[cardStyle(c), s.recap]}>
@@ -114,7 +128,7 @@ export default function Home() {
             ) : (
             <View style={s.lineBox}>
               {v.state === "error" && v.detail ? (
-                <View style={s.lineInner}><Txt variant="transcript" tone="danger" style={s.center}>{v.detail}</Txt></View>
+                <View style={s.lineInner}><Txt variant="transcript" tone="danger" style={s.center}>{friendlyError(v.detail)}</Txt></View>
               ) : v.active && last ? (
                 <View style={s.lineInner}>
                   <Animated.View key={`${v.captions.length}`} entering={FadeIn.duration(240)}>
@@ -154,7 +168,7 @@ export default function Home() {
           <View style={s.controls}>
             {/* the conversation language is a setting (Personalisation), not a per-ride control */}
             <View style={s.side} />
-            <MicButton icon={v.active && v.state !== "music" ? "square" : "mic"} label={v.state === "music" ? t.tapToTalk : v.active ? t.stop : t.start} live={LIVE.includes(v.state)} onPress={toggle} />
+            <MicButton icon={v.active && v.state !== "music" ? "square" : "mic"} label={!v.active && pipe.blocked ? pipelineText(pipe.state) : v.state === "music" ? t.tapToTalk : v.active ? t.stop : t.start} live={LIVE.includes(v.state)} onPress={toggle} waiting={!v.active && pipe.blocked} />
             <View style={[s.side, { alignItems: "flex-end" }]}>
               {v.active ? <CircleButton icon="x" label={t.endConv} onPress={() => void v.stop()} /> : null}
             </View>
@@ -180,6 +194,28 @@ export default function Home() {
 function openSite(page: "privacy" | "terms" | "accessibility") {
   // a beat so the menu starts closing before the browser takes over
   setTimeout(() => void Linking.openURL(`https://heyrolly.ai${uiLang === "en" ? "/en" : ""}/${page}/`).catch(() => {}), 50);
+}
+
+/** What the pipeline's state means for the user, in one sentence. */
+function pipelineText(state: PipelineState): string {
+  return state === "starting" ? t.pipeStarting : state === "busy" ? t.pipeBusy : t.pipeOffline;
+}
+
+/** The status line under the greeting while a conversation cannot start yet. */
+function PipelineLine({ state }: { state: PipelineState }) {
+  const c = useTheme();
+  return (
+    <View accessibilityLiveRegion="polite" style={s.pipeLine}>
+      {state === "starting" ? <ActivityIndicator size="small" color={c.accent} /> : <Feather name={state === "busy" ? "clock" : "cloud-off"} size={16} color={c.dim} />}
+      <Txt variant="subhead" tone="dim" style={{ flexShrink: 1, textAlign: "center" }}>{pipelineText(state)}</Txt>
+    </View>
+  );
+}
+
+/** Errors from the voice session are for logs; the user gets a sentence. */
+function friendlyError(detail?: string): string {
+  if (detail && /pipeline|pod|GPU|worker/i.test(detail)) return t.pipeFailed;
+  return t.genericError;
 }
 
 /** One line of the "picking up from here" card. */
@@ -223,6 +259,7 @@ function Transcript() {
 }
 
 const s = StyleSheet.create({
+  pipeLine: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm, paddingHorizontal: spacing.lg },
   legal: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.sm, marginTop: -spacing.xs },
   center: { textAlign: "center" },
   stage: { flex: 1, paddingHorizontal: spacing.xxl },

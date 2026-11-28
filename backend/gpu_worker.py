@@ -101,7 +101,7 @@ def _auth(request: Request) -> None:
 @app.get("/healthz")
 async def healthz():
     return {"ok": True, "ready": "load_s" in state, "auth": "bearer" if TOKEN else "no key", "stt": getattr(state.get("stt"), "name", None), "tts": getattr(state.get("tts"), "name", None),
-            "pipeline": PROVIDER_ID, "load_error": state.get("load_error"), "active_sessions": state.get("active"), "load_s": state.get("load_s"), "served": state.get("served")}
+            "pipeline": PROVIDER_ID, "load_error": state.get("load_error"), "active_sessions": state.get("active"), "max_sessions": MAX_SESSIONS, "load_s": state.get("load_s"), "served": state.get("served")}
 
 
 @app.get("/v1/session/describe")

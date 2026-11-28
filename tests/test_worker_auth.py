@@ -19,6 +19,7 @@ def test_no_key_refuses_every_request_but_healthz(worker):
     c = TestClient(w.app)
     h = c.get("/healthz")
     assert h.status_code == 200 and h.json()["auth"] == "no key"
+    assert h.json()["max_sessions"] == w.MAX_SESSIONS  # the API reads it to tell the app when the pipeline is full
     for headers in ({}, {"Authorization": "Bearer "}, {"Authorization": "Bearer anything"}):
         assert c.get("/v1/session/describe", headers=headers).status_code == 401
         assert c.get("/v1/voices", headers=headers).status_code == 401

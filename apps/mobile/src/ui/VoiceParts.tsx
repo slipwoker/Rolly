@@ -7,7 +7,8 @@ import { PressScale, type IconName } from "./components";
 import { useTheme } from "./theme";
 
 /** Black mic button inside a soft grey ring; the ring ripples outward while `live`. */
-export function MicButton({ icon, onPress, live, label }: { icon: IconName; onPress: () => void; live: boolean; label: string }) {
+/** `waiting`: the pipeline cannot take a conversation yet; the button is dimmed and tapping it only re-checks. */
+export function MicButton({ icon, onPress, live, label, waiting }: { icon: IconName; onPress: () => void; live: boolean; label: string; waiting?: boolean }) {
   const c = useTheme();
   const reduced = useReducedMotion();
   const r = useSharedValue(0);
@@ -19,8 +20,8 @@ export function MicButton({ icon, onPress, live, label }: { icon: IconName; onPr
   return (
     <View style={{ width: 96, height: 96, alignItems: "center", justifyContent: "center" }}>
       <Animated.View pointerEvents="none" style={[{ position: "absolute", width: 84, height: 84, borderRadius: 42, backgroundColor: c.ring }, ripple]} />
-      <PressScale accessibilityRole="button" accessibilityLabel={label} onPress={onPress} scaleTo={0.93}
-        style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: c.ring, alignItems: "center", justifyContent: "center", boxShadow: "inset 0 2px 6px rgba(0,0,0,0.08)" }}>
+      <PressScale accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !!waiting }} onPress={onPress} scaleTo={0.93}
+        style={[{ width: 84, height: 84, borderRadius: 42, backgroundColor: c.ring, alignItems: "center", justifyContent: "center", boxShadow: "inset 0 2px 6px rgba(0,0,0,0.08)" }, waiting ? { opacity: 0.4 } : null]}>
         <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: c.ink, alignItems: "center", justifyContent: "center", boxShadow: "0 6px 16px rgba(0,0,0,0.25)" }}>
           <Feather name={icon} size={22} color={c.onInk} />
         </View>
