@@ -18,7 +18,43 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 # job 15 (2026-11-26): the voices the owner chose from 77 listening samples: BlueV3 `ariel` at speed 1.0 in Hebrew and
 # `jonathan` at 1.0 in English (before: daniel at 1.2, and Piper for English).  Restarts the voice server (blue_setup.sh,
 # which now installs both voices) and the worker.
+# job 16 (2026-11-26): the voice speaks a whole piece in one synthesis and keeps short sentences together (blue_stream=0,
+# tts_merge_chars=70), chosen in two blind listenings (P1-D37).  Only the worker restarts (same steps as job 15).
+# The engine name in the session summary now ends in ":whole" when this is on.
+# Back to the per-sentence synthesis of before: ROLLY_BLUE_STREAM=1 ROLLY_TTS_MERGE_CHARS=0.
+# job 17 (2026-11-26): restart the worker for the lookup fix (a request is reported as soon as the marker is written, so a
+# reply cut off right after "checking" no longer loses it) and for waiting plan topics skipping turns where the user asked
+# a question (P1-D38).  Only the worker restarts.
+# job 18 (2026-11-26): restart the worker for the name מאור given to BlueV3 as phonemes (it said "Me-or"). Only the worker restarts.
+# job 19 (2026-11-26): names (P1-D39): the voice server (restarted by blue_setup.sh, as in job 15) serves its Hebrew front end on
+# 127.0.0.1:1921; the worker pins a name that the front end reads differently by position, and takes the user's correction.
+# Without the probe (ROLLY_NAME_PROBE=0 for blue_serve.py) everything is as before.
+# job 20 (2026-11-27): smart end of turn in mode shadow (P1-D40): verdicts on what the user said so far are only measured
+# (pod metrics turn_end_*), nothing changes. Only the worker restarts. ROLLY_TURN_END=on applies them.
+# job 21 (2026-11-27): CUDA diagnosis at the start of the job (see below), then the usual restart of the voice server and the worker.
 # Back to the old voices: ROLLY_BLUE_VOICE=daniel ROLLY_BLUE_SPEED=1.2 ROLLY_TTS_EN_ENGINE=sherpa.
+# job 21 (2026-11-27): the worker and the voice server found no usable CUDA ("CUDA failure 999: unknown error", cudaSetDevice) while
+# vLLM still holds the GPU: diagnose (output in job.log, published on :8001) and try the usual fix (the unified-memory device node).
+# job 23 (2026-11-28): restart the worker for (1) the barge-in check: a sound that looks like speech (a phone buzzing, a cough) is
+# transcribed before the agent is cut and the agent is only cut by words (bargein_verify_ms, 300; 0 = off), and (2) a reply cut by a
+# false interruption continues from the word where it was cut instead of saying the sentence again.  Same restart as jobs 11-20:
+# only the worker (blue_setup.sh is idempotent, vLLM keeps running).  Same code as main at PR #57.
+echo "--- cuda diag $(date -u +%FT%TZ)"
+nvidia-smi --query-gpu=name,driver_version,memory.used,memory.total,compute_mode,persistence_mode --format=csv 2>&1 | head -3
+ls -l /dev/nvidia* 2>&1 | head -12
+cat /proc/driver/nvidia/version 2>&1 | head -2
+env | grep -E '^(NVIDIA|CUDA)[A-Z_]*=' | sed 's/=.*/=<set>/' | head
+python3 - <<'PYEOF' 2>&1 | head -5
+import ctypes
+try:
+    lib = ctypes.CDLL("libcuda.so.1"); print("cuInit ->", lib.cuInit(0))
+    n = ctypes.c_int(); print("cuDeviceGetCount ->", lib.cuDeviceGetCount(ctypes.byref(n)), n.value)
+except Exception as e:
+    print("libcuda:", e)
+PYEOF
+ps -eo pid,etimes,rss,cmd | grep -E 'vllm|blue_serve|uvicorn' | grep -v grep | cut -c1-160 | head -6
+if [ ! -e /dev/nvidia-uvm ] && command -v nvidia-modprobe >/dev/null 2>&1; then echo "creating /dev/nvidia-uvm"; nvidia-modprobe -u -c=0 2>&1 | head -3; fi
+echo "--- end cuda diag"
 pkill -f "zonos3-server" 2>/dev/null || true
 if bash infrastructure/blue_setup.sh; then
   ROLLY_TTS_HE_ENGINE=blue bash infrastructure/start_worker.sh
