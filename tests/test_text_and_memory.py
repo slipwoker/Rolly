@@ -527,3 +527,189 @@ def test_the_conversation_pins_a_name_only_when_it_is_unstable_and_the_users_cor
     assert session({"name": "מאור כהן", "name_pron": {"name": "מאור", "ipa": "meʔˈoʁ"}}) == {"מאור": "meʔˈoʁ"}
     assert session({"name": "דנה", "name_pron": {"name": "מאור", "ipa": "meʔˈoʁ"}}) == {}  # the name changed: the choice is stale
     assert session({"name": None}) == {}
+
+
+# ---- a false interruption must not make the same sentence be said twice (2026-11-28: the opener, and a tool answer when a push notification buzzed)
+from providers.modular.text import chunks_left, tail_from  # noqa: E402
+
+SENTENCE = "בוקר טוב מאור, איך מתחיל לך היום?"
+
+
+def test_cut_chunk_nearly_all_heard_is_not_said_again():
+    synth = [(SENTENCE, 2.4)]
+    assert chunks_left([SENTENCE], synth, 2.0) == []   # 83% heard
+    assert chunks_left([SENTENCE], synth, 1.9) == []   # 79% heard
+
+
+def test_cut_chunk_half_heard_is_said_from_where_it_was_cut_not_from_the_start():
+    left = chunks_left([SENTENCE], [(SENTENCE, 2.4)], 1.3)  # 54% heard
+    assert left == ["מאור, איך מתחיל לך היום?"]              # one word of overlap, nothing of "בוקר טוב"
+    assert chunks_left([SENTENCE], [(SENTENCE, 2.4)], 0.2) == [SENTENCE]  # hardly anything heard: the whole sentence
+
+
+def test_tail_from_keeps_short_texts_whole_and_never_returns_nothing():
+    assert tail_from("כן בסדר גמור", 0.6) == "כן בסדר גמור"
+    long = "יש לך פגישה עם Pipper-ai ו-Zappy ביום שני ב-10:00 בתל אביב."
+    for f in (0.3, 0.5, 0.74):
+        t = tail_from(long, f)
+        assert t and long.endswith(t)
+    assert len(tail_from(long, 0.7)) < len(tail_from(long, 0.35))
+
+
+def test_short_cut_chunk_heard_half_with_little_left_counts_as_said():
+    assert chunks_left(["כן."], [("כן.", 0.6)], 0.35) == []        # 58% heard, 0.25 s left
+    assert chunks_left(["כן."], [("כן.", 0.6)], 0.1) == ["כן."]    # barely started
+
+
+def test_later_chunks_are_still_said_and_played_ones_are_not():
+    every = ["אחד.", "שניים.", "שלושה."]
+    synth = [("אחד.", 1.0), ("שניים.", 1.0)]               # the third chunk's audio was not made yet
+    assert chunks_left(every, synth, 0.1) == every
+    assert chunks_left(every, synth, 1.9) == ["שלושה."]    # the second was nearly all heard
+    assert chunks_left(every, synth, 5.0) == ["שלושה."]    # all that exists was played; the rest was never made
+    assert chunks_left(every, [], 0.5) == every
+
+
+# ---- barge-in is checked before the agent is cut (2026-11-28: a phone buzzing on its mount cut the agent, which then said the sentence again)
+def _bargein_rig(verify_ms=300.0, stt_text="", stt_raises=False, scripted=None):
+    import asyncio
+    import numpy as np
+    from providers import base
+    from providers.modular.pipeline import ModularProvider, _Gate
+    from providers.modular.vad import VadEvent, VadConfig
+
+    log = {"emitted": [], "cancelled": [], "dropped": 0, "stt_calls": 0, "turns": 0}
+
+    class Res:
+        def __init__(self, text):
+            self.text, self.audio_s, self.no_speech_prob, self.avg_logprob = text, 0.8, 0.1, -0.2
+
+    class STT:
+        name = "fake"
+
+        async def transcribe(self, audio, hint):
+            log["stt_calls"] += 1
+            if stt_raises:
+                raise RuntimeError("gpu busy")
+            return Res(stt_text)
+
+    class EP:
+        gate_db = None
+        strict = False
+        _stream_ms = 1000.0
+
+        def __init__(self):
+            self.script = list(scripted or [])
+
+        def feed(self, pcm, agent_audible=False):
+            return self.script.pop(0) if self.script else []
+
+        def peek(self):
+            return np.zeros(8000, dtype=np.float32), {"level_db": -20.0}
+
+        def drop_utterance(self):
+            log["dropped"] += 1
+
+    class Ctx:
+        language = "he"
+
+    p = ModularProvider.__new__(ModularProvider)
+    p._closed, p._last_audible_t, p.vad_cfg, p.endpointer = False, 0.0, VadConfig(), EP()
+    p.bargein_verify_ms, p._probe, p._utt, p._verdict_open = verify_ms, None, {}, None
+    p.stt, p.ctx, p.unclear_max_s, p.unclear_logprob, p.level_gate_db = STT(), Ctx(), 1.5, -0.5, 0.0
+    p._ref_level, p._echo_level, p._last_reply_text, p._turn_state = None, None, "", {"full_reply": "יש לך פגישה ביום שני"}
+
+    class T:
+        def done(self):
+            return False
+
+    p._turn, p._gate = T(), type("G", (), {"committed": True})()
+    p.client_is_playing = lambda: True
+    p._bargein_gate = lambda: None
+
+    async def emit(type_, audio=None, sample_rate=0, **data):
+        log["emitted"].append((type_, data.get("name")))
+    p.emit = emit
+
+    async def cancel(emit_interrupt, detect_audio_ms=None):
+        log["cancelled"].append(emit_interrupt)
+    p._cancel_turn = cancel
+
+    async def outcome(*a, **k):
+        return None
+    p._turn_end_outcome = outcome
+    return p, log, VadEvent, base
+
+
+def _run(p, n_frames=30):
+    import asyncio
+
+    async def go():
+        for _ in range(n_frames):
+            await p.push_audio(b"\x00" * 640)  # 20 ms
+            await asyncio.sleep(0)
+        await asyncio.sleep(0.01)
+        await p.push_audio(b"\x00" * 640)
+    asyncio.run(go())
+
+
+def test_a_noise_that_looks_like_speech_does_not_cut_the_agent():
+    from providers.modular.vad import VadEvent
+    p, log, _VadEvent, base = _bargein_rig(stt_text="", scripted=[[VadEvent("start", 900.0)]])
+    _run(p)
+    assert log["stt_calls"] == 1 and log["cancelled"] == [] and log["dropped"] == 1
+    assert base.USER_SPEECH_STARTED not in [e[0] for e in log["emitted"]]          # the phone is not told the user spoke
+    assert ("metric", "bargein_rejected_no_words") in [(e[0], e[1]) for e in log["emitted"]] or any(e[1] == "bargein_rejected_no_words" for e in log["emitted"])
+
+
+def test_a_hallucinated_transcript_of_noise_does_not_cut_the_agent_either():
+    from providers.modular.vad import VadEvent
+    p, log, _V, base = _bargein_rig(stt_text="תודה.", scripted=[[VadEvent("start", 900.0)]])
+    _run(p)
+    assert log["cancelled"] == [] and log["dropped"] == 1
+
+
+def test_real_words_cut_the_agent_once_they_are_confirmed():
+    from providers.modular.vad import VadEvent
+    p, log, _V, base = _bargein_rig(stt_text="רגע, עצור שנייה", scripted=[[VadEvent("start", 900.0)]])
+    _run(p)
+    assert log["cancelled"] == [True] and log["dropped"] == 0
+    assert [e[0] for e in log["emitted"]].count(base.USER_SPEECH_STARTED) == 1
+
+
+def test_nothing_is_cut_before_the_check_has_the_audio_it_needs():
+    import asyncio
+    from providers.modular.vad import VadEvent
+    p, log, _V, base = _bargein_rig(stt_text="עצור", scripted=[[VadEvent("start", 900.0)]])
+
+    async def go():
+        for _ in range(5):  # 100 ms of 300
+            await p.push_audio(b"\x00" * 640)
+            await asyncio.sleep(0)
+    asyncio.run(go())
+    assert log["stt_calls"] == 0 and log["cancelled"] == []
+
+
+def test_if_the_check_cannot_run_the_agent_is_cut_as_before():
+    from providers.modular.vad import VadEvent
+    p, log, _V, base = _bargein_rig(stt_raises=True, scripted=[[VadEvent("start", 900.0)]])
+    _run(p)
+    assert log["cancelled"] == [True]
+
+
+def test_with_the_check_off_the_agent_is_cut_at_once():
+    import asyncio
+    from providers.modular.vad import VadEvent
+    p, log, _V, base = _bargein_rig(verify_ms=0, scripted=[[VadEvent("start", 900.0)]])
+    asyncio.run(p.push_audio(b"\x00" * 640))
+    assert log["cancelled"] == [True] and log["stt_calls"] == 0
+
+
+def test_a_short_sound_that_ends_before_the_check_point_is_checked_at_its_end_and_dropped_if_noise():
+    import numpy as np
+    from providers.modular.vad import VadEvent
+    audio = np.zeros(6400, dtype=np.float32)
+    p, log, _V, base = _bargein_rig(stt_text="", scripted=[[VadEvent("start", 900.0)], [VadEvent("eager", 1000.0, audio, {"level_db": -20.0})], [VadEvent("end", 1000.0, audio, {"level_db": -20.0})]])
+    _run(p, n_frames=3)
+    assert log["cancelled"] == [] and log["dropped"] == 1
+    assert base.USER_SPEECH_STOPPED not in [e[0] for e in log["emitted"]]

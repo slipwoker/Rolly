@@ -415,3 +415,49 @@ def echo_like(heard: str, agent_text: str) -> bool:
 
     hits = sum(1 for w in h if any(same(w, x) for x in a))
     return hits / len(h) >= 0.7
+
+
+# A reply cut off by something that was not the user (a cough, a phone vibrating) is said again from where it was cut, not from the
+# start of the chunk: a chunk is a whole sentence, so saying it again meant the user heard the same sentence twice (seen on the opener
+# on 2026-11-28 and on a tool answer when a push notification buzzed).
+RESUME_HEARD_FRACTION = 0.75  # this much of the cut chunk heard: count it as said
+RESUME_NEARLY_FRACTION = 0.5  # ... or this much, when what is left is under RESUME_LEFT_S
+RESUME_LEFT_S = 0.7
+RESUME_FROM_START = 0.3       # less than this heard: the whole chunk again; more: only its tail
+
+
+def tail_from(text: str, heard: float) -> str:
+    """The part of `text` still to say when the first `heard` (0..1) of it was said: from the word being said at the cut, one word
+    earlier so the join is natural. Short texts are said whole."""
+    words = text.split()
+    if len(words) < 4:
+        return text
+    target, pos, cut = heard * len(text), 0, len(words) - 1
+    for i, w in enumerate(words):
+        end = pos + len(w)
+        if end >= target:
+            cut = i
+            break
+        pos = end + 1
+    return " ".join(words[max(0, cut - 1):])
+
+
+def chunks_left(every: list[str], synthesized: list[tuple[str, float]], played_s: float) -> list[str]:
+    """The chunks of a reply still to say after `played_s` seconds of playback. `synthesized` = (text, seconds of audio) of the chunks
+    whose audio exists, in order; `every` = all chunks of the reply. A fully played chunk is done; the chunk playing when the reply was
+    cut is done too if nearly all of it was heard, is said from where it was cut if about half was heard, and said whole if hardly any
+    was; later chunks are not done."""
+    done, acc = 0, 0.0
+    for _text, dur in synthesized:
+        end = acc + dur
+        if end <= played_s:
+            done += 1
+        else:
+            heard = (played_s - acc) / dur if dur > 0 else 1.0
+            if heard >= RESUME_HEARD_FRACTION or (heard >= RESUME_NEARLY_FRACTION and end - played_s <= RESUME_LEFT_S):
+                done += 1
+            elif heard >= RESUME_FROM_START and done < len(every):
+                return [tail_from(every[done], heard)] + every[done + 1:]
+            break
+        acc = end
+    return every[done:]

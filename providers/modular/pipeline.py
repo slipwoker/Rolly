@@ -27,7 +27,7 @@ from .. import base
 from ..base import VoiceProvider
 from .llm import LLMResult, OpenAICompatLLM
 from .stt import discard_reason, get_stt
-from .text import FOREIGN_LANGS, LOOKUP_MARKER, MarkerFilter, SentenceChunker, TurnNotes, clean_for_speech, echo_like, has_stop_word, question_guard_note, user_wants_to_end
+from .text import FOREIGN_LANGS, chunks_left, LOOKUP_MARKER, MarkerFilter, SentenceChunker, TurnNotes, clean_for_speech, echo_like, has_stop_word, question_guard_note, user_wants_to_end
 from .pronounce import get_probe, usable_name
 from .turnend import judge as judge_turn_end, mode_from as turn_end_mode, override_for as turn_end_override
 from .tts import TTSRouter
@@ -112,6 +112,11 @@ class ModularProvider(VoiceProvider):
         self._echo_level: Optional[float] = None  # loudest sound so far that turned out to be the agent's own voice
         self._last_audible_t = 0.0  # last moment the agent was audible (server-side estimate)
         self._last_reply_text = ""
+        # Barge-in is checked before the agent is cut: sound that looks like speech to the detector (a phone buzzing on a mount, a
+        # cough, a door) is transcribed first, and the agent only stops when it is words.  Without it the agent was cut by every such
+        # noise and had to start the sentence again (2026-11-28).  0 = cut as soon as the detector says speech (the old behaviour).
+        self.bargein_verify_ms = float(config.get("bargein_verify_ms", 300))
+        self._probe: Optional[dict] = None
 
     def describe(self) -> dict:
         return {
@@ -129,6 +134,8 @@ class ModularProvider(VoiceProvider):
                   "bargein_floor_db"):
             if k in opts:
                 setattr(self.vad_cfg, k, float(opts[k]))
+        if "bargein_verify_ms" in opts:
+            self.bargein_verify_ms = max(0.0, float(opts["bargein_verify_ms"] or 0))
         if "turn_end" in opts:
             self.turn_end_mode = turn_end_mode(opts["turn_end"])
         # Sampling for this conversation, chosen by the caller (it measures them against bot-like phrasing): a short
@@ -217,6 +224,71 @@ class ModularProvider(VoiceProvider):
             gate = min(gate, self._ref_level - 2.0)
         return gate
 
+    def _judge(self, text: str, res, utt: dict) -> Optional[str]:
+        """Why this transcript of an utterance is not the user talking to us (noise, echo of the agent, a background voice), or None."""
+        why = discard_reason(text, res.audio_s, res.no_speech_prob)
+        if not why and text and utt.get("near_agent") and not has_stop_word(text):
+            # Sound that started while the agent was speaking, or right after.  Was it really the user?
+            if echo_like(text, utt.get("agent_text", "")):
+                why = "echo_of_agent"  # the microphone picked up the loudspeaker
+                if utt.get("level_db") is not None:
+                    self._echo_level = max(self._echo_level if self._echo_level is not None else -99.0, float(utt["level_db"]))
+            elif utt.get("barge_in") and res.audio_s < self.unclear_max_s and res.avg_logprob is not None \
+                    and res.avg_logprob < self.unclear_logprob:
+                why = "unclear_interjection"  # short and poorly recognised: a cough, a far voice, residual echo
+        lvl = utt.get("level_db")
+        if not why and text and self.level_gate_db and self._ref_level is not None and lvl is not None \
+                and lvl < self._ref_level - self.level_gate_db and not has_stop_word(text):
+            why = "background_voice"
+        return why
+
+    # -- barge-in check ------------------------------------------------------------
+    async def _probe_check(self, audio, info: dict) -> None:
+        """Transcribe the start of a sound that may be the user cutting in, and record whether it is words."""
+        probe = self._probe
+        try:
+            lang_hint = self.ctx.language if self.ctx.language in ("he", "en") else None
+            res = await self.stt.transcribe(audio, lang_hint)
+            text = (res.text or "").strip()
+            why = self._judge(text, res, {**self._utt, **info}) if text else "no_words"
+            if probe is not None and probe is self._probe:
+                probe["why"] = why
+                probe["verdict"] = "reject" if why else "accept"
+        except Exception:
+            if probe is not None and probe is self._probe:
+                probe["verdict"] = "accept"  # could not tell: behave as before, cut
+
+    async def _apply_probe(self, final: bool = False, audio=None, info: Optional[dict] = None) -> None:
+        """Act on the check of a barge-in candidate: if it was words, cut the agent now (as the detector used to do at once); if it
+        was not, leave the agent alone and forget the sound.  `final`: the utterance ended, so decide now (waiting for the check)."""
+        probe = self._probe
+        if probe is None:
+            return
+        if probe["verdict"] is None:
+            if not final:
+                return
+            if probe["task"] is None:
+                if audio is None:
+                    audio, info = self.endpointer.peek()
+                probe["task"] = asyncio.create_task(self._probe_check(audio, info or {}))
+            await probe["task"]
+            if probe["verdict"] is None:
+                probe["verdict"] = "accept"
+        if probe["verdict"] == "reject":
+            if not probe["dropped"]:
+                probe["dropped"] = True
+                self.endpointer.drop_utterance()
+                await self.emit(base.METRIC, name=f"bargein_rejected_{probe['why']}", value_ms=probe["ms"], response_id="")
+            return
+        if not probe["applied"]:
+            probe["applied"] = True
+            await self.emit(base.USER_SPEECH_STARTED, audio_ms=probe["audio_ms"])
+            if self._agent_audible():
+                await self._cancel_turn(emit_interrupt=True, detect_audio_ms=self.endpointer._stream_ms)
+
+    def _probe_rejected(self) -> bool:
+        return self._probe is not None and self._probe["verdict"] == "reject"
+
     async def push_audio(self, pcm16: bytes) -> None:
         if self._closed:
             return
@@ -227,32 +299,49 @@ class ModularProvider(VoiceProvider):
         # the bar stays up for a moment after the last audio was sent: the client is still playing it
         guarded = audible or (now - self._last_audible_t) * 1000 < self.vad_cfg.echo_tail_ms
         self.endpointer.gate_db = self._bargein_gate() if guarded else None
+        await self._apply_probe()
         for ev in self.endpointer.feed(pcm16, agent_audible=guarded):
             if ev.kind == "start":
                 self._verdict_open = None
-                await self.emit(base.USER_SPEECH_STARTED, audio_ms=ev.audio_ms)
+                self._probe = None
                 if self._agent_audible():
                     st = self._turn_state or {}
                     first = st.get("first_audio_t")
                     self._utt = {"barge_in": True, "near_agent": True,
                                  "agent_text": clean_for_speech(st.get("full_reply") or st.get("agent_text", "")),
                                  "ms_into_reply": round((time.monotonic() - first) * 1000) if first else None}
-                    await self._cancel_turn(emit_interrupt=True, detect_audio_ms=self.endpointer._stream_ms)
+                    if self.bargein_verify_ms > 0:
+                        # not yet: the sound is checked first, the agent keeps talking meanwhile (_apply_probe)
+                        self._probe = {"verdict": None, "why": None, "task": None, "ms": 0.0, "audio_ms": ev.audio_ms, "applied": False, "dropped": False}
+                    else:
+                        await self.emit(base.USER_SPEECH_STARTED, audio_ms=ev.audio_ms)
+                        await self._cancel_turn(emit_interrupt=True, detect_audio_ms=self.endpointer._stream_ms)
                 else:
+                    await self.emit(base.USER_SPEECH_STARTED, audio_ms=ev.audio_ms)
                     # just after the agent stopped, what the microphone hears may still be the end of its sentence
                     near = (time.monotonic() - self._last_audible_t) < 1.5 and bool(self._last_reply_text)
                     self._utt = {"barge_in": False, "near_agent": near, "agent_text": self._last_reply_text if near else ""}
                     if self._turn and not self._turn.done():
                         await self._cancel_turn(emit_interrupt=False)
             elif ev.kind == "eager":
+                await self._apply_probe(final=True, audio=ev.audio, info=ev.info)
+                if self._probe_rejected():
+                    continue
                 gate = _Gate(self, committed=False)
                 self._gate = gate
                 self._turn = asyncio.create_task(self._run_turn(gate, audio=ev.audio, speculative=True, utt={**self._utt, **(ev.info or {})}))
             elif ev.kind == "resume":
+                if self._probe_rejected():
+                    continue
                 await self._turn_end_outcome("resumed")
                 if self._gate is not None and not self._gate.committed:
                     await self._cancel_turn(emit_interrupt=False)
             elif ev.kind == "end":
+                await self._apply_probe(final=True, audio=ev.audio, info=ev.info)
+                if self._probe_rejected():  # it was not the user: nothing to answer, and the agent was never cut
+                    self._probe = None
+                    continue
+                self._probe = None
                 await self._turn_end_outcome("ended")
                 await self.emit(base.USER_SPEECH_STOPPED, audio_end_ms=ev.audio_ms)
                 if self._gate is not None and not self._gate.committed and self._turn and not self._turn.done():
@@ -265,6 +354,14 @@ class ModularProvider(VoiceProvider):
                     gate = _Gate(self, committed=True)
                     self._gate = gate
                     self._turn = asyncio.create_task(self._run_turn(gate, audio=ev.audio, utt={**self._utt, **(ev.info or {})}))
+
+        # a barge-in candidate is checked once there is enough of it to transcribe (the agent keeps talking until then)
+        probe = self._probe
+        if probe is not None and probe["verdict"] is None and probe["task"] is None:
+            probe["ms"] += len(pcm16) / 32.0
+            if probe["ms"] >= self.bargein_verify_ms:
+                audio, info = self.endpointer.peek()
+                probe["task"] = asyncio.create_task(self._probe_check(audio, info))
 
     async def send_text(self, text: str) -> None:
         await self._cancel_turn(emit_interrupt=self._agent_audible())
@@ -322,19 +419,14 @@ class ModularProvider(VoiceProvider):
         return " ".join(heard)
 
     def _unsaid_chunks(self, state: dict) -> list[str]:
-        """Chunks of the reply that had not finished playing when it was cut off (the cut one is said again)."""
+        """Chunks of the reply that had not finished playing when it was cut off (the cut one is said again, unless nearly all of it was heard)."""
         first = state.get("first_audio_t")
         every = list(state.get("all_chunks") or [])
         if first is None:
             return every
         gate = state.get("gate")
         first = max(first, (gate.commit_time or first) if gate else first)
-        played, acc, done = time.monotonic() - first, 0.0, 0
-        for _text, dur in state.get("chunks", []):
-            acc += dur
-            if acc <= played:
-                done += 1
-        return every[done:]
+        return chunks_left(every, state.get("chunks", []), time.monotonic() - first)
 
     def _restore_assistant(self, full_text: str) -> None:
         """The reply was said in full after all: undo the truncation recorded at the false interruption."""
@@ -493,20 +585,7 @@ class ModularProvider(VoiceProvider):
                 if res.detect_ms:
                     await gate.emit(base.METRIC, name="stt_language_detect_ms", value_ms=res.detect_ms, response_id=rid)
                 await gate.emit(base.USAGE, kind="stt", audio_s=res.audio_s, engine=self.stt.name)
-                why = discard_reason(text, res.audio_s, res.no_speech_prob)
-                if not why and text and utt.get("near_agent") and not has_stop_word(text):
-                    # Sound that started while the agent was speaking, or right after.  Was it really the user?
-                    if echo_like(text, utt.get("agent_text", "")):
-                        why = "echo_of_agent"  # the microphone picked up the loudspeaker
-                        if utt.get("level_db") is not None:
-                            self._echo_level = max(self._echo_level if self._echo_level is not None else -99.0, float(utt["level_db"]))
-                    elif utt.get("barge_in") and res.audio_s < self.unclear_max_s and res.avg_logprob is not None \
-                            and res.avg_logprob < self.unclear_logprob:
-                        why = "unclear_interjection"  # short and poorly recognised: a cough, a far voice, residual echo
-                lvl = utt.get("level_db")
-                if not why and text and self.level_gate_db and self._ref_level is not None and lvl is not None \
-                        and lvl < self._ref_level - self.level_gate_db and not has_stop_word(text):
-                    why = "background_voice"
+                why = self._judge(text, res, utt)
                 rejected = text if why else None
                 if why:  # treat as "nothing was said"
                     await gate.emit(base.METRIC, name=f"stt_discarded_{why}", value_ms=res.audio_s * 1000, response_id=rid)

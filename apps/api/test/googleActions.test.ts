@@ -298,6 +298,35 @@ describe("how a request reaches the actions", () => {
   });
 });
 
+describe("a question about the ability itself", () => {
+  const planner = (plan: Record<string, unknown>): UtilityLlm & { prompts: string[] } => { const prompts: string[] = []; return { name: "f", prompts, async json(p) { prompts.push(p); return { obj: plan, ms: 1 }; } }; };
+  const base = { userId: "u", sessionId: "s", language: "he", timeZone: TZ, now: NOW, recent: [] as { role: "user" | "agent"; text: string }[] };
+  const deps = (scopes: string | null, extra: Record<string, unknown> = {}) => {
+    const g = google(); const a = actions(g.http, { scopes });
+    return { llm: planner({ tool: "how" }), http: g.http, connections: a["d"].connections, google: { clientId: "c", clientSecret: "s", redirectUri: "r" }, spotify: null, actions: a, ...extra };
+  };
+  it("'can you send email?' is answered from what is allowed, without a web search or a Google call", async () => {
+    const d = deps(ALL);
+    const r = await runTool(d as never, { ...base, question: "אתה יכול לשלוח מייל?" });
+    expect(r).toMatchObject({ tool: "how", ok: true });
+    expect(r.message).toContain("Send an email for them");
+    expect(r.message).toContain("only after their yes");
+    expect(r.message).not.toContain("permissions are missing");
+    expect((d.llm as { prompts: string[] }).prompts).toHaveLength(1); // the planning call only: no search
+  });
+  it("tells what is missing when the connection cannot send yet, and when Google is not connected", async () => {
+    const readOnly = await runTool(deps([SCOPE_GMAIL_READ, "https://www.googleapis.com/auth/calendar.readonly"].join(" ")) as never, { ...base, question: "אתה יכול לשלוח מייל?" });
+    expect(readOnly.message).not.toContain("Send an email for them");
+    expect(readOnly.message).toContain("tap update permissions");
+    const none = deps(null); none.connections = { ...none.connections, async googleRefresh() { return null; } };
+    expect((await runTool(none as never, { ...base, question: "אתה יכול לשלוח מייל?" })).message).toContain("not connected yet");
+  });
+  it("the planner is told about the question kind", async () => {
+    const d = deps(ALL); await runTool(d as never, { ...base, question: "אתה יכול לשלוח מייל?" });
+    expect((d.llm as { prompts: string[] }).prompts[0]).toContain('"how": they ask WHETHER or WHAT you can do');
+  });
+});
+
 describe("persona", () => {
   it("says writing is possible only for connections that allow it, and always in three steps", async () => {
     const { core } = await import("../src/persona/core.ts");
