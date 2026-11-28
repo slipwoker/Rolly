@@ -37,6 +37,10 @@ if [ -f infrastructure/style_eval.run ]; then bash infrastructure/style_eval_job
 # Back to the old voices: ROLLY_BLUE_VOICE=daniel ROLLY_BLUE_SPEED=1.2 ROLLY_TTS_EN_ENGINE=sherpa.
 # job 21 (2026-11-27): the worker and the voice server found no usable CUDA ("CUDA failure 999: unknown error", cudaSetDevice) while
 # vLLM still holds the GPU: diagnose (output in job.log, published on :8001) and try the usual fix (the unified-memory device node).
+# job 23 (2026-11-28): restart the worker for (1) the barge-in check: a sound that looks like speech (a phone buzzing, a cough) is
+# transcribed before the agent is cut and the agent is only cut by words (bargein_verify_ms, 300; 0 = off), and (2) a reply cut by a
+# false interruption continues from the word where it was cut instead of saying the sentence again.  Same restart as jobs 11-20:
+# only the worker (blue_setup.sh is idempotent, vLLM keeps running).  Same code as main at PR #57.
 echo "--- cuda diag $(date -u +%FT%TZ)"
 nvidia-smi --query-gpu=name,driver_version,memory.used,memory.total,compute_mode,persistence_mode --format=csv 2>&1 | head -3
 ls -l /dev/nvidia* 2>&1 | head -12

@@ -229,6 +229,21 @@ class Endpointer:
                 self._utt = []
                 events.append(VadEvent("end", self._last_speech_ms, audio, self._info()))
 
+    def peek(self) -> tuple[np.ndarray, dict]:
+        """The utterance so far and its level/confidence, without ending it (the pipeline checks a barge-in candidate with them)."""
+        return self._utterance(), self._info()
+
+    def drop_utterance(self) -> None:
+        """Forget the utterance in progress: it was not speech (the pipeline checked). A new one can start at once."""
+        self._in_speech = False
+        self._speech_run = 0.0
+        self._silence_run = 0.0
+        self._eager_fired = False
+        self.endpoint_override_ms = None
+        self._utt = []
+        self._pending_start = []
+        self._probs = []
+
     def _info(self) -> dict:
         """Loudness and detector confidence of the utterance, for telling the user from echo and background voices."""
         n = max(1, getattr(self, "_energy_n", 0))
