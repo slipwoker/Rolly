@@ -8,12 +8,12 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type ScrollViewInstance } from "react-native";
+import { Linking, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type ScrollViewInstance } from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../src/api";
-import { fill, t, useUiLang } from "../src/i18n";
-import { Backdrop, Chip, CircleButton, IconTile, PressScale, Row, Sheet, TopBar, Txt, cardStyle } from "../src/ui/components";
+import { fill, t, uiLang, useUiLang } from "../src/i18n";
+import { Backdrop, Chip, CircleButton, IconTile, LinkRow, PressScale, Row, Sheet, TopBar, Txt, cardStyle } from "../src/ui/components";
 import { MediaCard } from "../src/ui/MediaCard";
 import { RollyAvatar } from "../src/ui/RollyAvatar";
 import { radius, spacing, useTheme } from "../src/ui/theme";
@@ -165,9 +165,21 @@ export default function Home() {
       <Sheet visible={menu} onClose={() => setMenu(false)} title={t.menu}>
         <Row icon="trending-up" title={t.progress} sub={t.progressSub} onPress={() => go("/progress")} />
         <Row icon="bookmark" title={t.personalisation} sub={t.memorySub} onPress={() => go("/personalisation")} />
+        {/* the site's legal pages, in the app's language */}
+        <View style={[s.legal, { borderColor: c.border }]}>
+          <LinkRow icon="shield" label={t.legalPrivacy} onPress={() => { setMenu(false); openSite("privacy"); }} />
+          <LinkRow icon="file-text" label={t.legalTerms} onPress={() => { setMenu(false); openSite("terms"); }} />
+          <LinkRow icon="eye" label={t.legalAccess} onPress={() => { setMenu(false); openSite("accessibility"); }} />
+        </View>
       </Sheet>
     </View>
   );
+}
+
+/** Opens a page of heyrolly.ai (privacy, terms, accessibility) in the browser, in the app's language. */
+function openSite(page: "privacy" | "terms" | "accessibility") {
+  // a beat so the menu starts closing before the browser takes over
+  setTimeout(() => void Linking.openURL(`https://heyrolly.ai${uiLang === "en" ? "/en" : ""}/${page}/`).catch(() => {}), 50);
 }
 
 /** One line of the "picking up from here" card. */
@@ -211,6 +223,7 @@ function Transcript() {
 }
 
 const s = StyleSheet.create({
+  legal: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.sm, marginTop: -spacing.xs },
   center: { textAlign: "center" },
   stage: { flex: 1, paddingHorizontal: spacing.xxl },
   orbWrap: { flex: 1, alignItems: "center", justifyContent: "center", minHeight: 120 },

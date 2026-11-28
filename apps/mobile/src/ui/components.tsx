@@ -161,6 +161,19 @@ export function ToggleRow({ title, sub, value, onChange, disabled }: { title: st
   );
 }
 
+/** A secondary link out of the app (legal pages): small icon, label, and an "opens outside" mark. */
+export function LinkRow({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+  const c = useTheme();
+  return (
+    <PressScale accessibilityRole="link" onPress={onPress} scaleTo={0.98}
+      style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: spacing.sm, minHeight: 44 }}>
+      <Feather name={icon} size={16} color={c.dim} />
+      <Txt variant="subhead" tone="dim" style={{ flex: 1 }}>{label}</Txt>
+      <Feather name="external-link" size={14} color={c.faint} />
+    </PressScale>
+  );
+}
+
 /** A tappable row with an icon tile, title, subtitle and a chevron. */
 export function Row({ icon, title, sub, onPress }: { icon: IconName; title: string; sub?: string; onPress: () => void }) {
   const c = useTheme();
