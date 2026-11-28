@@ -57,6 +57,10 @@ step "vLLM (separate environment; first install takes several minutes)"
 # prompt at INFO; VLLM_LOGGING_LEVEL=INFO keeps the DEBUG prompt dump off).  ">>": log_retention.sh rotates the file.
 if ! curl -fs http://127.0.0.1:8081/health >/dev/null 2>&1; then
   echo "starting vLLM with $LLM_MODEL on $VLLM_HOST:8081 (downloads ~27 GB on first start) - log: $LOGS/vllm.log"
+  # compile caches on the volume: the container disk is erased when the pod stops, and recompiling took most of a restart
+  # (torch.compile + Triton kernels, several minutes); with these on /workspace a restart reuses them
+  mkdir -p "$WS/cache/vllm" "$WS/cache/triton" "$WS/cache/inductor"
+  VLLM_CACHE_ROOT="$WS/cache/vllm" TRITON_CACHE_DIR="$WS/cache/triton" TORCHINDUCTOR_CACHE_DIR="$WS/cache/inductor" \
   VLLM_LOGGING_LEVEL=INFO nohup "$WS/vllm-venv/bin/vllm" serve "$LLM_MODEL" --served-model-name local --host "$VLLM_HOST" --port 8081 --max-model-len 16384 \
     --gpu-memory-utilization "${ROLLY_VLLM_MEM:-0.70}" --enable-prefix-caching --disable-log-requests \
     ${ROLLY_GPU_API_KEY:+--api-key "$ROLLY_GPU_API_KEY"} >> "$LOGS/vllm.log" 2>&1 &
