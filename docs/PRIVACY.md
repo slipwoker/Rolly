@@ -81,8 +81,9 @@ without `consent: true` and records when it was given.
 - WhatsApp/Meta: sees a new linked device and Rolly's messages, like any linked device.
 - The speech-to-text worker: the audio of a voice note, only on request.
 - The utility language model (OpenAI today): the user's spoken request and the last few turns of the conversation, to decide what was
-  asked. **It never receives message content.** The conversation model on our GPU pod does receive the messages that are read aloud
-  and the drafts, because it has to say them.
+  asked, plus a pending draft's chat name and text. For the pre-ride look-ahead (P1-D43/D44, on unless the user turns it off) it also
+  receives the text of recent one-to-one messages (up to 5 chats, 6 messages each, last 3 days). The conversation model on our GPU pod
+  receives the messages that are read aloud and the drafts, because it has to say them.
 - No analytics or third party gets message content. Message text is not written to logs.
 
 **Rules in the product.** Rolly never sends on its own; a send is a draft read back and confirmed by the user in a later turn; nothing is
@@ -98,7 +99,7 @@ the gateway has no in-app consent screen yet (the API requires the flag; the scr
 
 ## Connected services (calendar, mail, music)
 
-- **Google (calendar + mail)** is read only (`calendar.readonly`, `gmail.readonly`). The refresh token is stored encrypted (AES-256-GCM) in `integrations`, under a key that only the service's environment holds (`ROLLY_INTEGRATIONS_KEY`, never in the database; P1-D40, `docs/SECURITY.md`), deleted on disconnect or account deletion, and revoked at Google at that moment. Rolly never sends, replies, accepts or changes anything.
+- **Google (calendar + mail)** is read with `calendar.events` (older connections: `calendar.readonly`) and `gmail.readonly`; writing is below. The refresh token is stored encrypted (AES-256-GCM) in `integrations`, under a key that only the service's environment holds (`ROLLY_INTEGRATIONS_KEY`, never in the database; P1-D40, `docs/SECURITY.md`), deleted on disconnect or account deletion, and revoked at Google at that moment. Reading alone never sends, replies, accepts or changes anything.
 - **Writing to Google (email, calendar events)** uses two more scopes, `gmail.send` and `calendar.events`, and works only after the user has approved them (connections made earlier stay read-only until the user taps "update permissions"). Rolly sends one email or adds one event only after reading the draft back and hearing a yes in a later turn of the user's own voice; it cannot delete or change anything that exists and cannot reply inside a thread. Recipients are taken from what the user said or from names in the headers of their own mail (never message text). Invited guests receive Google's normal invitation. At most 10 emails and 15 events per hour per user.
 - When the user asks about their calendar or mail, only the events (title, time, place) or at most five messages (sender, subject, Google's snippet, never full bodies) needed for that one question are fetched and sent to the utility model to be put into a spoken answer. Nothing from mail or calendar is written to memory or the transcript store beyond what the user hears Rolly say.
 - **Spotify search** uses the app's own credentials to search the public catalogue; no user data is sent except the search words.
