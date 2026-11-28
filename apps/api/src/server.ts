@@ -15,6 +15,26 @@ export interface ServerDeps {
 }
 
 export const active = new Map<string, VoiceSession>();
+
+/**
+ * Shutting down because a newer version took over (Render sends SIGTERM once the new instance is healthy and traffic has moved).
+ * New voice connections are refused (the phone retries and lands on the new instance), conversations that are running are left
+ * to finish for up to `maxMs`, and only then are the rest handed over: their turns are saved, the phone is closed with 1012
+ * and reconnects with `resume_of`, and the conversation goes on (P1-D45). Render must allow the process this long to stop
+ * (Maximum Shutdown Delay), see render.api.yaml.
+ */
+let draining = false;
+export const isDraining = () => draining;
+export async function drain(maxMs: number, log: (msg: string, extra?: Record<string, unknown>) => void = () => {}): Promise<{ waitedMs: number; handedOver: number }> {
+  draining = true;
+  const t0 = Date.now();
+  log("draining", { sessions: active.size, max_s: Math.round(maxMs / 1000) });
+  while (active.size > 0 && Date.now() - t0 < maxMs) await new Promise((r) => setTimeout(r, 500));
+  const left = [...active.values()];
+  if (left.length) log("drain time is up: handing the rest over", { sessions: left.length });
+  await Promise.all(left.map((x) => x.close("server_restart")));
+  return { waitedMs: Date.now() - t0, handedOver: left.length };
+}
 /**
  * One live conversation per user. A second voice socket for the same user (a double tap on "start", an app that opened a
  * new session while the previous one was still open) closes the older one: on 2026-11-26 a phone had two sessions open
@@ -67,13 +87,14 @@ export async function buildServer(deps: ServerDeps): Promise<FastifyInstance> {
   const app = Fastify({ logger: loggerOptions(), trustProxy: true });
   quietNotFound(app);
 
-  app.get("/healthz", async () => ({ ok: true, active_sessions: active.size, ...(deps.health ? await deps.health() : {}) }));
+  app.get("/healthz", async () => ({ ok: true, active_sessions: active.size, draining, ...(deps.health ? await deps.health() : {}) }));
   if (deps.routes) await deps.routes(app);
 
   const wss = new WebSocketServer({ noServer: true, maxPayload: 1 << 20, perMessageDeflate: false });
   app.server.on("upgrade", async (req, socket, head) => {
     const url = new URL(req.url ?? "/", "http://x");
     if (url.pathname !== "/v1/voice") { socket.destroy(); return; }
+    if (draining) { socket.write("HTTP/1.1 503 Service Unavailable\r\nRetry-After: 2\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"); socket.destroy(); return; }
     let userId: string | null = null;
     const ticket = url.searchParams.get("ticket");
     if (ticket) userId = await deps.consumeTicket(ticket).catch(() => null);

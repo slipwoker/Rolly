@@ -71,6 +71,10 @@ export interface SessionHooks {
    * The model said it is checking something online: find the answer. Resolves with the marked message the model is
    * given next (lookup/web.ts: the facts, or that the check did not work). Never rejects in normal operation.
    */
+  /** every turn, as it happens (and again when its meta changes), so a cut-off conversation keeps what was said (memory/recover.ts) */
+  recordTurn?(userId: string, sessionId: string, turn: SessionTurn): Promise<void>;
+  /** "still here", every 30 s while the conversation runs */
+  heartbeat?(sessionId: string): Promise<void>;
   /** the opening line of a conversation, as said: the next conversation of this user can start differently even if this one has not been saved yet */
   rememberOpener?(userId: string, text: string): void;
   lookup?(args: { userId: string; sessionId: string; question: string; lastMedia: MediaItem[]; recent: { role: "user" | "agent"; text: string }[]; language: string;
@@ -155,6 +159,7 @@ export class VoiceSession {
   private lookupRunning = false;
   private inject: { message: string; readyAt: number; media?: MediaItem[]; open?: { url: string } } | null = null;
   private injectTimer: NodeJS.Timeout | null = null;
+  private heartbeatTimer: NodeJS.Timeout | null = null;
   /** the next agent turn answers an injected message, not the user: no reply-latency measurement for it */
   private injectedNext = false;
   // ---- music (integrations/spotify.ts): what was last shown as cards, and the "listening is off while Spotify is open" state
@@ -227,6 +232,9 @@ export class VoiceSession {
       return this.close("error");
     }
     this.language = prepared.ctx.language;
+    const beat = () => { void this.hooks.heartbeat?.(this.sessionId)?.catch(() => {}); };
+    beat();
+    this.heartbeatTimer = setInterval(beat, 30_000);
     this.pod = new PodSession(this.podCfg.url, this.podCfg.apiKey, {
       onEvent: (ev, d) => this.onPodEvent(ev, d),
       onAudio: (a) => this.onPodAudio(a),
@@ -491,7 +499,8 @@ export class VoiceSession {
               if (n.standing) { this.standing = { text: n.text, turns: n.turns, left: n.turns }; this.note("standing", n.text, n.turns); }
               else this.note("memory", n.text, n.turns);
             })
-            .catch((e) => this.log("onUserTurn failed", { error: String(e).slice(0, 200) }));
+            .catch((e) => this.log("onUserTurn failed", { error: String(e).slice(0, 200) }))
+            .finally(() => this.recordTurn(turn)); // the live step may have marked it (a forget request): the stored copy follows
         }
         this.send({ type: "user.transcript", text: String(d.text ?? ""), final, language: (d.language as string) ?? null });
         break;
@@ -600,7 +609,15 @@ export class VoiceSession {
   }
 
   private addTurn(role: "user" | "agent", text: string, language: string | null, attribution: "primary" | "uncertain", meta: Record<string, unknown>) {
-    this.turns.push({ idx: this.turnIdx++, role, text, language, startedAt: Date.now(), attribution, meta });
+    const turn: SessionTurn = { idx: this.turnIdx++, role, text, language, startedAt: Date.now(), attribution, meta };
+    this.turns.push(turn);
+    this.recordTurn(turn);
+  }
+
+  /** written to the database as it happens; never blocks or breaks the conversation */
+  private recordTurn(turn: SessionTurn) {
+    if (this.closing) return; // finalize writes everything at the end
+    void this.hooks.recordTurn?.(this.userId, this.sessionId, turn)?.catch((e) => this.log("recordTurn failed", { error: String(e).slice(0, 160) }));
   }
 
   // ------------------------------------------------------------ end
@@ -612,6 +629,7 @@ export class VoiceSession {
     if (this.maxTimer) clearTimeout(this.maxTimer);
     if (this.paceTimer) clearInterval(this.paceTimer);
     if (this.injectTimer) clearInterval(this.injectTimer);
+    if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
     this.clearOpenTimer();
     this.pod?.close();
     let summary: unknown = null;
@@ -625,9 +643,14 @@ export class VoiceSession {
       this.log("finalize failed", { error: String(e).slice(0, 300) });
     }
     try {
-      this.client.sendJson({ type: "session.summary", session_id: this.sessionId, summary, stats });
-      this.client.sendJson({ type: "session.closed", reason });
-      this.client.close(1000, reason);
+      if (reason === "server_restart") {
+        // handed over, not ended: no "closed" message, so the phone reconnects at once and resumes this conversation (resume_of)
+        this.client.close(1012, "service restart");
+      } else {
+        this.client.sendJson({ type: "session.summary", session_id: this.sessionId, summary, stats });
+        this.client.sendJson({ type: "session.closed", reason });
+        this.client.close(1000, reason);
+      }
     } catch { /* phone already gone */ }
     this.log("session ended", { reason, turns: this.turns.length });
     this.resolveDone();
