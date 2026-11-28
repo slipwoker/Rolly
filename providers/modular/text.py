@@ -415,3 +415,28 @@ def echo_like(heard: str, agent_text: str) -> bool:
 
     hits = sum(1 for w in h if any(same(w, x) for x in a))
     return hits / len(h) >= 0.7
+
+
+# A reply cut off by something that was not the user (a cough, a noise) is said again from the chunk that was cut. But a chunk
+# that was almost all heard must not be repeated: the user then hears the same sentence twice (seen on the opener, 2026-11-28).
+RESUME_HEARD_FRACTION = 0.75  # this much of the cut chunk heard: count it as said
+RESUME_NEARLY_FRACTION = 0.5  # ... or this much, when what is left is under RESUME_LEFT_S
+RESUME_LEFT_S = 0.7
+
+
+def chunks_left(every: list[str], synthesized: list[tuple[str, float]], played_s: float) -> list[str]:
+    """The chunks of a reply still to say after `played_s` seconds of playback. `synthesized` = (text, seconds of audio) of the chunks
+    whose audio exists, in order; `every` = all chunks of the reply. A fully played chunk is done; the chunk playing when the reply
+    was cut is done too if nearly all of it was heard, otherwise it is said again; later chunks are not done."""
+    done, acc = 0, 0.0
+    for _text, dur in synthesized:
+        end = acc + dur
+        if end <= played_s:
+            done += 1
+        else:
+            heard = (played_s - acc) / dur if dur > 0 else 1.0
+            if heard >= RESUME_HEARD_FRACTION or (heard >= RESUME_NEARLY_FRACTION and end - played_s <= RESUME_LEFT_S):
+                done += 1
+            break
+        acc = end
+    return every[done:]

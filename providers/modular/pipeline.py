@@ -27,7 +27,7 @@ from .. import base
 from ..base import VoiceProvider
 from .llm import LLMResult, OpenAICompatLLM
 from .stt import discard_reason, get_stt
-from .text import FOREIGN_LANGS, LOOKUP_MARKER, MarkerFilter, SentenceChunker, TurnNotes, clean_for_speech, echo_like, has_stop_word, question_guard_note, user_wants_to_end
+from .text import FOREIGN_LANGS, chunks_left, LOOKUP_MARKER, MarkerFilter, SentenceChunker, TurnNotes, clean_for_speech, echo_like, has_stop_word, question_guard_note, user_wants_to_end
 from .pronounce import get_probe, usable_name
 from .turnend import judge as judge_turn_end, mode_from as turn_end_mode, override_for as turn_end_override
 from .tts import TTSRouter
@@ -322,19 +322,14 @@ class ModularProvider(VoiceProvider):
         return " ".join(heard)
 
     def _unsaid_chunks(self, state: dict) -> list[str]:
-        """Chunks of the reply that had not finished playing when it was cut off (the cut one is said again)."""
+        """Chunks of the reply that had not finished playing when it was cut off (the cut one is said again, unless nearly all of it was heard)."""
         first = state.get("first_audio_t")
         every = list(state.get("all_chunks") or [])
         if first is None:
             return every
         gate = state.get("gate")
         first = max(first, (gate.commit_time or first) if gate else first)
-        played, acc, done = time.monotonic() - first, 0.0, 0
-        for _text, dur in state.get("chunks", []):
-            acc += dur
-            if acc <= played:
-                done += 1
-        return every[done:]
+        return chunks_left(every, state.get("chunks", []), time.monotonic() - first)
 
     def _restore_assistant(self, full_text: str) -> None:
         """The reply was said in full after all: undo the truncation recorded at the false interruption."""
