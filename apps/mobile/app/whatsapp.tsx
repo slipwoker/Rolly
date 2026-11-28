@@ -13,9 +13,10 @@ import { Alert, AppState, ScrollView, Share, StyleSheet, TextInput, View } from 
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../src/api";
-import { fill, inputAlign, t, uiLang } from "../src/i18n";
+import { fill, inputAlign, t, uiLang, useUiLang } from "../src/i18n";
 import { formatCode, isEmail, linkError, minutesLeft, normalizePhone, stateView, type LinkError } from "../src/whatsapp";
-import { Backdrop, Button, Card, Chip, CircleButton, IconTile, TopBar, Txt } from "../src/ui/components";
+import { Backdrop, Button, Card, Chip, CircleButton, IconTile, ToggleRow, TopBar, Txt } from "../src/ui/components";
+import { BrandIcon } from "../src/ui/BrandIcon";
 import { radius, spacing, type, useTheme } from "../src/ui/theme";
 
 type Step = "home" | "terms" | "method" | "email" | "wait" | "phone" | "code";
@@ -25,6 +26,7 @@ interface Started { state: string; code?: string; expires_in_s?: number }
 interface WebLink { url?: string; sent?: boolean; expires_in_s: number }
 
 export default function WhatsApp() {
+  useUiLang();
   const c = useTheme();
   const [state, setState] = useState("unavailable");
   const [emailOk, setEmailOk] = useState(false);
@@ -37,11 +39,15 @@ export default function WhatsApp() {
   const [secs, setSecs] = useState(0);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<LinkError | null>(null);
+  // standing consent: ROLLY may read recent chats before a ride (moves at once; a failure reloads the truth)
+  const [waSignal, setWaSignal] = useState(false);
+  const setSignal = (on: boolean) => { setWaSignal(on); api("/v1/signals/consent", { method: "PUT", body: { source: "whatsapp", enabled: on } }).catch(load); };
   const stepRef = useRef(step);
   stepRef.current = step;
 
   const load = useCallback(() => {
     api<Status>("/v1/whatsapp").then((r) => { setState(r.available ? r.state : "unavailable"); setEmailOk(Boolean(r.email)); }).catch(() => setState("unavailable"));
+    api<{ whatsapp: boolean }>("/v1/signals/consent").then((r) => setWaSignal(r.whatsapp)).catch(() => {});
   }, []);
   useFocusEffect(load);
 
@@ -116,9 +122,10 @@ export default function WhatsApp() {
           {step === "home" ? (
             <Animated.View entering={enter()}>
               <Card style={s.card}>
-                <View style={s.head}><IconTile icon="message-circle" /><Txt variant="headline" style={{ flex: 1 }}>{t.waService}</Txt></View>
+                <View style={s.head}><BrandIcon brand="whatsapp" /><Txt variant="headline" style={{ flex: 1 }}>{t.waService}</Txt></View>
                 <Txt variant="subhead" tone={view.warn ? "danger" : "dim"}>{t[view.text]}</Txt>
                 <Txt variant="caption" tone="dim">{state === "connected" || state === "reconnecting" ? t.waConnectedText : state === "needs_relink" ? t.waRelinkText : t.waWhy}</Txt>
+                {state === "connected" ? <ToggleRow title={t.signalsWhatsapp} sub={t.signalsWhatsappWhy} value={waSignal} onChange={setSignal} /> : null}
                 <View style={s.row}>
                   {view.canLink ? <Button variant="primary" icon="link" label={state === "needs_relink" ? t.waNewCode : t.connect} onPress={startLinking} /> : null}
                   {view.canUnlink ? <Button variant="danger" icon="x" label={t.disconnect} onPress={disconnect} /> : null}

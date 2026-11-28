@@ -12,19 +12,17 @@ import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type Scro
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../src/api";
-import { fill, t } from "../src/i18n";
+import { fill, t, useUiLang } from "../src/i18n";
 import { Backdrop, Chip, CircleButton, IconTile, PressScale, Row, Sheet, TopBar, Txt, cardStyle } from "../src/ui/components";
 import { MediaCard } from "../src/ui/MediaCard";
 import { RollyAvatar } from "../src/ui/RollyAvatar";
 import { radius, spacing, useTheme } from "../src/ui/theme";
 import { MicButton, Waveform } from "../src/ui/VoiceParts";
 import type { VoiceState } from "../src/voice/controller";
-import { useVoiceSession, type ConvLang } from "../src/voice/VoiceProvider";
+import { useVoiceSession } from "../src/voice/VoiceProvider";
 import { isNight } from "../src/ui/daypart";
 
 const LIVE: VoiceState[] = ["listening", "user_speaking", "agent_speaking"];
-const LANG_SHORT: Record<ConvLang, string> = { he: "עב", en: "EN", auto: "A" };
-const NEXT_LANG: Record<ConvLang, ConvLang> = { he: "en", en: "auto", auto: "he" };
 const TRIP_MINUTES = [10, 20, 40] as const;
 
 function greeting(name: string | null): string {
@@ -37,6 +35,7 @@ function greeting(name: string | null): string {
 interface Progress { goals: { content: string }[]; action_items: { content: string }[]; sessions: { summary: string | null }[]; next_up?: { topic: string }[] }
 
 export default function Home() {
+  useUiLang();
   const c = useTheme();
   const v = useVoiceSession();
   const { width, height } = useWindowDimensions();
@@ -153,14 +152,8 @@ export default function Home() {
           </View>
         ) : (
           <View style={s.controls}>
-            <View style={s.side}>
-              {!v.active ? (
-                <PressScale accessibilityRole="button" accessibilityLabel={t.language} onPress={() => v.setLang(NEXT_LANG[v.lang])}
-                  style={[s.langBtn, { borderColor: c.border }]}>
-                  <Txt variant="micro">{LANG_SHORT[v.lang]}</Txt>
-                </PressScale>
-              ) : null}
-            </View>
+            {/* the conversation language is a setting (Personalisation), not a per-ride control */}
+            <View style={s.side} />
             <MicButton icon={v.active && v.state !== "music" ? "square" : "mic"} label={v.state === "music" ? t.tapToTalk : v.active ? t.stop : t.start} live={LIVE.includes(v.state)} onPress={toggle} />
             <View style={[s.side, { alignItems: "flex-end" }]}>
               {v.active ? <CircleButton icon="x" label={t.endConv} onPress={() => void v.stop()} /> : null}
@@ -231,7 +224,6 @@ const s = StyleSheet.create({
   fadeTop: { position: "absolute", top: 0, left: 0, right: 0, height: 56 },
   controls: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.xxl, paddingTop: spacing.md, paddingBottom: spacing.sm },
   side: { width: 44 },
-  langBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth * 2, alignItems: "center", justifyContent: "center" },
   chat: { padding: spacing.xl, gap: spacing.lg },
   agentRow: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md, maxWidth: "88%" },
   avatar: { marginTop: 2 },

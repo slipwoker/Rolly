@@ -8,7 +8,8 @@ import { PressScale, Txt } from "./components";
 import { radius, spacing } from "./theme";
 
 const SPOTIFY_GREEN = "#1DB954";
-const KIND: Record<MediaItem["kind"], string> = { track: t.kTrack, artist: t.kArtist, album: t.kAlbum, show: t.kShow, episode: t.kEpisode };
+/** read at render time: the app language can change while running */
+const kindLabel = (k: MediaItem["kind"]): string => ({ track: t.kTrack, artist: t.kArtist, album: t.kAlbum, show: t.kShow, episode: t.kEpisode })[k];
 
 export function MediaCard({ item }: { item: MediaItem }) {
   const open = () => {
@@ -22,7 +23,7 @@ export function MediaCard({ item }: { item: MediaItem }) {
         ? <Image source={{ uri: item.image }} style={[s.cover, item.kind === "artist" ? { borderRadius: 28 } : null]} accessibilityIgnoresInvertColors />
         : <View style={[s.cover, s.noCover]}><Feather name="music" size={22} color="#b3b3b3" /></View>}
       <View style={s.text}>
-        <Txt variant="micro" style={{ color: SPOTIFY_GREEN }}>{KIND[item.kind]}</Txt>
+        <Txt variant="micro" style={{ color: SPOTIFY_GREEN }}>{kindLabel(item.kind)}</Txt>
         <Txt variant="body" numberOfLines={1} style={s.title}>{item.title}</Txt>
         {item.subtitle ? <Txt variant="caption" numberOfLines={1} style={s.sub}>{item.subtitle}</Txt> : null}
       </View>

@@ -2,7 +2,7 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import type { ComponentProps, ReactNode } from "react";
-import { Modal, Pressable, StyleSheet, Text, View, type PressableProps, type StyleProp, type TextProps, type ViewStyle } from "react-native";
+import { Modal, Pressable, StyleSheet, Switch, Text, View, type PressableProps, type StyleProp, type TextProps, type ViewStyle } from "react-native";
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -143,6 +143,21 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
         </Animated.View>
       </View>
     </Modal>
+  );
+}
+
+/** A setting that is on or off: title, an explanation under it, and the platform switch at the end. */
+export function ToggleRow({ title, sub, value, onChange, disabled }: { title: string; sub?: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  const c = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: spacing.md }}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Txt variant="bodyStrong">{title}</Txt>
+        {sub ? <Txt variant="caption" tone="dim">{sub}</Txt> : null}
+      </View>
+      <Switch accessibilityLabel={title} value={value} onValueChange={onChange} disabled={disabled}
+        trackColor={{ false: c.border, true: c.accent }} thumbColor="#FFFFFF" ios_backgroundColor={c.border} />
+    </View>
   );
 }
 
